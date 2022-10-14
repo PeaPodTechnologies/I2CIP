@@ -18,10 +18,10 @@ template <typename T> class HashTableEntry {
 
 // A hash table. Yup.
 template <typename T> class HashTable {
-  private:
+  public:
     // Slots are static, entries are dynamic
     HashTableEntry<T>* hashtable[HASHTABLE_SLOTS] = { nullptr }; // FIXED POINTER to the entries - de/allocated on de/construction
-  public:
+
     HashTable();
     ~HashTable();
 

@@ -13,13 +13,13 @@ template <typename K, typename T> class BSTNode {
 };
 
 template <typename K, typename T> class BST {
-  private:
-    // Pointer to root node - all nodes de/allocated on insert()/remove()
-    BSTNode<K,T>* root = nullptr;
   public:
     BST();
 
     ~BST();
+
+    // Pointer to root node - all nodes de/allocated on insert()/remove()
+    BSTNode<K,T>* root = nullptr;
 
     /**
      * Recursively finds a spot to insert a new node.

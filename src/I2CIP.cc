@@ -291,7 +291,7 @@ namespace I2CIP {
 
           uint16_t bytes_read = 0;
           if(EEPROM::readContents(fqa, (uint8_t*)eeprom_raw, bytes_read) > I2CIP_ERR_NONE) {
-            break;
+            continue;
           }
 
           // Convert char[] to json
@@ -299,12 +299,12 @@ namespace I2CIP {
           DeserializationError jsonerr = deserializeJson(eeprom_json, eeprom_raw);
           if(jsonerr) {
             // This module's JSON is a dud
-            break;
+            continue;
           }
 
           // Read JSON to allocate table
           // TODO: Find a better way to do this
-          JsonArray arr = eeprom_json.to<JsonArray>();
+          JsonArray arr = eeprom_json.as<JsonArray>();
 
           uint8_t busnum = 0, totaldevices = 0;
           for (JsonObject bus : arr) {

@@ -36,6 +36,7 @@ class DeviceGroup {
     void add(i2cip_device_t* device);
     void addGroup(i2cip_device_t** devices, uint8_t numdevices);
     void remove(i2cip_device_t* device);
+    bool contains(i2cip_device_t* device);
 };
 
 typedef HashTable<DeviceGroup*> i2cip_devicetable_t;
@@ -82,6 +83,9 @@ class RoutingTable {
      */
     const char* operator[](const i2cip_fqa_t& fqa);
 
+    const i2cip_devicetree_t& getDevices(void);
+
+    const i2cip_devicetable_t& getDeviceGroups(void);
 };
 
 #endif

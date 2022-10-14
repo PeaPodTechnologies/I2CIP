@@ -61,6 +61,14 @@ void DeviceGroup::remove(i2cip_device_t* device) {
   this->numdevices--;
 }
 
+bool DeviceGroup::contains(i2cip_device_t* device) {
+  if(strcmp(device->value, this->key) != 0) return false;
+  for(int i = 0; i < this->numdevices; i++) {
+    if(this->devices[i]->key == device->key) return true;
+  }
+  return false;
+}
+
 HashTableEntry<DeviceGroup*>* RoutingTable::addEmptyGroup(const char* id) {
   HashTableEntry<DeviceGroup*>* group = groups.set(id, nullptr);
   DeviceGroup* newgroup = new DeviceGroup(group->key);
@@ -165,4 +173,12 @@ const char* RoutingTable::operator[](const i2cip_fqa_t& fqa) {
   i2cip_device_t* device = this->devices[fqa];
   if(device == nullptr) return nullptr;
   return device->value;
+}
+
+const i2cip_devicetree_t& RoutingTable::getDevices(void) {
+  return this->devices;
+}
+
+const i2cip_devicetable_t& RoutingTable::getDeviceGroups(void) {
+  return this->groups;
 }

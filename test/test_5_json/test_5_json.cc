@@ -65,8 +65,6 @@ void test_sprt_json_valid(void) {
  * Attempt to reach a device.
  **/
 void test_device_reachable(void) {
-  Serial.println(eeprom_fqa, HEX);
-  Serial.println(devices[d], HEX);
   TEST_ASSERT_EQUAL_UINT8(I2CIP::I2CIP_ERR_NONE, I2CIP::Device::ping(devices[d]));
 }
 
@@ -91,7 +89,6 @@ void setup() {
       JsonArray addresses = device.value().as<JsonArray>();
 
       for (JsonVariant address : addresses) {
-        Serial.println(address.as<uint8_t>(), HEX);
         devices[i] = I2CIP::createFQA(WIRENUM, MUXNUM, busnum, address.as<uint8_t>());
         i++;
       }
