@@ -1,21 +1,21 @@
-#ifndef BST_H_
-#define BST_H_
+#ifndef I2CIP_UTILS_BST_H_
+#define I2CIP_UTILS_BST_H_
 
-template <typename U> class BSTNode {
+template <typename K, typename T> class BSTNode {
   public:
-    BSTNode(const int& key, const U& value);
+    BSTNode(K key, T value, BSTNode<K,T>* left = nullptr, BSTNode<K,T>* right = nullptr);
     ~BSTNode();
 
-    const int key;            // IMMUTABLE (copied) key - passed in
-    U value;                  // Value
-    BSTNode* left = nullptr;  // Pointer to left (lesser) node
-    BSTNode* right = nullptr; // Pointer to right (greater) node
+    K key;                // Mutable (copied) key - passed in
+    T value;              // REFERENCE to Value
+    BSTNode<K,T>* left;   // Pointer to left (lesser) node
+    BSTNode<K,T>* right;  // Pointer to right (greater) node
 };
 
-template <typename T> class BST {
+template <typename K, typename T> class BST {
   private:
     // Pointer to root node - all nodes de/allocated on insert()/remove()
-    BSTNode<T>* root = nullptr;
+    BSTNode<K,T>* root = nullptr;
   public:
     BST();
 
@@ -25,39 +25,45 @@ template <typename T> class BST {
      * Recursively finds a spot to insert a new node.
      * @param key
      * @param value
-     * @param root
+     * @param root - Pass-by-ref, to be modified on insertion
      * @return Pointer to the inserted node
      */
-    BSTNode<T>* insert(const int& key, const T& value, bool overwrite = true, BSTNode<T>* root = this->root);
+    static BSTNode<K,T>* insert(K key, T value, BSTNode<K,T>*& root, bool overwrite = true);
+    BSTNode<K,T>* insert(K key, T value, bool overwrite = true);
 
     /**
      * Recursively finds a node by key and removes it.
      * @param key
      * @param root
      */
-    BSTNode<T>* remove(const int& key, BSTNode<T>* root = this->root);
+    static BSTNode<K,T>* remove(K key, BSTNode<K,T>*& root);
+    BSTNode<K,T>* remove(K key);
 
     /**
      * Recursively finds a node by key. Breadth-first.
      * @param key
      * @param root
      */
-    BSTNode<T>* find(const int& key, BSTNode<T>* root = this->root);
+    static BSTNode<K,T>* find(K key, BSTNode<K,T>* root);
+    BSTNode<K,T>* find(K key);
 
-    T* operator[](const int& key);
+    BSTNode<K,T>* operator[](K key);
 
     /**
      * Recursively finds the least-key node. Depth-first.
      * @param root
      */
-    BSTNode<T>* findMin(BSTNode<T>* root = this->root);
+    static BSTNode<K,T>* findMin(BSTNode<K,T>* root);
+    BSTNode<K,T>* findMin(void);
 
     /**
      * Recursively finds the greatest-key node. Depth-first.
      * @param root
      */
-    BSTNode<T>* findMax(BSTNode<T>* root = this->root);
-
+    static BSTNode<K,T>* findMax(BSTNode<K,T>* root);
+    BSTNode<K,T>* findMax(void);
 };
+
+#include <utils/bst.tpp>
 
 #endif

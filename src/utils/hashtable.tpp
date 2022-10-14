@@ -1,41 +1,42 @@
-#include <utils/hashtable.h>
+#ifndef I2CIP_UTILS_HASHTABLE_T_H_
+#define I2CIP_UTILS_HASHTABLE_T_H_
 
 #include <stdlib.h>
 #include <string.h>
 
 #include <Arduino.h>
 
-// DECLARATIONS
-
-static const char* strdup(const char* s);
-
-unsigned hash(char* s, uint8_t hashsize);
+inline static uint8_t hash(const char* s) {
+  unsigned index;
+  for (index = 0; *s != '\0'; s++) {
+    index = *s + HASHTABLE_OFFSET * index;
+  }
+  return index % HASHTABLE_SLOTS;
+}
 
 // HASH TABLE ENTRY
 
-template <typename U> HashTableEntry<U>::HashTableEntry(const char* key, U value, HashTableEntry<U>* last) : key(strdup(key)), value(value), next(last) { }
+template <typename T> HashTableEntry<T>::HashTableEntry(const char* key, T value, HashTableEntry<T>* last) : key(strdup(key)), value(value), next(last) { }
 
-template <typename U> HashTableEntry<U>::~HashTableEntry() {
+template <typename T> HashTableEntry<T>::~HashTableEntry() {
   // Free our key then trigger the next entry
-  free(this->key);
+  free((void*)this->key);
   delete(this->next);
 }
 
 // HASH TABLE
 
-template <typename T> HashTable<T>::HashTable(uint8_t hashsize) : hashsize(hashsize) { }
+template <typename T> HashTable<T>::HashTable() {}
 
 template <typename T> HashTable<T>::~HashTable() {
   // Free all allocated entries (and their keys) recursively; slots are static
-  for (unsigned char i = 0; i < this->hashsize; i++) {
+  for (uint8_t i = 0; i < HASHTABLE_SLOTS; i++) {
     delete(this->hashtable[i]);
   }
 }
 
-template <typename T> T* HashTable<T>::operator[](const char* key) {
-  HashTableEntry<T>* entry = get(key);
-  if (entry == nullptr) return nullptr;
-  return &(entry->value);
+template <typename T> HashTableEntry<T>* HashTable<T>::operator[](const char* key) {
+  return get(key);
 }
 
 // Public methods
@@ -49,8 +50,8 @@ template <typename T> HashTableEntry<T>* HashTable<T>::set(const char* key, T va
     return head;
   }
   // No match, allocate new; point "next" to the top entry
-  unsigned index = hash(key);
-  head = new HashTableEntry<T>(key, value, *(hashtable[index]));
+  uint8_t index = hash(key);
+  head = new HashTableEntry<T>(key, value, hashtable[index]);
 
   // If allocation was successful:
   if (head != nullptr && head->key != nullptr) {
@@ -73,7 +74,7 @@ template <typename T> HashTableEntry<T>* HashTable<T>::get(const char* key) {
 
 template <typename T> bool HashTable<T>::remove(const char* key) {
   // Find ptr.next.key == key
-  unsigned index = hash(key);
+  uint8_t index = hash(key);
   HashTableEntry<T>* ptr = hashtable[index];
 
   // Check top-level
@@ -99,20 +100,4 @@ template <typename T> bool HashTable<T>::remove(const char* key) {
   return false;
 }
 
-// HELPER FUNCTIONS
-
-static const char* strdup(const char* s) {
-  char* p = (char*)malloc(strlen(s)+1); // +1 for '\0' terminator
-  if (p != nullptr) {
-    strcpy(p, s);
-  }
-  return p;
-}
-
-static unsigned hash(char* s, uint8_t hashsize) {
-  unsigned index;
-  for (index = 0; *s != '\0'; s++) {
-    index = *s + HASHTABLE_OFFSET * index;
-  }
-  return index % hashsize;
-}
+#endif

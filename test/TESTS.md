@@ -3,3 +3,4 @@
 - BST testing
 - Hashtable testing
 - Hardware testing
+  - EEPROM dump

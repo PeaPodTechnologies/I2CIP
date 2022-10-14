@@ -106,3 +106,13 @@ A partial routing table (see below) indexes only the devices on a bus.
 ```
 
 > Note: when flashed, all comments, whitespaces, and trailing commas MUST be removed. All strings must be double quotes.
+
+# Software Development
+
+## Paradigm
+
+- RoutingTable class *composes* (de/allocates) the actual stored values as *device groups* and uses BST/HT simply to sort them for traversal by FQA or ID (respectively)
+- BST/Hash Table utility classes *aggregate* the values they hold; this means they are stored by *reference* (template type T: `T& value`) and do *NOT* manage the lifecycle of the values they store
+
+- Both use entry classes and creates them by *construction* (passing in values *by reference*); this prevents unnecessary allocation by `malloc`
+- Utility classes store and return entries by *pointer*; this allows getters to return `nullptr` if no matching entry is found
