@@ -7,6 +7,7 @@
 #include "../config.h"
 
 // GLOBALS
+i2cip_fqa_t eeprom_fqa = I2CIP::createFQA(WIRENUM, MUXNUM, I2CIP_MUX_BUS_DEFAULT, I2CIP_EEPROM_ADDR);
 char buffer[I2CIP_TEST_BUFFERSIZE] = { '\0' };
 StaticJsonDocument<I2CIP_TEST_BUFFERSIZE> eeprom_json;  // EEPROM JSON doc
 uint8_t totaldevices = 0; // Number of devices in EEPROM
@@ -19,16 +20,16 @@ uint8_t d = 0;  // Loop variable
 void test_sprt_json_deser(void) {
   // READ EEPROM
   uint16_t size = 0;
-  I2CIP::i2cip_errorlevel_t result = I2CIP::Routing::EEPROM::readContents(eeprom_fqa, (uint8_t*)buffer, size, I2CIP_TEST_BUFFERSIZE);
-  TEST_ASSERT_EQUAL_UINT8(I2CIP::I2CIP_ERR_NONE, result);
-  TEST_ASSERT_NOT_EQUAL(0, size);
+  I2CIP::i2cip_errorlevel_t result = I2CIP::EEPROM::readContents(eeprom_fqa, (uint8_t*)buffer, size, I2CIP_TEST_BUFFERSIZE);
+  TEST_ASSERT_EQUAL_UINT8_MESSAGE(I2CIP::I2CIP_ERR_NONE, result, "Failed to read EEPROM");
+  TEST_ASSERT_NOT_EQUAL_MESSAGE(0, size, "EEPROM empty!");
 
   // DESERIALIZE
   DeserializationError jsonerr = deserializeJson(eeprom_json, buffer);
 
-  TEST_ASSERT_TRUE(jsonerr.code() == DeserializationError::Code::Ok);
-  TEST_ASSERT_NOT_EQUAL(0, eeprom_json.memoryUsage());
-  TEST_ASSERT_FALSE(eeprom_json.overflowed());
+  TEST_ASSERT_TRUE_MESSAGE(jsonerr.code() == DeserializationError::Code::Ok, buffer);
+  TEST_ASSERT_NOT_EQUAL_MESSAGE(0, eeprom_json.memoryUsage(), buffer);
+  TEST_ASSERT_FALSE_MESSAGE(eeprom_json.overflowed(), buffer);
 }
 
 /**
@@ -65,7 +66,9 @@ void test_sprt_json_valid(void) {
  * Attempt to reach a device.
  **/
 void test_device_reachable(void) {
-  TEST_ASSERT_EQUAL_UINT8(I2CIP::I2CIP_ERR_NONE, I2CIP::Device::ping(devices[d]));
+  char msg[30];
+  sprintf(msg, "Device unreachable (%01X.%01X.%01X.%02X)", I2CIP_FQA_SEG_I2CBUS(devices[d]), I2CIP_FQA_SEG_MUXNUM(devices[d]), I2CIP_FQA_SEG_MUXBUS(devices[d]), I2CIP_FQA_SEG_DEVADR(devices[d]));
+  TEST_ASSERT_EQUAL_UINT8_MESSAGE(I2CIP::I2CIP_ERR_NONE, I2CIP::Device::ping(devices[d]), msg);
 }
 
 void setup() {

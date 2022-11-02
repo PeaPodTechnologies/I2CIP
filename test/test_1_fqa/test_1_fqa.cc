@@ -3,6 +3,7 @@
 
 #include <i2cip/fqa.h>
 #include <I2CIP.h>
+#include "../config.h"
 
 #define I2CIP_TEST_FQA_WIRE 0b1010000000000000 // I2C Bus 5
 #define I2CIP_TEST_FQA_MUX  0b0000110000000000 // MUX Number 3
@@ -24,11 +25,11 @@ void test_fqa_create(void) {
 
 // Segment extraction
 void test_fqa_segments(void) {
-  i2cip_fqa_t fqa = I2CIP_FQA_CREATE(1, 2, 3, 4);
-  TEST_ASSERT_EQUAL_UINT16_MESSAGE(1, I2CIP_FQA_SEG_I2CBUS(fqa), "FQA Seg: Bus Number");
-  TEST_ASSERT_EQUAL_UINT16_MESSAGE(2, I2CIP_FQA_SEG_MUXNUM(fqa), "FQA Seg: MUX Number");
-  TEST_ASSERT_EQUAL_UINT16_MESSAGE(3, I2CIP_FQA_SEG_MUXBUS(fqa), "FQA Seg: MUX Bus Number");
-  TEST_ASSERT_EQUAL_UINT16_MESSAGE(4, I2CIP_FQA_SEG_DEVADR(fqa), "FQA Seg: Device Address");
+  i2cip_fqa_t fqa = I2CIP::createFQA(WIRENUM, MUXNUM, I2CIP_MUX_BUS_DEFAULT, I2CIP_EEPROM_ADDR);
+  TEST_ASSERT_EQUAL_UINT16_MESSAGE(WIRENUM, I2CIP_FQA_SEG_I2CBUS(fqa), "FQA Seg: Bus Number");
+  TEST_ASSERT_EQUAL_UINT16_MESSAGE(MUXNUM, I2CIP_FQA_SEG_MUXNUM(fqa), "FQA Seg: MUX Number");
+  TEST_ASSERT_EQUAL_UINT16_MESSAGE(I2CIP_MUX_BUS_DEFAULT, I2CIP_FQA_SEG_MUXBUS(fqa), "FQA Seg: MUX Bus Number");
+  TEST_ASSERT_EQUAL_UINT16_MESSAGE(I2CIP_EEPROM_ADDR, I2CIP_FQA_SEG_DEVADR(fqa), "FQA Seg: Device Address");
 }
 
 void setup() {

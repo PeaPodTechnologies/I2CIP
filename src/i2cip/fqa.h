@@ -10,19 +10,19 @@
 // A useful typedef
 typedef uint16_t i2cip_fqa_t;
 
-// Address segments: Least Significant Bit positions and lengths
+// Address segments: Least Significant Bit positions, lengths, and maximum values
 #define I2CIP_FQA_I2CBUS_LSB  13
 #define I2CIP_FQA_I2CBUS_LEN  3
+#define I2CIP_FQA_I2CBUS_MAX  ((1 << I2CIP_FQA_I2CBUS_LEN) - 1)
 #define I2CIP_FQA_MUXNUM_LSB  10
 #define I2CIP_FQA_MUXNUM_LEN  3
+#define I2CIP_FQA_MUXNUM_MAX  ((1 << I2CIP_FQA_MUXNUM_LEN) - 1)
 #define I2CIP_FQA_MUXBUS_LSB  7
 #define I2CIP_FQA_MUXBUS_LEN  3
+#define I2CIP_FQA_MUXBUS_MAX  ((1 << I2CIP_FQA_MUXBUS_LEN) - 1)
 #define I2CIP_FQA_DEVADR_LSB  0
 #define I2CIP_FQA_DEVADR_LEN  7
-
-// Compound segments
-#define I2CIP_FQA_SUBNET_LSB  7
-#define I2CIP_FQA_SUBNET_LEN  9
+#define I2CIP_FQA_DEVADR_MAX  ((1 << I2CIP_FQA_DEVADR_LEN) - 1)
 
 #define I2CIP_FQA_CREATE(wire, mux, bus, addr) (i2cip_fqa_t)((wire << (16 - I2CIP_FQA_I2CBUS_LEN)) | (mux << (16 - I2CIP_FQA_I2CBUS_LEN - I2CIP_FQA_MUXNUM_LEN)) | (bus << (16 - I2CIP_FQA_I2CBUS_LEN - I2CIP_FQA_MUXNUM_LEN - I2CIP_FQA_MUXBUS_LEN)) | addr)
 

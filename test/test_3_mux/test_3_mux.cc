@@ -8,28 +8,34 @@
 #define I2CIP_TEST_MUXINSTR 0b00010000 // Bus 4
 #define I2CIP_TEST_MUXADDR  0x72       // Mux 2
 
-// ALL MACROS
+i2cip_fqa_t eeprom_fqa = I2CIP::createFQA(WIRENUM, MUXNUM, I2CIP_MUX_BUS_DEFAULT, I2CIP_EEPROM_ADDR);
 
 void test_mux_bus_to_instr(void) {
-  TEST_ASSERT_EQUAL_UINT8(I2CIP_TEST_MUXINSTR, I2CIP_MUX_BUS_TO_INSTR(4));
+  TEST_ASSERT_EQUAL_UINT8_MESSAGE(I2CIP_TEST_MUXINSTR, I2CIP_MUX_BUS_TO_INSTR(4), "MUX Bus Number to Instruction");
 }
 
 void test_mux_num_to_addr(void) {
-  TEST_ASSERT_EQUAL_UINT8(I2CIP_TEST_MUXADDR, I2CIP_MUX_NUM_TO_ADDR(2));
+  TEST_ASSERT_EQUAL_UINT8_MESSAGE(I2CIP_TEST_MUXADDR, I2CIP_MUX_NUM_TO_ADDR(2), "MUX Number to Address");
 }
 
 void test_mux_ping(void) {
-  TEST_ASSERT_TRUE(I2CIP::MUX::pingMUX(eeprom_fqa));
+  char msg[27];
+  sprintf(msg, "MUX unreachable (%01X.%01X.X.XX)", I2CIP_FQA_SEG_I2CBUS(eeprom_fqa), I2CIP_FQA_SEG_MUXNUM(eeprom_fqa));
+  TEST_ASSERT_TRUE_MESSAGE(I2CIP::MUX::pingMUX(eeprom_fqa), msg);
 }
 
 void test_mux_bus_set(void) {
+  char msg[33];
+  sprintf(msg, "Failed to set MUX bus (%01X.%01X.%01X.XX)", I2CIP_FQA_SEG_I2CBUS(eeprom_fqa), I2CIP_FQA_SEG_MUXNUM(eeprom_fqa), I2CIP_FQA_SEG_MUXBUS(eeprom_fqa));
   I2CIP::i2cip_errorlevel_t result = I2CIP::MUX::setBus(eeprom_fqa);
-  TEST_ASSERT_EQUAL_UINT8(I2CIP::I2CIP_ERR_NONE, result);
+  TEST_ASSERT_EQUAL_UINT8_MESSAGE(I2CIP::I2CIP_ERR_NONE, result, msg);
 }
 
 void test_mux_bus_reset(void) {
+  char msg[35];
+  sprintf(msg, "Failed to reset MUX bus (%01X.%01X.X.XX)", I2CIP_FQA_SEG_I2CBUS(eeprom_fqa), I2CIP_FQA_SEG_MUXNUM(eeprom_fqa));
   I2CIP::i2cip_errorlevel_t result = I2CIP::MUX::resetBus(eeprom_fqa);
-  TEST_ASSERT_EQUAL_UINT8(I2CIP::I2CIP_ERR_NONE, result);
+  TEST_ASSERT_EQUAL_UINT8_MESSAGE(I2CIP::I2CIP_ERR_NONE, result, msg);
 }
 
 void setup() {

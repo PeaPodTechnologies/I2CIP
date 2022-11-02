@@ -12,8 +12,25 @@
 DeviceGroup::DeviceGroup(const char*& key, i2cip_device_t** devices, uint8_t numdevices) : key(key), devices(devices), numdevices(numdevices) { }
 
 void DeviceGroup::add(i2cip_device_t* device) {
-  // TODO: no duplicates!!
-  addGroup(&device, 1);
+  if(strcmp(device->value, this->key) != 0 || contains(device)) return;
+  
+  // Allocate new device pointer array
+  i2cip_device_t** newdevicegroup = (i2cip_device_t**)malloc(sizeof(i2cip_device_t*)*(this->numdevices+1));
+  
+  if(this->devices != nullptr) {
+    // Copy old addresses
+    for(int i = 0; i < this->numdevices; i++) {
+      newdevicegroup[i] = this->devices[i];
+    }
+
+    // Free old addresses
+    free(this->devices);
+  }
+
+  // Append new devices
+  newdevicegroup[this->numdevices] = device;
+  this->devices = newdevicegroup;
+  this->numdevices++;
 }
 
 void DeviceGroup::addGroup(i2cip_device_t** devices, uint8_t numdevices) {
@@ -71,12 +88,11 @@ bool DeviceGroup::contains(i2cip_device_t* device) {
 
 HashTableEntry<DeviceGroup*>* RoutingTable::addEmptyGroup(const char* id) {
   HashTableEntry<DeviceGroup*>* group = groups.set(id, nullptr);
-  DeviceGroup* newgroup = new DeviceGroup(group->key);
-  group->value = newgroup;
+  group->value = new DeviceGroup(group->key);
   return group;
 }
 
-const i2cip_device_t& RoutingTable::add(const char* id, const i2cip_fqa_t& fqa, bool overwrite) {
+i2cip_device_t* RoutingTable::add(const char* id, const i2cip_fqa_t& fqa, bool overwrite) {
   i2cip_device_t* device = this->devices[fqa];
   // Remove device IFF:
   // - This address is in the BST, and;
@@ -94,10 +110,11 @@ const i2cip_device_t& RoutingTable::add(const char* id, const i2cip_fqa_t& fqa, 
     HashTableEntry<DeviceGroup*>* entry = this->groups[id];
     if(entry == nullptr) entry = addEmptyGroup(id);
 
-    entry->value->add(devices.insert(fqa, entry->key, true));
+    device = this->devices.insert(fqa, entry->key, true);
+    entry->value->add(device);
   }
 
-  return *this->devices[fqa];
+  return this->devices[fqa];
 }
 
 const DeviceGroup& RoutingTable::addGroup(const char* id, i2cip_fqa_t* fqas, uint8_t numdevices, bool overwrite) {

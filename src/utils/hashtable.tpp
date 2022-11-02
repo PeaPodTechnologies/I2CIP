@@ -26,7 +26,11 @@ template <typename T> HashTableEntry<T>::~HashTableEntry() {
 
 // HASH TABLE
 
-template <typename T> HashTable<T>::HashTable() {}
+template <typename T> HashTable<T>::HashTable() { 
+  for(int i = 0; i < HASHTABLE_SLOTS; i++) {
+    hashtable[i] = nullptr;
+  }
+}
 
 template <typename T> HashTable<T>::~HashTable() {
   // Free all allocated entries (and their keys) recursively; slots are static

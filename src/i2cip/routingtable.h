@@ -56,7 +56,7 @@ class RoutingTable {
      * @param overwrite
      * @return Pointer to the device group
      */
-    const i2cip_device_t& add(const char* id, const i2cip_fqa_t& fqa, bool overwrite = true);
+    i2cip_device_t* add(const char* id, const i2cip_fqa_t& fqa, bool overwrite = true);
 
     const DeviceGroup& addGroup(const char* id, i2cip_fqa_t* fqas, uint8_t numdevices, bool overwrite = true);
     
