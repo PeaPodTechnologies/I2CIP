@@ -149,11 +149,11 @@ namespace I2CIP {
       return errlev;
     }
 
-    i2cip_errorlevel_t writeByte(const i2cip_fqa_t& fqa, const uint8_t& b, bool setbus) {
+    i2cip_errorlevel_t writeByte(const i2cip_fqa_t& fqa, const uint8_t& value, bool setbus) {
       i2cip_errorlevel_t errlev;
       if (setbus) {
-        // Device alive?
-        errlev = ping(fqa, false);
+        // Switch MUX bus
+        i2cip_errorlevel_t errlev = MUX::setBus(fqa);
         if (errlev > I2CIP_ERR_NONE) {
           return errlev;
         }
@@ -166,7 +166,7 @@ namespace I2CIP {
       I2CIP_FQA_TO_WIRE(fqa)->beginTransmission(I2CIP_FQA_SEG_DEVADR(fqa));
 
       // Write the buffer
-      if (I2CIP_FQA_TO_WIRE(fqa)->write(b) != 1) {
+      if (I2CIP_FQA_TO_WIRE(fqa)->write(value) != 1) {
         success = false;
       }
 
@@ -189,7 +189,7 @@ namespace I2CIP {
     i2cip_errorlevel_t write(const i2cip_fqa_t& fqa, const uint8_t* buffer, size_t len, bool setbus) {
       i2cip_errorlevel_t errlev = I2CIP_ERR_NONE;
       if (setbus) {
-        errlev = MUX::resetBus(fqa);
+        errlev = MUX::setBus(fqa);
         if (errlev > I2CIP_ERR_NONE) {
           return errlev;
         }
@@ -216,43 +216,20 @@ namespace I2CIP {
         errlev = MUX::resetBus(fqa);
       }
 
-      return (success ? errlev : I2CIP_ERR_SOFT);
+      return ((success || errlev > I2CIP_ERR_NONE) ? errlev : I2CIP_ERR_SOFT);
     }
-
     
     i2cip_errorlevel_t writeRegister(const i2cip_fqa_t& fqa, const uint8_t& reg, const uint8_t& value, bool setbus) {
       const uint8_t buf[2] = { reg, value };
       return write(fqa, buf, 2, setbus);
     }
 
-    // errorlevel_t write(const i2cip_fqa_t& fqa, const uint16_t& b, bool reset = true) {
-    //   return writeRegister(fqa, (uint8_t)(b >> 8), (uint8_t)(b & 0xFF), setbus);
-    // }
-
-    // errorlevel_t writeRegister(const i2cip_fqa_t& fqa, const uint8_t& reg, const uint16_t& value, bool reset = true) {
-    //   const uint8_t buf[3] = { reg, value >> 8, value & 0xFF };
-    //   return write(fqa, buf, 3, setbus);
-    // }
-
-    i2cip_errorlevel_t readByte(const i2cip_fqa_t& fqa, uint16_t bytenum, uint8_t& dest, bool setbus) {
-      // Ping EEPROM
-      i2cip_errorlevel_t errlev = Device::ping(fqa, false);
-      if (errlev > I2CIP_ERR_NONE) {
-        return errlev;
-      }
-
-      // Request data from the EEPROM chip at byte `bytenum`
-      const uint8_t buff[2] = {(uint8_t)(bytenum >> 8), (uint8_t)(bytenum & 0xFF)};
-      errlev = Device::write(fqa, buff, 2, false);
-      if (errlev > I2CIP_ERR_NONE) {
-        return errlev;
-      }
-
-      // Read in and store the data we requested
-      return Device::read(fqa, &dest, 1, setbus);
+    i2cip_errorlevel_t writeRegister(const i2cip_fqa_t& fqa, const uint16_t& reg, const uint8_t& value, bool setbus) {
+      const uint8_t buf[3] = { (uint8_t)(reg >> 8), (uint8_t)(reg & 0xFF), value };
+      return write(fqa, buf, 3, setbus);
     }
 
-    i2cip_errorlevel_t read(const i2cip_fqa_t& fqa, uint8_t* buffer, size_t len, bool setbus) {
+    i2cip_errorlevel_t read(const i2cip_fqa_t& fqa, uint8_t* dest, size_t& len, bool resetbus) {
       // Device alive?
       i2cip_errorlevel_t errlev = ping(fqa, false);
       if (errlev > I2CIP_ERR_NONE) {
@@ -275,12 +252,13 @@ namespace I2CIP {
         // We didn't get all the bytes we expected
         if (recv != read_len) {
           success = false;
+          len = pos;
           break;
         }
 
         // Read in all the bytes
         for (uint16_t i = 0; i < read_len; i++) {
-          buffer[i] = I2CIP_FQA_TO_WIRE(fqa)->read();
+          dest[i] = I2CIP_FQA_TO_WIRE(fqa)->read();
         }
         
         // Advance the index by the amount of bytes read
@@ -288,7 +266,113 @@ namespace I2CIP {
       }
 
       // Reset MUX bus if `reset` == true
-      if (setbus) {
+      if (resetbus) {
+        errlev = MUX::resetBus(fqa);
+        if (errlev > I2CIP_ERR_NONE) {
+          return errlev;
+        }
+      }
+
+      // Did we read all the bytes we hoped to?
+      return (success ? I2CIP_ERR_NONE : I2CIP_ERR_SOFT);
+    }
+
+    i2cip_errorlevel_t readRegisterByte(const i2cip_fqa_t& fqa, const uint8_t& reg, uint8_t& dest, bool resetbus) {
+      size_t len = 1;
+      return readRegister(fqa, reg, &dest, len, resetbus);
+    }
+
+    i2cip_errorlevel_t readRegisterByte(const i2cip_fqa_t& fqa, const uint16_t& reg, uint8_t& dest, bool resetbus) {
+      size_t len = 1;
+      return readRegister(fqa, reg, &dest, len, resetbus);
+    }
+
+    i2cip_errorlevel_t readRegister(const i2cip_fqa_t& fqa, const uint8_t& reg, uint8_t* dest, size_t& len, bool resetbus) {
+      // Device alive?
+      i2cip_errorlevel_t errlev = ping(fqa, false);
+      if (errlev > I2CIP_ERR_NONE) {
+        return errlev;
+      }
+
+      // Read in chunks (buffer size limitation)
+      size_t pos = 0;
+      bool success = true;
+      while (pos < len) {
+        // Read whichever is greater: number of bytes remaining, or buffer size
+        uint8_t read_len = ((len - pos) > I2CIP_MAXBUFFER) ? I2CIP_MAXBUFFER : (len - pos);
+
+        // Don't stop the bus unless we've read everything
+        bool read_stop = (pos >= (len - read_len));
+
+        // Request bytes; How many have we received?
+        size_t recv = I2CIP_FQA_TO_WIRE(fqa)->requestFrom(I2CIP_FQA_SEG_DEVADR(fqa), read_len, reg, 1, (uint8_t)read_stop);
+        
+        // We didn't get all the bytes we expected
+        if (recv != read_len) {
+          success = false;
+          len = pos;
+          break;
+        }
+
+        // Read in all the bytes
+        for (uint16_t i = 0; i < read_len; i++) {
+          dest[i] = I2CIP_FQA_TO_WIRE(fqa)->read();
+        }
+        
+        // Advance the index by the amount of bytes read
+        pos += read_len;
+      }
+
+      // Reset MUX bus if `reset` == true
+      if (resetbus) {
+        errlev = MUX::resetBus(fqa);
+        if (errlev > I2CIP_ERR_NONE) {
+          return errlev;
+        }
+      }
+
+      // Did we read all the bytes we hoped to?
+      return (success ? I2CIP_ERR_NONE : I2CIP_ERR_SOFT);
+    }
+
+    i2cip_errorlevel_t readRegister(const i2cip_fqa_t& fqa, const uint16_t& reg, uint8_t* dest, size_t& len, bool resetbus) {
+      // Device alive?
+      i2cip_errorlevel_t errlev = ping(fqa, false);
+      if (errlev > I2CIP_ERR_NONE) {
+        return errlev;
+      }
+
+      // Read in chunks (buffer size limitation)
+      size_t pos = 0;
+      bool success = true;
+      while (pos < len) {
+        // Read whichever is greater: number of bytes remaining, or buffer size
+        uint8_t read_len = ((len - pos) > I2CIP_MAXBUFFER) ? I2CIP_MAXBUFFER : (len - pos);
+
+        // Don't stop the bus unless we've read everything
+        bool read_stop = (pos >= (len - read_len));
+
+        // Request bytes; How many have we received?
+        size_t recv = I2CIP_FQA_TO_WIRE(fqa)->requestFrom(I2CIP_FQA_SEG_DEVADR(fqa), read_len, reg, 2, (uint8_t)read_stop);
+        
+        // We didn't get all the bytes we expected
+        if (recv != read_len) {
+          success = false;
+          len = pos;
+          break;
+        }
+
+        // Read in all the bytes
+        for (uint16_t i = 0; i < read_len; i++) {
+          dest[i] = I2CIP_FQA_TO_WIRE(fqa)->read();
+        }
+        
+        // Advance the index by the amount of bytes read
+        pos += read_len;
+      }
+
+      // Reset MUX bus if `reset` == true
+      if (resetbus) {
         errlev = MUX::resetBus(fqa);
         if (errlev > I2CIP_ERR_NONE) {
           return errlev;
@@ -310,8 +394,9 @@ namespace I2CIP {
       uint16_t bytes_read = 0;
       for (; bytes_read < max_read; bytes_read++) {
         // Read in and store each byte
-        errlev = readByte(fqa, bytes_read, dest[bytes_read], false);
-        if(errlev > I2CIP_ERR_NONE) {
+        size_t len = 1;
+        errlev = readRegister(fqa, bytes_read, dest + bytes_read, len, false);
+        if(errlev > I2CIP_ERR_NONE || len != 1) {
           // Stop reading the EEPROM; terminate string
           dest[bytes_read] = '\0';
           bytes_read++;
@@ -332,24 +417,6 @@ namespace I2CIP {
       // Destination string terminated; copy len and return status
       num_read = bytes_read;
       return errlev;
-    }
-
-    i2cip_errorlevel_t writeByte(const i2cip_fqa_t& fqa, const uint16_t& bytenum, const uint8_t& value, bool setbus) {
-      // Ping EEPROM
-      i2cip_errorlevel_t errlev = Device::ping(fqa, false);
-      if (errlev > I2CIP_ERR_NONE) {
-        return errlev;
-      }
-
-      const uint8_t buff[3] = {(uint8_t)(bytenum >> 8), (uint8_t)(bytenum & 0xFF), value};
-
-      // Request data from the EEPROM chip at byte `bytenum`
-      errlev = write(fqa, buff, 3, false);
-      if(errlev > I2CIP_ERR_NONE) {
-        return errlev;
-      }
-
-      return pingTimeout(fqa, I2CIP_EEPROM_TIMEOUT, setbus);
     }
 
     i2cip_errorlevel_t clearContents(const i2cip_fqa_t& fqa, bool setbus, uint16_t numbytes) {

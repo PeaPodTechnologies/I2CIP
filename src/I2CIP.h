@@ -35,9 +35,9 @@ namespace I2CIP {
    * Errorlevels for I2CIP communication.
    */
   typedef enum {
-    I2CIP_ERR_NONE, // No error
-    I2CIP_ERR_SOFT, // Communications error, device still reachable
-    I2CIP_ERR_HARD, // Device unreachable
+    I2CIP_ERR_NONE = 0, // No error
+    I2CIP_ERR_SOFT = 1, // Communications error, device still reachable
+    I2CIP_ERR_HARD = 2, // Device unreachable
   } i2cip_errorlevel_t;
 
   /**
@@ -58,22 +58,26 @@ namespace I2CIP {
 
   namespace MUX {
     /**
-     * Pings the MUX.
+     * Pings the MUX. Begins the Wire.
+     * | MUX ADDR (7) | ACK? |
      * @param fqa FQA of a device this MUX is in front of.
-     * @return Ping success?
+     * @return ACK?
      */
     bool pingMUX(const i2cip_fqa_t& fqa);
 
     /**
      * Sets the MUX bus.
+     * | MUX ADDR (7) | MUX CONFIG (8) | ACK? |
      * @param fqa FQA of a device that is on the target Subnet.
-     * @return Hardware failure: Module lost. Software failure: Failed to write to MUX
+     * @return Hardware failure: No ACK; Module lost. Software failure: Failed to write to MUX.
      */
     i2cip_errorlevel_t setBus(const i2cip_fqa_t& fqa);
 
     /**
      * Reset the MUX to the "inactive" bus.
+     * | MUX ADDR (7) | MUX RESET (8) | ACK? |
      * @param fqa FQA of a device that this MUX is in front of
+     * @return Hardware failure: No ACK; Module lost. Software failure: Failed to write to MUX.
      */
     i2cip_errorlevel_t resetBus(const i2cip_fqa_t& fqa);
   };
@@ -81,14 +85,16 @@ namespace I2CIP {
   namespace Device {
     /**
      * Attempt to communicate with a device. Always sets the bus.
+     * | MUX ADDR (7) | MUX CONFIG (8) | ACK? | DEV ADDR (7) | ACK? | { resetbus : MUX ADDR (7) | MUX RESET (8) | ACK? | }
      * @param fqa FQA of the device
      * @param resetbus Should the bus be reset? (Default: `true`)
-     * @return Hardware failure: Device and/or module lost. Software failure: Failed to switch MUX bus
+     * @return Hardware failure: Device lost; no ACK (check MUX). Software failure: Failed to switch MUX bus.
      */
     i2cip_errorlevel_t ping(const i2cip_fqa_t& fqa, bool resetbus = true);
 
     /**
      * Attempt to communicate with a device repeatedly until timeout. Always sets the bus.
+     * | MUX ADDR (7) | MUX CONFIG (8) | ACK? | DEV ADDR (7) | ACK? | { until ACK or timeout: DEV ADDR (7) | ACK? | } { failed : | MUX ADDR (7) | ACK? | }{ resetbus : | MUX ADDR (7) | MUX RESET (8) | ACK? |
      * @param fqa FQA of the device
      * @param resetbus Should the bus be reset? (Default: `true`)
      * @param timeout Attempt duration (ms)
@@ -98,15 +104,17 @@ namespace I2CIP {
 
     /**
      * Write one byte to a device.
+     * | { setbus : MUX ADDR (7) | MUX CONFIG (8) | ACK? | } DEV ADDR (7) | DATA BYTE (8) | ACK? | { setbus : MUX ADDR (7) | MUX RESET (8) | ACK? | }
      * @param fqa FQA of the device
-     * @param b Byte to be written
+     * @param value Byte to be written
      * @param setbus Should the MUX be set and reset? (Default: `true`)
      * @return Hardware failure: Device and/or module lost. Software failure: Failed to write and/or failed to switch MUX bus
      */
-    i2cip_errorlevel_t writeByte(const i2cip_fqa_t& fqa, const uint8_t& b, bool setbus = true);
+    i2cip_errorlevel_t writeByte(const i2cip_fqa_t& fqa, const uint8_t& value, bool setbus = true);
 
     /**
      * Write data to a device.
+     * | { setbus : MUX ADDR (7) | MUX CONFIG (8) | ACK? | } DEV ADDR (7) | DATA BYTE (8 * len) | ACK? | { setbus : MUX ADDR (7) | MUX RESET (8) | ACK? | }
      * @param fqa FQA of the device
      * @param buffer Bytes to be sent
      * @param len Number of bytes (Default: `1`)
@@ -116,7 +124,8 @@ namespace I2CIP {
     i2cip_errorlevel_t write(const i2cip_fqa_t& fqa, const uint8_t* buffer, size_t len = 1, bool setbus = true);
 
     /**
-     * Write one byte to a specific device register.
+     * Write one byte to a specific device register. Effectively adds a prefix byte.
+     * | { setbus : MUX ADDR (7) | MUX CONFIG (8) | ACK? | } DEV ADDR (7) | REG ADDR (16) | DATA BYTE (8) | ACK? | { setbus : MUX ADDR (7) | MUX RESET  (8) | ACK? | }
      * @param fqa FQA of the device
      * @param reg Register address
      * @param value Byte to be written
@@ -126,22 +135,75 @@ namespace I2CIP {
     i2cip_errorlevel_t writeRegister(const i2cip_fqa_t& fqa, const uint8_t& reg, const uint8_t& value, bool setbus = true);
 
     /**
-     * Read a single byte of data from the device.
+     * Write one byte to a specific device register. Effectively adds TWO prefix bytes.
+     * | { setbus : MUX ADDR (7) | MUX CONFIG (8) | ACK? | } DEV ADDR (7) | REG ADDR (16) | DATA BYTE (8) | ACK? | { setbus : | MUX ADDR (7) | MUX RESET  (8) | ACK? | }
      * @param fqa FQA of the device
-     * @param bytenum Which byte to read from
-     * @param dest Reference to a byte 
+     * @param reg Register address
+     * @param value Byte to be written
      * @param setbus Should the MUX be reset? (Default: `true`)
+     * @return Hardware failure: Device and/or module lost. Software failure: Failed to write and/or failed to switch MUX bus
      */
-    i2cip_errorlevel_t readByte(const i2cip_fqa_t& fqa, uint16_t bytenum, uint8_t& dest, bool setbus = true);
+    i2cip_errorlevel_t writeRegister(const i2cip_fqa_t& fqa, const uint16_t& reg, const uint8_t& value, bool setbus = true);
 
     /**
      * Read data from the device.
+     * | MUX ADDR (7) | MUX CONFIG (8) | ACK? | DEV ADDR (7) | ACK? | DEV ADDR (7) | READ BYTES (8*len) |
+     * resetbus : | MUX ADDR (7) | MUX RESET (8) | ACK? |
      * @param fqa FQA of the device
-     * @param buffer Bytes to read into
+     * @param dest Bytes to read into
      * @param len Number of bytes to read (Default: `1`)
      * @param setbus Should the MUX be reset? (Default: `true`)
      */
-    i2cip_errorlevel_t read(const i2cip_fqa_t& fqa, uint8_t* buffer, size_t len = 1, bool setbus = true);
+    i2cip_errorlevel_t readByte(const i2cip_fqa_t& fqa, uint8_t& dest, bool setbus = true);
+
+    /**
+     * Read data from the device.
+     * | MUX ADDR (7) | MUX CONFIG (8) | ACK? | DEV ADDR (7) | ACK? | DEV ADDR (7) | READ BYTES (8*len) |
+     * resetbus : | MUX ADDR (7) | MUX RESET (8) | ACK? |
+     * @param fqa FQA of the device
+     * @param dest Bytes to read into
+     * @param len Number of bytes to read (Default: `1`)
+     * @param setbus Should the MUX be reset? (Default: `true`)
+     */
+    i2cip_errorlevel_t read(const i2cip_fqa_t& fqa, uint8_t* dest, size_t& len, bool setbus = true);
+
+    /**
+     * Read one byte of data from the device. Effectively adds a prefix byte.
+     * | MUX ADDR (7) | MUX CONFIG (8) | ACK? | DEV ADDR (7) | ACK? | DEV ADDR (7) | REG ADDR (8) | READ BYTES (8*len) | { resetbus : | MUX ADDR (7) | MUX RESET (8) | ACK? | }
+     * @param fqa FQA of the device
+     * @param dest Bytes to read into
+     * @param setbus Should the MUX be reset? (Default: `true`)
+     */
+    i2cip_errorlevel_t readRegisterByte(const i2cip_fqa_t& fqa, const uint8_t& reg, uint8_t& dest, bool resetbus = true);
+
+    /**
+     * Read one byte of data from the device. Effectively adds TWO prefix bytes.
+     * | MUX ADDR (7) | MUX CONFIG (8) | ACK? | DEV ADDR (7) | ACK? | DEV ADDR (7) | REG ADDR (16) | READ BYTES (8*len) | { resetbus : | MUX ADDR (7) | MUX RESET (8) | ACK? | }
+     * @param fqa FQA of the device
+     * @param dest Bytes to read into
+     * @param setbus Should the MUX be reset? (Default: `true`)
+     */
+    i2cip_errorlevel_t readRegisterByte(const i2cip_fqa_t& fqa, const uint16_t& reg, uint8_t& dest, bool resetbus = true);
+
+    /**
+     * Read data from the device. Effectively adds a prefix byte.
+     * | MUX ADDR (7) | MUX CONFIG (8) | ACK? | DEV ADDR (7) | ACK? | DEV ADDR (7) | REG ADDR (8) | READ BYTES (8*len) | { resetbus : | MUX ADDR (7) | MUX RESET (8) | ACK? | }
+     * @param fqa FQA of the device
+     * @param dest Bytes to read into
+     * @param len Number of bytes to read (Default: `1`). Passed by reference; changed to reflect number of bytes read.
+     * @param setbus Should the MUX be reset? (Default: `true`)
+     */
+    i2cip_errorlevel_t readRegister(const i2cip_fqa_t& fqa, const uint8_t& reg, uint8_t* dest, size_t& len, bool resetbus = true);
+
+    /**
+     * Read data from the device. Effectively adds TWO prefix bytes.
+     * | MUX ADDR (7) | MUX CONFIG (8) | ACK? | DEV ADDR (7) | ACK? | DEV ADDR (7) | REG ADDR (16) | READ BYTES (8*len) | { resetbus : | MUX ADDR (7) | MUX RESET (8) | ACK? | }
+     * @param fqa FQA of the device
+     * @param dest Bytes to read into
+     * @param len Number of bytes to read (Default: `1`). Passed by reference; changed to reflect number of bytes read.
+     * @param setbus Should the MUX be reset? (Default: `true`)
+     */
+    i2cip_errorlevel_t readRegister(const i2cip_fqa_t& fqa, const uint16_t& reg, uint8_t* dest, size_t& len, bool resetbus = true);
   };
 
   namespace EEPROM {

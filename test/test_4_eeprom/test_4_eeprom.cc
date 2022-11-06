@@ -23,13 +23,13 @@ void test_eeprom_ping(void) {
 
 void test_eeprom_read_byte(void) {
   uint8_t c = '\0';
-  I2CIP::i2cip_errorlevel_t result = I2CIP::Device::readByte(eeprom_fqa, 0, c);
+  I2CIP::i2cip_errorlevel_t result = I2CIP::Device::readRegisterByte(eeprom_fqa, (uint16_t)0, c);
   TEST_ASSERT_EQUAL_UINT8_MESSAGE(I2CIP::I2CIP_ERR_NONE, result, "EEPROM Read Byte");
   TEST_ASSERT_EQUAL_UINT8_MESSAGE(I2CIP_TEST_EEPROM_BYTE, c, "EEPROM Read Byte (Match)");
 }
 
 void test_eeprom_write_byte(void) {
-  I2CIP::i2cip_errorlevel_t result = I2CIP::EEPROM::writeByte(eeprom_fqa, 0, I2CIP_TEST_EEPROM_BYTE);
+  I2CIP::i2cip_errorlevel_t result = I2CIP::Device::writeRegister(eeprom_fqa, (uint16_t)0, I2CIP_TEST_EEPROM_BYTE);
   TEST_ASSERT_EQUAL_UINT8_MESSAGE(I2CIP::I2CIP_ERR_NONE, result, "EEPROM Write Byte");
 }
 
