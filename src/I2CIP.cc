@@ -88,9 +88,7 @@ namespace I2CIP {
     i2cip_errorlevel_t ping(const i2cip_fqa_t& fqa, bool resetbus) {
       // Switch MUX bus
       i2cip_errorlevel_t errlev = MUX::setBus(fqa);
-      if (errlev > I2CIP_ERR_NONE) {
-        return errlev;
-      }
+      I2CIP_ERR_BREAK(errlev);
 
       // Begin transmission
       I2CIP_FQA_TO_WIRE(fqa)->beginTransmission(I2CIP_FQA_SEG_DEVADR(fqa));
@@ -103,9 +101,7 @@ namespace I2CIP {
       // Switch MUX bus back
       if (resetbus) {
         errlev = MUX::resetBus(fqa);
-        if (errlev > I2CIP_ERR_NONE) {
-          return errlev;
-        }
+        I2CIP_ERR_BREAK(errlev);
       }
       
       // If we made it this far, no errors occurred.
@@ -115,9 +111,7 @@ namespace I2CIP {
     i2cip_errorlevel_t pingTimeout(const i2cip_fqa_t& fqa, bool resetbus, unsigned int timeout) {
       // Switch MUX bus
       i2cip_errorlevel_t errlev = MUX::setBus(fqa);
-      if (errlev > I2CIP_ERR_NONE) {
-        return errlev;
-      }
+      I2CIP_ERR_BREAK(errlev);
 
       // Check if it's actually lost
       I2CIP_FQA_TO_WIRE(fqa)->beginTransmission(I2CIP_FQA_SEG_DEVADR(fqa));
@@ -154,9 +148,7 @@ namespace I2CIP {
       if (setbus) {
         // Switch MUX bus
         i2cip_errorlevel_t errlev = MUX::setBus(fqa);
-        if (errlev > I2CIP_ERR_NONE) {
-          return errlev;
-        }
+        I2CIP_ERR_BREAK(errlev);
       }
 
       // Was the write performed successfully?
@@ -178,9 +170,7 @@ namespace I2CIP {
       // Reset MUX bus if `reset` == true
       if (setbus) {
         errlev = MUX::resetBus(fqa);
-        if (errlev > I2CIP_ERR_NONE) {
-          return errlev;
-        }
+        I2CIP_ERR_BREAK(errlev);
       }
 
       return (success ? I2CIP_ERR_NONE : I2CIP_ERR_SOFT);
@@ -190,9 +180,7 @@ namespace I2CIP {
       i2cip_errorlevel_t errlev = I2CIP_ERR_NONE;
       if (setbus) {
         errlev = MUX::setBus(fqa);
-        if (errlev > I2CIP_ERR_NONE) {
-          return errlev;
-        }
+        I2CIP_ERR_BREAK(errlev);
       }
 
       // Was the write performed successfully?
@@ -232,9 +220,7 @@ namespace I2CIP {
     i2cip_errorlevel_t read(const i2cip_fqa_t& fqa, uint8_t* dest, size_t& len, bool resetbus) {
       // Device alive?
       i2cip_errorlevel_t errlev = ping(fqa, false);
-      if (errlev > I2CIP_ERR_NONE) {
-        return errlev;
-      }
+      I2CIP_ERR_BREAK(errlev);
 
       // Read in chunks (buffer size limitation)
       size_t pos = 0;
@@ -268,9 +254,7 @@ namespace I2CIP {
       // Reset MUX bus if `reset` == true
       if (resetbus) {
         errlev = MUX::resetBus(fqa);
-        if (errlev > I2CIP_ERR_NONE) {
-          return errlev;
-        }
+        I2CIP_ERR_BREAK(errlev);
       }
 
       // Did we read all the bytes we hoped to?
@@ -290,9 +274,7 @@ namespace I2CIP {
     i2cip_errorlevel_t readRegister(const i2cip_fqa_t& fqa, const uint8_t& reg, uint8_t* dest, size_t& len, bool resetbus) {
       // Device alive?
       i2cip_errorlevel_t errlev = ping(fqa, false);
-      if (errlev > I2CIP_ERR_NONE) {
-        return errlev;
-      }
+      I2CIP_ERR_BREAK(errlev);
 
       // Read in chunks (buffer size limitation)
       size_t pos = 0;
@@ -326,9 +308,7 @@ namespace I2CIP {
       // Reset MUX bus if `reset` == true
       if (resetbus) {
         errlev = MUX::resetBus(fqa);
-        if (errlev > I2CIP_ERR_NONE) {
-          return errlev;
-        }
+        I2CIP_ERR_BREAK(errlev);
       }
 
       // Did we read all the bytes we hoped to?
@@ -338,9 +318,7 @@ namespace I2CIP {
     i2cip_errorlevel_t readRegister(const i2cip_fqa_t& fqa, const uint16_t& reg, uint8_t* dest, size_t& len, bool resetbus) {
       // Device alive?
       i2cip_errorlevel_t errlev = ping(fqa, false);
-      if (errlev > I2CIP_ERR_NONE) {
-        return errlev;
-      }
+      I2CIP_ERR_BREAK(errlev);
 
       // Read in chunks (buffer size limitation)
       size_t pos = 0;
@@ -374,9 +352,7 @@ namespace I2CIP {
       // Reset MUX bus if `reset` == true
       if (resetbus) {
         errlev = MUX::resetBus(fqa);
-        if (errlev > I2CIP_ERR_NONE) {
-          return errlev;
-        }
+        I2CIP_ERR_BREAK(errlev);
       }
 
       // Did we read all the bytes we hoped to?
@@ -422,23 +398,17 @@ namespace I2CIP {
     i2cip_errorlevel_t clearContents(const i2cip_fqa_t& fqa, bool setbus, uint16_t numbytes) {
       // Ping EEPROM
       i2cip_errorlevel_t errlev = ping(fqa, false);
-      if (errlev > I2CIP_ERR_NONE) {
-        return errlev;
-      }
+      I2CIP_ERR_BREAK(errlev);
 
       for (uint16_t bytes_written = 0; bytes_written < numbytes; bytes_written++) {
         const uint8_t buff[3] = {(uint8_t)(bytes_written >> 8), (uint8_t)(bytes_written & 0xFF), 0};
 
         // clear each byte
         errlev = write(fqa, buff, 3, false);
-        if(errlev > I2CIP_ERR_NONE) {
-          return errlev;
-        }
+        I2CIP_ERR_BREAK(errlev);
 
         errlev = pingTimeout(fqa, I2CIP_EEPROM_TIMEOUT, false);
-        if(errlev > I2CIP_ERR_NONE) {
-          return errlev;
-        }
+        I2CIP_ERR_BREAK(errlev);
       }
 
       return pingTimeout(fqa, I2CIP_EEPROM_TIMEOUT, setbus);
@@ -455,9 +425,7 @@ namespace I2CIP {
 
     i2cip_errorlevel_t overwriteContents(const i2cip_fqa_t& fqa, uint8_t* buffer, uint16_t len, bool clear, bool setbus) {
       i2cip_errorlevel_t errlev = clearContents(fqa, false, len);
-      if(errlev > I2CIP_ERR_NONE) {
-        return errlev;
-      }
+      I2CIP_ERR_BREAK(errlev);
 
       // Note: No need to ping
 
@@ -466,14 +434,10 @@ namespace I2CIP {
 
         // clear each byte
         errlev = write(fqa, buff, 3, false);
-        if(errlev > I2CIP_ERR_NONE) {
-          return errlev;
-        }
+        I2CIP_ERR_BREAK(errlev);
 
         errlev = pingTimeout(fqa, I2CIP_EEPROM_TIMEOUT, false);
-        if(errlev > I2CIP_ERR_NONE) {
-          return errlev;
-        }
+        I2CIP_ERR_BREAK(errlev);
       }
 
       return pingTimeout(fqa, I2CIP_EEPROM_TIMEOUT, setbus);
@@ -493,9 +457,7 @@ namespace I2CIP {
 
     uint16_t bytes_read = 0;
     i2cip_errorlevel_t errlev = EEPROM::readContents(fqa, (uint8_t*)eeprom_raw, bytes_read);
-    if(errlev > I2CIP_ERR_NONE) {
-      return errlev;
-    }
+    I2CIP_ERR_BREAK(errlev);
 
     // Convert char[] to json
     StaticJsonDocument<I2CIP_EEPROM_SIZE> eeprom_json;

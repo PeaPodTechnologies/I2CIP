@@ -26,6 +26,8 @@ static TwoWire* const wires[I2CIP_NUM_WIRES] = { &Wire };
 
 #define I2CIP_FQA_TO_WIRE(fqa) (wires[I2CIP_FQA_SEG_I2CBUS(fqa)])
 
+#define I2CIP_ERR_BREAK(errlev) (if((errlev) > I2CIP::I2CIP_ERR_NONE) return (errlev);)
+
 // -----------------------
 // I2C Intranet Protocols
 // -----------------------
