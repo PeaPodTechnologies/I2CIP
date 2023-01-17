@@ -1,13 +1,11 @@
 #include <I2CIP.h>
 
 #include <Arduino.h>
-#include <ArduinoJson.h>
 #include <Wire.h>
 
 #include <i2cip/fqa.h>
 #include <i2cip/mux.h>
 #include <i2cip/eeprom.h>
-#include <i2cip/routingtable.h>
 
 // Has wire N been wires[N].begin() yet?
 static bool wiresBegun[I2CIP_NUM_WIRES] = { false };
@@ -70,7 +68,7 @@ namespace I2CIP {
       I2CIP_FQA_TO_WIRE(fqa)->beginTransmission(I2CIP_MUX_NUM_TO_ADDR(I2CIP_FQA_SEG_MUXNUM(fqa)));
 
       // Write the "inactive" bus switch instruction
-      const uint8_t instruction = I2CIP_MUX_BUS_TO_INSTR(I2CIP_MUX_BUS_INACTIVE);
+      const uint8_t instruction = I2CIP_MUX_INSTR_RST;
       if (I2CIP_FQA_TO_WIRE(fqa)->write(&instruction, 1) != 1) {
         return I2CIP_ERR_SOFT;
       }
@@ -115,7 +113,7 @@ namespace I2CIP {
 
       // Check if it's actually lost
       I2CIP_FQA_TO_WIRE(fqa)->beginTransmission(I2CIP_FQA_SEG_DEVADR(fqa));
-      errlev = (I2CIP_FQA_TO_WIRE(fqa)->endTransmission() != 0 ? I2CIP_ERR_HARD : I2CIP_ERR_NONE);;
+      errlev = (I2CIP_FQA_TO_WIRE(fqa)->endTransmission() == 0 ? I2CIP_ERR_NONE : I2CIP_ERR_HARD);
 
       // Count down until out of time of found
       while (errlev != I2CIP_ERR_NONE && timeout--) {
@@ -126,7 +124,7 @@ namespace I2CIP {
         I2CIP_FQA_TO_WIRE(fqa)->beginTransmission(I2CIP_FQA_SEG_DEVADR(fqa));
 
         // End transmission, check state
-        errlev = (I2CIP_FQA_TO_WIRE(fqa)->endTransmission() != 0 ? I2CIP_ERR_HARD : I2CIP_ERR_NONE);
+        errlev = (I2CIP_FQA_TO_WIRE(fqa)->endTransmission() == 0 ? I2CIP_ERR_NONE : I2CIP_ERR_HARD);
       }
       
       // Double check MUX before attempting to switch
@@ -139,7 +137,6 @@ namespace I2CIP {
         errlev = MUX::resetBus(fqa);
       }
       
-      // If we made it this far, no errors occurred.
       return errlev;
     }
 
@@ -269,6 +266,22 @@ namespace I2CIP {
     i2cip_errorlevel_t readRegisterByte(const i2cip_fqa_t& fqa, const uint16_t& reg, uint8_t& dest, bool resetbus) {
       size_t len = 1;
       return readRegister(fqa, reg, &dest, len, resetbus);
+    }
+
+    i2cip_errorlevel_t readRegisterWord(const i2cip_fqa_t& fqa, const uint8_t& reg, uint16_t& dest, bool resetbus) {
+      size_t len = 2;
+      uint8_t buff[2];
+      i2cip_errorlevel_t errlev = readRegister(fqa, reg, buff, len, resetbus);
+      I2CIP_ERR_BREAK(errlev);
+      dest = ((uint16_t)buff[1] << 8) | (uint16_t)buff[0];
+    }
+
+    i2cip_errorlevel_t readRegisterWord(const i2cip_fqa_t& fqa, const uint16_t& reg, uint16_t& dest, bool resetbus) {
+      size_t len = 2;
+      uint8_t buff[2];
+      i2cip_errorlevel_t errlev = readRegister(fqa, reg, buff, len, resetbus);
+      I2CIP_ERR_BREAK(errlev);
+      dest = ((uint16_t)buff[1] << 8) | (uint16_t)buff[0];
     }
 
     i2cip_errorlevel_t readRegister(const i2cip_fqa_t& fqa, const uint8_t& reg, uint8_t* dest, size_t& len, bool resetbus) {
@@ -443,80 +456,4 @@ namespace I2CIP {
       return pingTimeout(fqa, I2CIP_EEPROM_TIMEOUT, setbus);
     }
   };
-
-  /**
-   * Scans the network for modules, and allocates and builds a route table based on SPRT EEROM.
-   */
-  i2cip_errorlevel_t scanModule(RoutingTable& rt, const uint8_t& modulenum, const uint8_t& wirenum) {
-    // Reusable buffer
-    char eeprom_raw[I2CIP_EEPROM_SIZE] = { '\0' };
-
-    // Scan every module's EEPROM
-      
-    i2cip_fqa_t fqa = createFQA(wirenum, modulenum, I2CIP_MUX_BUS_DEFAULT, I2CIP_EEPROM_ADDR);
-
-    uint16_t bytes_read = 0;
-    i2cip_errorlevel_t errlev = EEPROM::readContents(fqa, (uint8_t*)eeprom_raw, bytes_read);
-    I2CIP_ERR_BREAK(errlev);
-
-    // Convert char[] to json
-    StaticJsonDocument<I2CIP_EEPROM_SIZE> eeprom_json;
-    DeserializationError jsonerr = deserializeJson(eeprom_json, eeprom_raw);
-    if(jsonerr) {
-      // This module's JSON is a dud
-      return I2CIP_ERR_SOFT;
-    }
-
-    // Read JSON to allocate table
-    // TODO: Find a better way to do this
-    JsonArray arr = eeprom_json.as<JsonArray>();
-
-    uint8_t busnum = 0, totaldevices = 0;
-    for (JsonObject bus : arr) {
-      // Count reachable devices in each device group
-      uint8_t devicecount = 0;
-      for (JsonPair device : bus) {
-        // Device addresses
-        JsonArray addresses = device.value().as<JsonArray>();
-
-        // See if each device is reachable
-        uint8_t addressindex = 0;
-        for (JsonVariant address : addresses) {
-          fqa = createFQA(wirenum, modulenum, busnum, address.as<uint8_t>());
-          if(Device::ping(fqa) > I2CIP_ERR_NONE) {
-            // Device unreachable, remove from JSON; next device
-            addresses.remove(addressindex);
-            errlev = I2CIP_ERR_SOFT;
-            continue;
-          }
-          // Device reachable; increment device count and address index
-          devicecount++;
-          addressindex++;
-        }
-      }
-      busnum++;
-
-      // Add the number of devices on this bus to the tally
-      totaldevices += devicecount;
-    }
-
-    // Read JSON to fill table
-    busnum = 0;
-    for (JsonObject bus : arr) {
-      for (JsonPair device : bus) {
-        // Device addresses
-        JsonArray addresses = device.value().as<JsonArray>();
-        // Device ID (stack)
-        const char* id = device.key().c_str();
-        
-        // Add to table
-        for (JsonVariant address : addresses) {
-          fqa = createFQA(wirenum, modulenum, busnum, address.as<uint8_t>());
-          rt.add(id, fqa);
-        }
-      }
-      busnum++;
-    }
-    return errlev;
-  }
 };
