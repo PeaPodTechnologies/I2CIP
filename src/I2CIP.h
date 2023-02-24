@@ -14,7 +14,7 @@
 // Settings
 // ---------------
 
-#define DEBUG_SERIAL 1      // Uncomment for serial debug messages
+// #define DEBUG_SERIAL 1      // Uncomment for serial debug messages
 #define I2CIP_MAXBUFFER 32  // I2C buffer size
 #define I2CIP_NUM_WIRES 1   // Number of I2C wires - TODO: autodetect and populate `wires[]` based on hardware spec macros
 

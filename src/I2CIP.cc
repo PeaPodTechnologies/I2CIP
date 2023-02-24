@@ -459,12 +459,10 @@ endloop1:
         // We didn't get all the bytes we expected
         if (recv != read_len) {
           success = false;
-          len = pos;
-          break;
         }
 
-        // Read in all the bytes
-        for (uint16_t i = 0; i < read_len; i++) {
+        // Read in all the bytes received
+        for (uint16_t i = 0; i < recv; i++) {
           dest[pos + i] = I2CIP_FQA_TO_WIRE(fqa)->read();
           #ifdef DEBUG_SERIAL
             Serial.print((char)dest[pos + i]);
@@ -478,8 +476,8 @@ endloop1:
           Serial.println("'");
         #endif
         
-        // Advance the index by the amount of bytes read
-        pos += read_len;
+        // Advance the index by the amount of bytes received
+        pos += recv;
       }
 endloop2:
       #ifdef DEBUG_SERIAL

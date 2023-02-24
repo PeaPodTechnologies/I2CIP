@@ -28,8 +28,8 @@ void setup(void) {
   Serial.println("Dumping EEPROM...");
   
   char buffer[I2CIP_EEPROM_SIZE] = { '\0' };
-  uint16_t buflen = 0;
-  I2CIP::EEPROM::readContents(fqa, (uint8_t*)buffer, buflen, 100, false);
+  size_t buflen = 0;
+  I2CIP::EEPROM::readContents(fqa, (uint8_t*)buffer, buflen);
   
   Serial.print("EEPROM Dump (");
   Serial.print(buflen);
@@ -48,7 +48,7 @@ void setup(void) {
   Serial.println("EEPROM Cleared!");
 
   buflen = 0;
-  I2CIP::EEPROM::readContents(fqa, (uint8_t*)buffer, buflen, 100, false);
+  I2CIP::EEPROM::readContents(fqa, (uint8_t*)buffer, buflen);
   
   Serial.print("EEPROM Dump (");
   Serial.print(buflen);
@@ -68,7 +68,7 @@ void setup(void) {
 
   Serial.println("Verifying contents...");
   buflen = 0;
-  I2CIP::EEPROM::readContents(fqa, (uint8_t*)buffer, buflen, 100, false);
+  I2CIP::EEPROM::readContents(fqa, (uint8_t*)buffer, buflen);
   Serial.print("EEPROM Dump (");
   Serial.print(buflen);
   Serial.println(" bytes):");
