@@ -82,15 +82,19 @@ namespace I2CIP {
     i2cip_errorlevel_t resetBus(const i2cip_fqa_t& fqa);
   };
 
-  namespace Device {
-    /**
-     * Attempt to communicate with a device. Always sets the bus.
-     * | MUX ADDR (7) | MUX CONFIG (8) | ACK? | DEV ADDR (7) | ACK? | { resetbus? : MUX ADDR (7) | MUX RESET (8) | ACK? | }
-     * @param fqa FQA of the device
-     * @param resetbus Should the bus be reset? (Default: `true`)
-     * @return Hardware failure: Device lost; no ACK (check MUX). Software failure: Failed to switch MUX bus.
-     */
-    i2cip_errorlevel_t ping(const i2cip_fqa_t& fqa, bool resetbus = true);
+  class Device {
+    private:
+      const i2cip_fqa_t& fqa;
+    public:
+      Device(const i2cip_fqa_t& fqa);
+      /**
+       * Attempt to communicate with a device. Always sets the bus.
+       * | MUX ADDR (7) | MUX CONFIG (8) | ACK? | DEV ADDR (7) | ACK? | { resetbus? : MUX ADDR (7) | MUX RESET (8) | ACK? | }
+       * @param fqa FQA of the device
+       * @param resetbus Should the bus be reset? (Default: `true`)
+       * @return Hardware failure: Device lost; no ACK (check MUX). Software failure: Failed to switch MUX bus.
+       */
+      static i2cip_errorlevel_t ping(const i2cip_fqa_t& fqa, bool resetbus = true);
 
     /**
      * Attempt to communicate with a device repeatedly until timeout. Always sets the bus.
@@ -101,7 +105,7 @@ namespace I2CIP {
      * @param timeout Attempt duration (ms)
      * @return Hardware failure: Device unreachable, module check. Software failure: Failed to switch MUX bus
      */
-    i2cip_errorlevel_t pingTimeout(const i2cip_fqa_t& fqa, bool setbus = true, bool resetbus = true, unsigned int timeout = 100);
+    static i2cip_errorlevel_t pingTimeout(const i2cip_fqa_t& fqa, bool setbus = true, bool resetbus = true, unsigned int timeout = 100);
 
     /**
      * Write one byte to a device.
@@ -111,7 +115,7 @@ namespace I2CIP {
      * @param setbus Should the MUX be set and reset? (Default: `true`)
      * @return Hardware failure: Device and/or module lost. Software failure: Failed to write and/or failed to switch MUX bus
      */
-    i2cip_errorlevel_t writeByte(const i2cip_fqa_t& fqa, const uint8_t& value, bool setbus = true);
+    static i2cip_errorlevel_t writeByte(const i2cip_fqa_t& fqa, const uint8_t& value, bool setbus = true);
 
     /**
      * Write data to a device.
@@ -122,7 +126,7 @@ namespace I2CIP {
      * @param setbus Should the MUX be set and reset? (Default: `true`)
      * @return Hardware failure: Device and/or module lost. Software failure: Failed to write and/or failed to switch MUX bus
      */
-    i2cip_errorlevel_t write(const i2cip_fqa_t& fqa, const uint8_t* buffer, size_t len = 1, bool setbus = true);
+    static i2cip_errorlevel_t write(const i2cip_fqa_t& fqa, const uint8_t* buffer, size_t len = 1, bool setbus = true);
 
     /**
      * Write one byte to a device's register. Effectively adds ONE prefix byte.
@@ -133,7 +137,7 @@ namespace I2CIP {
      * @param setbus Should the MUX be reset? (Default: `true`)
      * @return Hardware failure: Device and/or module lost. Software failure: Failed to write and/or failed to switch MUX bus
      */
-    i2cip_errorlevel_t writeRegister(const i2cip_fqa_t& fqa, const uint8_t& reg, const uint8_t& value, bool setbus = true);
+    static i2cip_errorlevel_t writeRegister(const i2cip_fqa_t& fqa, const uint8_t& reg, const uint8_t& value, bool setbus = true);
 
     /**
      * Write one byte to a device's register (16-bit register address). Effectively adds TWO prefix bytes.
@@ -144,11 +148,11 @@ namespace I2CIP {
      * @param setbus Should the MUX be reset? (Default: `true`)
      * @return Hardware failure: Device and/or module lost. Software failure: Failed to write and/or failed to switch MUX bus
      */
-    i2cip_errorlevel_t writeRegister(const i2cip_fqa_t& fqa, const uint16_t& reg, const uint8_t& value, bool setbus = true);
+    static i2cip_errorlevel_t writeRegister(const i2cip_fqa_t& fqa, const uint16_t& reg, const uint8_t& value, bool setbus = true);
 
-    i2cip_errorlevel_t writeRegister(const i2cip_fqa_t& fqa, const uint8_t& reg, uint8_t* buffer, size_t len = 1, bool setbus = true);
+    static i2cip_errorlevel_t writeRegister(const i2cip_fqa_t& fqa, const uint8_t& reg, uint8_t* buffer, size_t len = 1, bool setbus = true);
 
-    i2cip_errorlevel_t writeRegister(const i2cip_fqa_t& fqa, const uint16_t& reg, uint8_t* buffer, size_t len = 1, bool setbus = true);
+    static i2cip_errorlevel_t writeRegister(const i2cip_fqa_t& fqa, const uint16_t& reg, uint8_t* buffer, size_t len = 1, bool setbus = true);
 
     /**
      * Request and read in data from a device.
@@ -159,7 +163,7 @@ namespace I2CIP {
      * @param len Number of bytes to read (Default: `1`)
      * @param setbus Should the MUX be reset? (Default: `true`)
      */
-    i2cip_errorlevel_t read(const i2cip_fqa_t& fqa, uint8_t* dest, size_t& len, bool nullterminate = true, bool resetbus = true);
+    static i2cip_errorlevel_t read(const i2cip_fqa_t& fqa, uint8_t* dest, size_t& len, bool nullterminate = true, bool resetbus = true);
 
     /**
      * Read one byte of data from the device.
@@ -169,7 +173,7 @@ namespace I2CIP {
      * @param dest Byte to read into
      * @param setbus Should the MUX be reset? (Default: `true`)
      */
-    i2cip_errorlevel_t readByte(const i2cip_fqa_t& fqa, uint8_t& dest, bool resetbus = true);
+    static i2cip_errorlevel_t readByte(const i2cip_fqa_t& fqa, uint8_t& dest, bool resetbus = true);
 
     /**
      * Read one byte of data from the device.
@@ -179,11 +183,11 @@ namespace I2CIP {
      * @param dest Word to read into
      * @param setbus Should the MUX be reset? (Default: `true`)
      */
-    i2cip_errorlevel_t readWord(const i2cip_fqa_t& fqa, uint16_t& dest, bool resetbus = true);
+    static i2cip_errorlevel_t readWord(const i2cip_fqa_t& fqa, uint16_t& dest, bool resetbus = true);
 
-    i2cip_errorlevel_t readRegister(const i2cip_fqa_t& fqa, const uint8_t& reg, uint8_t* dest, size_t& len, bool nullterminate = true, bool resetbus = true);
+    static i2cip_errorlevel_t readRegister(const i2cip_fqa_t& fqa, const uint8_t& reg, uint8_t* dest, size_t& len, bool nullterminate = true, bool resetbus = true);
 
-    i2cip_errorlevel_t readRegister(const i2cip_fqa_t& fqa, const uint16_t& reg, uint8_t* dest, size_t& len, bool nullterminate = true, bool resetbus = true);
+    static i2cip_errorlevel_t readRegister(const i2cip_fqa_t& fqa, const uint16_t& reg, uint8_t* dest, size_t& len, bool nullterminate = true, bool resetbus = true);
 
     /**
      * Read one byte of data from the device. Effectively adds a prefix byte.
@@ -192,7 +196,7 @@ namespace I2CIP {
      * @param dest Bytes to read into
      * @param setbus Should the MUX be reset? (Default: `true`)
      */
-    i2cip_errorlevel_t readRegisterByte(const i2cip_fqa_t& fqa, const uint8_t& reg, uint8_t& dest, bool resetbus = true);
+    static i2cip_errorlevel_t readRegisterByte(const i2cip_fqa_t& fqa, const uint8_t& reg, uint8_t& dest, bool resetbus = true);
 
     /**
      * Read one byte of data from the device. Effectively adds TWO prefix bytes.
@@ -201,7 +205,7 @@ namespace I2CIP {
      * @param dest Bytes to read into
      * @param setbus Should the MUX be reset? (Default: `true`)
      **/
-    i2cip_errorlevel_t readRegisterByte(const i2cip_fqa_t& fqa, const uint16_t& reg, uint8_t& dest, bool resetbus = true);
+    static i2cip_errorlevel_t readRegisterByte(const i2cip_fqa_t& fqa, const uint16_t& reg, uint8_t& dest, bool resetbus = true);
 
     /**
      * Read two bytes of data from the device. Effectively adds one prefix bytes.
@@ -210,7 +214,7 @@ namespace I2CIP {
      * @param dest Bytes to read into
      * @param setbus Should the MUX be reset? (Default: `true`)
      **/
-    i2cip_errorlevel_t readRegisterWord(const i2cip_fqa_t& fqa, const uint8_t& reg, uint16_t& dest, bool resetbus = true);
+    static i2cip_errorlevel_t readRegisterWord(const i2cip_fqa_t& fqa, const uint8_t& reg, uint16_t& dest, bool resetbus = true);
 
     /**
      * Read two bytes of data from the device. Effectively adds TWO prefix bytes.
@@ -219,19 +223,23 @@ namespace I2CIP {
      * @param dest Bytes to read into
      * @param setbus Should the MUX be reset? (Default: `true`)
      **/
-    i2cip_errorlevel_t readRegisterWord(const i2cip_fqa_t& fqa, const uint16_t& reg, uint16_t& dest, bool resetbus = true);
+    static i2cip_errorlevel_t readRegisterWord(const i2cip_fqa_t& fqa, const uint16_t& reg, uint16_t& dest, bool resetbus = true);
   };
 
-  namespace EEPROM {
-    i2cip_errorlevel_t readContents(const i2cip_fqa_t& fqa, uint8_t* dest, size_t& num_read, size_t max_read = I2CIP_EEPROM_SIZE);
+  class EEPROM : Device {
+  private:
+  public:
+    EEPROM(const i2cip_fqa_t& fqa);
 
-    i2cip_errorlevel_t writeByte(const i2cip_fqa_t& fqa, const uint16_t& bytenum, const uint8_t& value, bool setbus = true);
+    static i2cip_errorlevel_t readContents(const i2cip_fqa_t& fqa, uint8_t* dest, size_t& num_read, size_t max_read = I2CIP_EEPROM_SIZE);
 
-    i2cip_errorlevel_t clearContents(const i2cip_fqa_t& fqa, bool setbus = true, uint16_t numbytes = I2CIP_EEPROM_SIZE);
+    static i2cip_errorlevel_t writeByte(const i2cip_fqa_t& fqa, const uint16_t& bytenum, const uint8_t& value, bool setbus = true);
 
-    i2cip_errorlevel_t overwriteContents(const i2cip_fqa_t& fqa, const char* contents, bool clear = true, bool setbus = true);
+    static i2cip_errorlevel_t clearContents(const i2cip_fqa_t& fqa, bool setbus = true, uint16_t numbytes = I2CIP_EEPROM_SIZE);
 
-    i2cip_errorlevel_t overwriteContents(const i2cip_fqa_t& fqa, uint8_t* buffer, size_t len, bool clear = true, bool setbus = true);
+    static i2cip_errorlevel_t overwriteContents(const i2cip_fqa_t& fqa, const char* contents, bool clear = true, bool setbus = true);
+
+    static i2cip_errorlevel_t overwriteContents(const i2cip_fqa_t& fqa, uint8_t* buffer, size_t len, bool clear = true, bool setbus = true);
   };
 };
 

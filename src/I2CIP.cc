@@ -102,8 +102,9 @@ namespace I2CIP {
     }
   };
 
-  namespace Device {
-    i2cip_errorlevel_t ping(const i2cip_fqa_t& fqa, bool resetbus) {
+      Device::Device(const i2cip_fqa_t& fqa) : fqa(fqa) { }
+
+    i2cip_errorlevel_t Device::ping(const i2cip_fqa_t& fqa, bool resetbus) {
       // Switch MUX bus
       i2cip_errorlevel_t errlev = MUX::setBus(fqa);
       I2CIP_ERR_BREAK(errlev);
@@ -134,7 +135,7 @@ namespace I2CIP {
       return I2CIP_ERR_NONE;
     }
 
-    i2cip_errorlevel_t pingTimeout(const i2cip_fqa_t& fqa, bool setbus, bool resetbus, unsigned int timeout) {
+    i2cip_errorlevel_t Device::pingTimeout(const i2cip_fqa_t& fqa, bool setbus, bool resetbus, unsigned int timeout) {
       if(setbus) {
         i2cip_errorlevel_t errlev = MUX::setBus(fqa);
         I2CIP_ERR_BREAK(errlev);
@@ -189,7 +190,7 @@ namespace I2CIP {
       return errlev;
     }
 
-    i2cip_errorlevel_t writeByte(const i2cip_fqa_t& fqa, const uint8_t& value, bool setbus) {
+    i2cip_errorlevel_t Device::writeByte(const i2cip_fqa_t& fqa, const uint8_t& value, bool setbus) {
       i2cip_errorlevel_t errlev;
       if (setbus) {
         // Switch MUX bus
@@ -222,7 +223,7 @@ namespace I2CIP {
       return (success ? I2CIP_ERR_NONE : I2CIP_ERR_SOFT);
     }
 
-    i2cip_errorlevel_t write(const i2cip_fqa_t& fqa, const uint8_t* buffer, size_t len, bool setbus) {
+    i2cip_errorlevel_t Device::write(const i2cip_fqa_t& fqa, const uint8_t* buffer, size_t len, bool setbus) {
       i2cip_errorlevel_t errlev = I2CIP_ERR_NONE;
       if (setbus) {
         errlev = MUX::setBus(fqa);
@@ -264,17 +265,17 @@ namespace I2CIP {
       return ((success || errlev > I2CIP_ERR_NONE) ? errlev : I2CIP_ERR_SOFT);
     }
     
-    i2cip_errorlevel_t writeRegister(const i2cip_fqa_t& fqa, const uint8_t& reg, const uint8_t& value, bool setbus) {
+    i2cip_errorlevel_t Device::writeRegister(const i2cip_fqa_t& fqa, const uint8_t& reg, const uint8_t& value, bool setbus) {
       const uint8_t buf[2] = { reg, value };
       return write(fqa, buf, 2, setbus);
     }
 
-    i2cip_errorlevel_t writeRegister(const i2cip_fqa_t& fqa, const uint16_t& reg, const uint8_t& value, bool setbus) {
+    i2cip_errorlevel_t Device::writeRegister(const i2cip_fqa_t& fqa, const uint16_t& reg, const uint8_t& value, bool setbus) {
       const uint8_t buf[3] = { (uint8_t)(reg >> 8), (uint8_t)(reg & 0xFF), value };
       return write(fqa, buf, 3, setbus);
     }
 
-    i2cip_errorlevel_t writeRegister(const i2cip_fqa_t& fqa, const uint8_t& reg, uint8_t* buffer, size_t len, bool setbus) {
+    i2cip_errorlevel_t Device::writeRegister(const i2cip_fqa_t& fqa, const uint8_t& reg, uint8_t* buffer, size_t len, bool setbus) {
       uint8_t buff[len + 1] = { reg };
       for(size_t i = 0; i < len; i++) {
         buff[i + 1] = buffer[i];
@@ -282,7 +283,7 @@ namespace I2CIP {
       return write(fqa, buff, len + 1, setbus);
     }
 
-    i2cip_errorlevel_t writeRegister(const i2cip_fqa_t& fqa, const uint16_t& reg, uint8_t* buffer, size_t len, bool setbus) {
+    i2cip_errorlevel_t Device::writeRegister(const i2cip_fqa_t& fqa, const uint16_t& reg, uint8_t* buffer, size_t len, bool setbus) {
       uint8_t buff[len + 2] = { (uint8_t)(reg >> 8), (uint8_t)(reg & 0xFF) };
       for(size_t i = 0; i < len; i++) {
         buff[i + 2] = buffer[i];
@@ -290,7 +291,7 @@ namespace I2CIP {
       return write(fqa, buff, len + 2, setbus);
     }
 
-    i2cip_errorlevel_t read(const i2cip_fqa_t& fqa, uint8_t* dest, size_t& len, bool nullterminate, bool resetbus) {
+    i2cip_errorlevel_t Device::read(const i2cip_fqa_t& fqa, uint8_t* dest, size_t& len, bool nullterminate, bool resetbus) {
       // Device alive?
       i2cip_errorlevel_t errlev = ping(fqa, false);
       I2CIP_ERR_BREAK(errlev);
@@ -339,12 +340,12 @@ endloop0:
       return (success ? I2CIP_ERR_NONE : I2CIP_ERR_SOFT);
     }
 
-    i2cip_errorlevel_t readByte(const i2cip_fqa_t& fqa, uint8_t& dest, bool resetbus) {
+    i2cip_errorlevel_t Device::readByte(const i2cip_fqa_t& fqa, uint8_t& dest, bool resetbus) {
       size_t len = 1;
       return read(fqa, &dest, len, resetbus);
     }
 
-    i2cip_errorlevel_t readWord(const i2cip_fqa_t& fqa, uint16_t& dest, bool resetbus) {
+    i2cip_errorlevel_t Device::readWord(const i2cip_fqa_t& fqa, uint16_t& dest, bool resetbus) {
       size_t len = 2;
       uint8_t buff[2];
       i2cip_errorlevel_t errlev = read(fqa, buff, len, resetbus);
@@ -353,17 +354,17 @@ endloop0:
       return errlev;
     }
 
-    i2cip_errorlevel_t readRegisterByte(const i2cip_fqa_t& fqa, const uint8_t& reg, uint8_t& dest, bool resetbus) {
+    i2cip_errorlevel_t Device::readRegisterByte(const i2cip_fqa_t& fqa, const uint8_t& reg, uint8_t& dest, bool resetbus) {
       size_t len = 1;
       return readRegister(fqa, reg, &dest, len, false, resetbus);
     }
 
-    i2cip_errorlevel_t readRegisterByte(const i2cip_fqa_t& fqa, const uint16_t& reg, uint8_t& dest, bool resetbus) {
+    i2cip_errorlevel_t Device::readRegisterByte(const i2cip_fqa_t& fqa, const uint16_t& reg, uint8_t& dest, bool resetbus) {
       size_t len = 1;
       return readRegister(fqa, reg, &dest, len, false, resetbus);
     }
 
-    i2cip_errorlevel_t readRegisterWord(const i2cip_fqa_t& fqa, const uint8_t& reg, uint16_t& dest, bool resetbus) {
+    i2cip_errorlevel_t Device::readRegisterWord(const i2cip_fqa_t& fqa, const uint8_t& reg, uint16_t& dest, bool resetbus) {
       size_t len = 2;
       uint8_t buff[2];
       i2cip_errorlevel_t errlev = readRegister(fqa, reg, buff, len, false, resetbus);
@@ -372,7 +373,7 @@ endloop0:
       return errlev;
     }
 
-    i2cip_errorlevel_t readRegisterWord(const i2cip_fqa_t& fqa, const uint16_t& reg, uint16_t& dest, bool resetbus) {
+    i2cip_errorlevel_t Device::readRegisterWord(const i2cip_fqa_t& fqa, const uint16_t& reg, uint16_t& dest, bool resetbus) {
       size_t len = 2;
       uint8_t buff[2];
       i2cip_errorlevel_t errlev = readRegister(fqa, reg, buff, len, false, resetbus);
@@ -381,7 +382,7 @@ endloop0:
       return errlev;
     }
 
-    i2cip_errorlevel_t readRegister(const i2cip_fqa_t& fqa, const uint8_t& reg, uint8_t* dest, size_t& len, bool nullterminate, bool resetbus) {
+    i2cip_errorlevel_t Device::readRegister(const i2cip_fqa_t& fqa, const uint8_t& reg, uint8_t* dest, size_t& len, bool nullterminate, bool resetbus) {
       // Device alive?
       i2cip_errorlevel_t errlev = ping(fqa, false);
       I2CIP_ERR_BREAK(errlev);
@@ -430,7 +431,7 @@ endloop1:
       return (success ? I2CIP_ERR_NONE : I2CIP_ERR_SOFT);
     }
 
-    i2cip_errorlevel_t readRegister(const i2cip_fqa_t& fqa, const uint16_t& reg, uint8_t* dest, size_t& len, bool nullterminate, bool resetbus) {
+    i2cip_errorlevel_t Device::readRegister(const i2cip_fqa_t& fqa, const uint16_t& reg, uint8_t* dest, size_t& len, bool nullterminate, bool resetbus) {
       // Device alive?
       i2cip_errorlevel_t errlev = ping(fqa, false);
       I2CIP_ERR_BREAK(errlev);
@@ -493,20 +494,18 @@ endloop2:
       // Did we read all the bytes we hoped to?
       return (success ? I2CIP_ERR_NONE : I2CIP_ERR_SOFT);
     }
-  };
 
-  namespace EEPROM {
+  
+    EEPROM::EEPROM(const i2cip_fqa_t& fqa) : Device(fqa) { }
 
-    using namespace Device;
-
-    i2cip_errorlevel_t readContents(const i2cip_fqa_t& fqa, uint8_t* dest, size_t& num_read, size_t max_read) {
+    i2cip_errorlevel_t EEPROM::readContents(const i2cip_fqa_t& fqa, uint8_t* dest, size_t& num_read, size_t max_read) {
       size_t bytes_read = max_read;
-      i2cip_errorlevel_t errlev = readRegister(fqa, (uint16_t)0, dest, bytes_read, true, false);
+      i2cip_errorlevel_t errlev = Device::readRegister(fqa, (uint16_t)0, dest, bytes_read, true, false);
       num_read = bytes_read;
       return errlev;
     }
 
-    i2cip_errorlevel_t clearContents(const i2cip_fqa_t& fqa, bool setbus, uint16_t numbytes) {
+    i2cip_errorlevel_t EEPROM::clearContents(const i2cip_fqa_t& fqa, bool setbus, uint16_t numbytes) {
       i2cip_errorlevel_t errlev = Device::pingTimeout(fqa, setbus, false);
       I2CIP_ERR_BREAK(errlev);
 
@@ -515,7 +514,7 @@ endloop2:
       for (uint16_t bytes_written = 0; bytes_written < numbytes; bytes_written+=8) {
         const uint8_t pagelen = min(numbytes - bytes_written, 8);
         
-        errlev = writeRegister(fqa, bytes_written, zeroes, pagelen, false);
+        errlev = Device::writeRegister(fqa, bytes_written, zeroes, pagelen, false);
         if(errlev == I2CIP_ERR_SOFT) {
           // Actual failed write
           return errlev;
@@ -529,14 +528,14 @@ endloop2:
         #endif
 
         // Note: Timeout ping before each byte write to await completion of last write cycle
-        errlev = pingTimeout(fqa, false, false);
+        errlev = Device::pingTimeout(fqa, false, false);
         I2CIP_ERR_BREAK(errlev);
       }
 
       return errlev;
     }
 
-    i2cip_errorlevel_t overwriteContents(const i2cip_fqa_t& fqa, const char* contents, bool clear, bool setbus) {
+    i2cip_errorlevel_t EEPROM::overwriteContents(const i2cip_fqa_t& fqa, const char* contents, bool clear, bool setbus) {
       for(size_t i = 0; i < I2CIP_EEPROM_SIZE; i++) {
         if(contents[i] == '\0') {
           return overwriteContents(fqa, (uint8_t*)contents, i, clear, setbus);
@@ -545,7 +544,7 @@ endloop2:
       return I2CIP_ERR_SOFT;
     }
 
-    i2cip_errorlevel_t overwriteContents(const i2cip_fqa_t& fqa, uint8_t* buffer, size_t len, bool clear, bool setbus) {
+    i2cip_errorlevel_t EEPROM::overwriteContents(const i2cip_fqa_t& fqa, uint8_t* buffer, size_t len, bool clear, bool setbus) {
       i2cip_errorlevel_t errlev = I2CIP_ERR_NONE;
       if(clear) {
         errlev = clearContents(fqa, setbus, len);
@@ -556,7 +555,7 @@ endloop2:
 
       for (uint16_t bytes_written = 0; bytes_written < len; bytes_written+=8) {
         const uint8_t pagelen = min(len - bytes_written, 8);
-        errlev = writeRegister(fqa, bytes_written, buffer+bytes_written, pagelen, false);
+        errlev = Device::writeRegister(fqa, bytes_written, buffer+bytes_written, pagelen, false);
         if(errlev == I2CIP_ERR_SOFT) {
           // Actual failed write
           return errlev;
@@ -575,7 +574,7 @@ endloop2:
         #endif
 
         // Note: Timeout ping before each byte write to await completion of last write cycle
-        errlev = pingTimeout(fqa, false, false);
+        errlev = Device::pingTimeout(fqa, false, false);
         I2CIP_ERR_BREAK(errlev);
 
         #ifdef DEBUG_SERIAL
@@ -593,5 +592,4 @@ endloop2:
 
       return errlev;
     }
-  };
 };
