@@ -20,9 +20,9 @@
 #define I2CIP_MUX_BUS_TO_INSTR(bus) (uint8_t)(1 << bus)
 
 /**
- * Converts a MUX number to its address.
+ * Converts a module number to its MUX address.
  * @param num MUX number (0-7)
  */
-#define I2CIP_MUX_NUM_TO_ADDR(num) (num + I2CIP_MUX_ADDR_MIN)
+#define I2CIP_MODULE_TO_MUXADDR(module) (module + I2CIP_MUX_ADDR_MIN)
 
 #endif

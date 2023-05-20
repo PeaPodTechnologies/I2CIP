@@ -10,7 +10,7 @@
 #include <i2cip/eeprom.h>
 
 #define WIRENUM 0
-#define MUXNUM 0
+#define MODULE 0
 
 // Contents to write to EEPROM
 const char* eeprom_contents = "[{\"eeprom\":[80]}]";
