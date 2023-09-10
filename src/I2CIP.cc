@@ -1,110 +1,104 @@
 #include <I2CIP.h>
 
-#include <Arduino.h>
-#include <Wire.h>
+#include <eeprom.h>
 
-#include <i2cip/fqa.h>
-#include <i2cip/mux.h>
-#include <i2cip/eeprom.h>
+using namespace I2CIP;
 
-// Has wire N been wires[N].begin() yet?
-static bool wiresBegun[I2CIP_NUM_WIRES] = { false };
+// Module::Module(const i2cip_fqa_t& eeprom_fqa) { 
+//   EEPROM* _eeprom = new EEPROM(eeprom_fqa); 
+//   if(_eeprom->pingTimeout() == I2CIP_ERR_NONE) {
 
-namespace I2CIP {
+//   }
+// }
 
-  i2cip_fqa_t createFQA(const uint8_t& wire, const uint8_t& mux, const uint8_t& bus, const uint8_t& addr) {
-    if (( wire < I2CIP_FQA_I2CBUS_MAX ) &&
-        ( mux  < I2CIP_FQA_MODULE_MAX ) &&
-        ( bus  < I2CIP_FQA_MUXBUS_MAX ) &&
-        ( addr < I2CIP_FQA_DEVADR_MAX )
-    ) {
-      return I2CIP_FQA_CREATE(wire, mux, bus, addr);
+Module::Module(const uint8_t& wire, const uint8_t& module, const uint8_t& eeprom_addr) {
+  this->eeprom = new EEPROM(wire, module, eeprom_addr);
+}
+
+bool Module::build(Module& m) {
+  if(m.eeprom == nullptr) return false;
+
+  uint8_t buf[I2CIP_EEPROM_SIZE] = { '\0' };
+  size_t len = 0;
+  i2cip_errorlevel_t errlev = m.eeprom->readContents(buf, len, I2CIP_EEPROM_SIZE);
+
+  if(errlev != I2CIP_ERR_NONE || len == 0) return false;
+  return m.parseEEPROMContents(buf, len);
+}
+
+Module::~Module() { delete eeprom; }
+
+void Module::add(Device& device) {
+  if(!this->isFQAinSubnet(device.getFQA()) || this->contains(&device)) return;
+  
+  unsigned int n = 0;
+  while(this->devices[n] != nullptr) { n++; if(n > I2CIP_DEVICES_PER_GROUP) return;}
+
+  // Append new devices
+  this->devices[n] = &device;
+  this->numdevices = (n + 1);
+}
+
+void Module::remove(Device* device) {
+  bool swap = false;
+  for(int i = 0; i < this->numdevices-1; i++) {
+    if(swap) {
+      this->devices[i - 1] = this->devices[i];
     }
-    return (i2cip_fqa_t)0;
+    if(this->devices[i]->getFQA() == device->getFQA()) { 
+      this->devices[i] = nullptr;
+      this->numdevices--;
+      swap = true;
+    }
   }
+}
 
-  void beginWire(const uint8_t& wire) {
-    if(!wiresBegun[wire]) {
-      #ifdef DEBUG_SERIAL
-        Serial.print("Initializing I2C wire ");
-        Serial.println(wire);
-      #endif
-      wires[wire]->begin();
-      wiresBegun[wire] = true;
-    }
+bool Module::isFQAinSubnet(const i2cip_fqa_t& fqa) { 
+  return I2CIP_FQA_SUBNET_MATCH(fqa, this->eeprom->getFQA());
+}
+
+bool Module::contains(Device* device) {
+  if(device == nullptr || !this->isFQAinSubnet(device->getFQA())) return false;
+  for(int i = 0; i < this->numdevices; i++) {
+    if(this->devices[i]->getFQA() == device->getFQA()) return true;
   }
+  return false;
+}
 
-  namespace MUX {
-    bool pingMUX(const uint8_t& wire, const uint8_t& module) {
-      beginWire(wire);
-      wires[wire]->beginTransmission(I2CIP_MODULE_TO_MUXADDR(module));
-      return (wires[wire]->endTransmission() == 0);
-    }
+i2cip_errorlevel_t Module::operator()(void) {
+  // 1. Check MUX - If we have lost the switch the entire subnet is down!
+  i2cip_errorlevel_t errlev = MUX::pingMUX(this->eeprom->getFQA()) ? I2CIP_ERR_NONE : I2CIP_ERR_HARD;
+  I2CIP_ERR_BREAK(errlev);
 
-    bool pingMUX(const i2cip_fqa_t& fqa) {
-      beginWire(I2CIP_FQA_SEG_I2CBUS(fqa));
-      I2CIP_FQA_TO_WIRE(fqa)->beginTransmission(I2CIP_MODULE_TO_MUXADDR(I2CIP_FQA_SEG_MODULE(fqa)));
-      return (I2CIP_FQA_TO_WIRE(fqa)->endTransmission() == 0);
-    }
-    
-    i2cip_errorlevel_t setBus(const i2cip_fqa_t& fqa) {
-      // Note: no need to ping MUX, we'll see in real time what the result is
-      beginWire(I2CIP_FQA_SEG_I2CBUS(fqa));
+  // 2. Check EEPROM - Alive?
+  errlev = this->eeprom->pingTimeout();
+  I2CIP_ERR_BREAK(errlev);
 
-      // Was the bus switched successfully?
-      bool success = true;
+  // TODO: 3. Read eeprom - buffer change?
+  return errlev;
+}
 
-      // Begin transmission
-      I2CIP_FQA_TO_WIRE(fqa)->beginTransmission(I2CIP_MODULE_TO_MUXADDR(I2CIP_FQA_SEG_MODULE(fqa)));
+i2cip_errorlevel_t Module::operator()(const i2cip_fqa_t& fqa) {
+  // 1. Self-check
+  // i2cip_errorlevel_t errlev = this->operator()();
+  // I2CIP_ERR_BREAK(errlev);
 
-      // Write the bus switch instruction
-      uint8_t instruction = I2CIP_MUX_BUS_TO_INSTR(I2CIP_FQA_SEG_MUXBUS(fqa));
-      if (I2CIP_FQA_TO_WIRE(fqa)->write(&instruction, 1) != 1) {
-        success = false;
+  // 2. Device check
+  if(!this->isFQAinSubnet(fqa)) return I2CIP_ERR_SOFT;
+  Device* device = this->operator[](fqa);
+  if(device == nullptr) return I2CIP_ERR_HARD;
+  i2cip_errorlevel_t errlev = device->pingTimeout();
+  I2CIP_ERR_BREAK(errlev);
+}
 
-        #ifdef DEBUG_SERIAL
-          Serial.println("MUX Write Failed");
-        #endif
-      }
+Device* Module::operator[](const i2cip_fqa_t& fqa) {
+  if(!this->isFQAinSubnet(fqa)) return nullptr;
+  for(int i = 0; i < this->numdevices; i++) {
+    if(this->devices[i]->getFQA() == fqa) return this->devices[i];
+  }
+  return nullptr;
+}
 
-      // End transmission
-      if (I2CIP_FQA_TO_WIRE(fqa)->endTransmission() != 0) {
-        #ifdef DEBUG_SERIAL
-          Serial.println("MUX Transmission Failed");
-        #endif
-        return I2CIP_ERR_HARD;
-      }
+uint8_t Module::getWireNum(void) { return I2CIP_FQA_SEG_I2CBUS(this->eeprom->getFQA()); }
 
-      #ifdef DEBUG_SERIAL
-        Serial.println("MUX Bus Set");
-      #endif
-
-      return (success ? I2CIP_ERR_NONE : I2CIP_ERR_SOFT);
-    }
-
-    i2cip_errorlevel_t resetBus(const i2cip_fqa_t& fqa) {
-      // Note: no need to ping MUX, we'll see in real time what the result is
-      beginWire(I2CIP_FQA_SEG_I2CBUS(fqa));
-
-      // Begin transmission
-      I2CIP_FQA_TO_WIRE(fqa)->beginTransmission(I2CIP_MODULE_TO_MUXADDR(I2CIP_FQA_SEG_MODULE(fqa)));
-
-      // Write the "inactive" bus switch instruction
-      const uint8_t instruction = I2CIP_MUX_INSTR_RST;
-      if (I2CIP_FQA_TO_WIRE(fqa)->write(&instruction, 1) != 1) {
-        return I2CIP_ERR_SOFT;
-      }
-
-      // End transmission
-      if (I2CIP_FQA_TO_WIRE(fqa)->endTransmission() != 0) {
-        return I2CIP_ERR_HARD;
-      }
-
-      #ifdef DEBUG_SERIAL
-        Serial.println("MUX Bus Reset");
-      #endif
-
-      return I2CIP_ERR_NONE;
-    }
-  };
-};
+uint8_t Module::getModuleNum(void) { return I2CIP_FQA_SEG_MODULE(this->eeprom->getFQA()); }

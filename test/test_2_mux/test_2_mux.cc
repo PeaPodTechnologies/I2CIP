@@ -1,8 +1,7 @@
 #include <Arduino.h>
 #include <unity.h>
 
-#include <i2cip/mux.h>
-#include <I2CIP.h>
+#include <mux.h>
 #include "../config.h"
 
 #define I2CIP_TEST_MUXINSTR 0b00010000 // Bus 4

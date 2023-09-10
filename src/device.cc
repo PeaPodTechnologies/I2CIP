@@ -1,14 +1,14 @@
-#include <I2CIP.h>
-
-#include <Arduino.h>
+#include <device.h>
 
 using namespace I2CIP;
 
 // CONSTRUCTORs AND PROPERTY GETTERS/SETTERS
 
-Device::Device(const i2cip_fqa_t& fqa) : fqa(fqa) { }
+Device::Device(const i2cip_fqa_t& fqa, const i2cip_id_t& id) : fqa(fqa), id(id) { }
 
 const i2cip_fqa_t& Device::getFQA(void) { return this->fqa; }
+
+const i2cip_id_t& Device::getID(void) { return this->id; }
 
 // STATIC CLASS-MEMBER FUNCTIONS (PRIVATE INTERNAL API)
 
@@ -18,8 +18,8 @@ i2cip_errorlevel_t Device::ping(const i2cip_fqa_t& fqa, bool resetbus) {
   I2CIP_ERR_BREAK(errlev);
 
   // Begin transmission
-  #ifdef DEBUG_SERIAL
-    Serial.print("Ping... ");
+  #ifdef I2CIP_DEBUG_SERIAL
+    I2CIP_DEBUG_SERIAL.print("Ping... ");
   #endif
 
   I2CIP_FQA_TO_WIRE(fqa)->beginTransmission(I2CIP_FQA_SEG_DEVADR(fqa));
@@ -29,8 +29,8 @@ i2cip_errorlevel_t Device::ping(const i2cip_fqa_t& fqa, bool resetbus) {
     return I2CIP_ERR_HARD;
   }
 
-  #ifdef DEBUG_SERIAL
-    Serial.println("Pong!");
+  #ifdef I2CIP_DEBUG_SERIAL
+    I2CIP_DEBUG_SERIAL.println("Pong!");
   #endif
 
   // Switch MUX bus back
@@ -50,8 +50,8 @@ i2cip_errorlevel_t Device::pingTimeout(const i2cip_fqa_t& fqa, bool setbus, bool
   }
 
   // Check if it's actually lost
-  #ifdef DEBUG_SERIAL
-    Serial.print("Ping... ");
+  #ifdef I2CIP_DEBUG_SERIAL
+    I2CIP_DEBUG_SERIAL.print("Ping... ");
   #endif
   
   I2CIP_FQA_TO_WIRE(fqa)->beginTransmission(I2CIP_FQA_SEG_DEVADR(fqa));
@@ -65,8 +65,8 @@ i2cip_errorlevel_t Device::pingTimeout(const i2cip_fqa_t& fqa, bool setbus, bool
     delay(1);
 
     // Begin transmission
-    #ifdef DEBUG_SERIAL
-      Serial.print("Ping... ");
+    #ifdef I2CIP_DEBUG_SERIAL
+      I2CIP_DEBUG_SERIAL.print("Ping... ");
     #endif
 
     I2CIP_FQA_TO_WIRE(fqa)->beginTransmission(I2CIP_FQA_SEG_DEVADR(fqa));
@@ -85,13 +85,13 @@ i2cip_errorlevel_t Device::pingTimeout(const i2cip_fqa_t& fqa, bool setbus, bool
     errlev = MUX::resetBus(fqa);
   }
 
-  #ifdef DEBUG_SERIAL
+  #ifdef I2CIP_DEBUG_SERIAL
     if(errlev == I2CIP_ERR_HARD) {
-      Serial.println("Timed Out!");
+      I2CIP_DEBUG_SERIAL.println("Timed Out!");
     } else {
-      Serial.print("Pong! Ping Timeout: ");
-      Serial.print(millis()-start);
-      Serial.print("ms... ");
+      I2CIP_DEBUG_SERIAL.print("Pong! Ping Timeout: ");
+      I2CIP_DEBUG_SERIAL.print(millis()-start);
+      I2CIP_DEBUG_SERIAL.print("ms... ");
     }
   #endif
   
@@ -148,19 +148,19 @@ i2cip_errorlevel_t Device::write(const i2cip_fqa_t& fqa, const uint8_t* buffer, 
   size_t sent = I2CIP_FQA_TO_WIRE(fqa)->write(buffer, len);
   if (sent != len) {
     success = false;
-    #ifdef DEBUG_SERIAL
-      Serial.print("Write Failed (");
-      Serial.print(sent);
-      Serial.print("/");
-      Serial.print(len);
-      Serial.println(" bytes sent)");
+    #ifdef I2CIP_DEBUG_SERIAL
+      I2CIP_DEBUG_SERIAL.print("Write Failed (");
+      I2CIP_DEBUG_SERIAL.print(sent);
+      I2CIP_DEBUG_SERIAL.print("/");
+      I2CIP_DEBUG_SERIAL.print(len);
+      I2CIP_DEBUG_SERIAL.print(" bytes sent)\n");
     #endif
   }
 
   // End transmission
   if (I2CIP_FQA_TO_WIRE(fqa)->endTransmission() != 0) {
-    #ifdef DEBUG_SERIAL
-      Serial.print("No ACK On Write! ");
+    #ifdef I2CIP_DEBUG_SERIAL
+      I2CIP_DEBUG_SERIAL.print("No ACK On Write! ");
     #endif
     return I2CIP_ERR_HARD;
   }
@@ -354,12 +354,12 @@ i2cip_errorlevel_t Device::readRegister(const i2cip_fqa_t& fqa, const uint16_t& 
     // Don't stop the bus unless we've read everything
     bool read_stop = (pos + read_len >= len);
 
-    #ifdef DEBUG_SERIAL
-      Serial.print("Reading bytes ");
-      Serial.print(pos);
-      Serial.print(" - ");
-      Serial.print(pos+read_len);
-      Serial.print(": '");
+    #ifdef I2CIP_DEBUG_SERIAL
+      I2CIP_DEBUG_SERIAL.print("Reading bytes ");
+      I2CIP_DEBUG_SERIAL.print(pos);
+      I2CIP_DEBUG_SERIAL.print(" - ");
+      I2CIP_DEBUG_SERIAL.print(pos+read_len);
+      I2CIP_DEBUG_SERIAL.print(": '");
     #endif
 
     // Request bytes; How many have we received?
@@ -373,23 +373,23 @@ i2cip_errorlevel_t Device::readRegister(const i2cip_fqa_t& fqa, const uint16_t& 
     // Read in all the bytes received
     for (uint16_t i = 0; i < recv; i++) {
       dest[pos + i] = I2CIP_FQA_TO_WIRE(fqa)->read();
-      #ifdef DEBUG_SERIAL
-        Serial.print((char)dest[pos + i]);
+      #ifdef I2CIP_DEBUG_SERIAL
+        I2CIP_DEBUG_SERIAL.print((char)dest[pos + i]);
       #endif
       if(nullterminate && dest[pos + i] == '\0') {
         len = pos + i;
         goto endloop2;
       }
     }
-    #ifdef DEBUG_SERIAL
-      Serial.println("'");
+    #ifdef I2CIP_DEBUG_SERIAL
+      I2CIP_DEBUG_SERIAL.println("'");
     #endif
     
     // Advance the index by the amount of bytes received
     pos += recv;
   }
 endloop2:
-  #ifdef DEBUG_SERIAL
+  #ifdef I2CIP_DEBUG_SERIAL
     Serial.println("'");
   #endif
 
@@ -422,3 +422,93 @@ i2cip_errorlevel_t Device::readRegisterByte(const uint8_t& reg, uint8_t& dest, b
 i2cip_errorlevel_t Device::readRegisterByte(const uint16_t& reg, uint8_t& dest, bool resetbus) { return Device::readRegisterByte(this->fqa, reg, dest, resetbus); }
 i2cip_errorlevel_t Device::readRegisterWord(const uint8_t& reg, uint16_t& dest, bool resetbus) { return Device::readRegisterWord(this->fqa, reg, dest, resetbus);  }
 i2cip_errorlevel_t Device::readRegisterWord(const uint16_t& reg, uint16_t& dest, bool resetbus) { return Device::readRegisterWord(this->fqa, reg, dest, resetbus); }
+
+// template <> void InputInterface<char*>::toJSONField(char* const& data, char* buf) {
+//   sprintf(buf, "\"%s\":\"%s\"", this->id, data);
+// }
+
+// template <> void InputInterface<int>::toJSONField(const int& data, char* buf) {
+//   sprintf(buf, "\"%s\":%d", this->id, data);
+// }
+
+// template <> void InputInterface<float>::toJSONField(const float& data, char* buf) {
+//   sprintf(buf, "\"%s\":%.2f", this->id, (double)data);
+// }
+
+// template <> void InputInterface<bool>::toJSONField(const bool& data, char* buf) {
+//   if(data) {
+//     sprintf(buf, "\"%s\":true", this->id);
+//   } else {
+//     sprintf(buf, "\"%s\":false", this->id);
+//   }
+// }
+
+DeviceGroup::DeviceGroup(i2cip_id_t key, const i2cip_itype_t& itype, factory_device_t factory) : key(key), itype(itype), factory(factory) { for(int i = 0; i < I2CIP_DEVICES_PER_GROUP; i++) { devices[i] = nullptr; } }
+
+void DeviceGroup::add(Device& device) {
+  if(strcmp(device.getID(), this->key) != 0 || this->contains(&device)) return;
+  
+  unsigned int n = 0;
+  while(this->devices[n] != nullptr) { n++; if(n > I2CIP_DEVICES_PER_GROUP) return;}
+
+  // Append new devices
+  this->devices[n] = &device;
+  this->numdevices = (n + 1);
+}
+
+void DeviceGroup::addGroup(Device* devices[], uint8_t numdevices) {
+  unsigned int n = 0;
+  while(this->devices[n] != nullptr) { n++; if(n > I2CIP_DEVICES_PER_GROUP) return;}
+  
+  // Append new devices
+  for(unsigned int i = 0; i < numdevices && this->devices[i] != nullptr; i++) {
+    this->devices[n+i] = devices[i];
+    this->numdevices++;
+  }
+}
+
+void DeviceGroup::remove(Device* device) {
+  bool swap = false;
+  for(int i = 0; i < this->numdevices-1; i++) {
+    if(swap) {
+      this->devices[i - 1] = this->devices[i];
+    }
+    if(this->devices[i]->getFQA() == device->getFQA()) { 
+      this->devices[i] = nullptr;
+      this->numdevices--;
+      swap = true;
+    }
+  }
+}
+
+bool DeviceGroup::contains(Device* device) {
+  if(strcmp(device->getID(), this->key) != 0) return false;
+  for(int i = 0; i < this->numdevices; i++) {
+    if(this->devices[i]->getFQA() == device->getFQA()) return true;
+  }
+  return false;
+}
+
+Device& DeviceGroup::operator()(const i2cip_fqa_t& fqa, bool add) {
+  Device& device = *this->factory(fqa);
+
+  if(add) {
+    this->add(device);
+  }
+
+  return device;
+}
+
+DeviceGroup& DeviceGroup::operator=(const DeviceGroup& rhs) {
+  for(unsigned char i = 0; i < I2CIP_DEVICES_PER_GROUP; i++) this->devices[i] = rhs.devices[i];
+  this->numdevices = rhs.numdevices;
+  this->factory = rhs.factory;
+  this->key = rhs.key;
+  return *this;
+}
+
+template <typename G, typename A> InputInterface<G, A>::operator i2cip_itype_t() const { return I2CIP_ITYPE_INPUT; }
+
+template <typename S, typename B> OutputInterface<S, B>::operator i2cip_itype_t() const { return I2CIP_ITYPE_OUTPUT; }
+
+template <typename G, typename A, typename S, typename B> IOInterface<G, A, S, B>::operator i2cip_itype_t() const { return I2CIP_ITYPE_IO; }

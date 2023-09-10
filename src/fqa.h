@@ -2,13 +2,15 @@
 #define I2CIP_FQA_H_
 
 #include <Arduino.h>
+#include <Wire.h>
 
 // --------------------------------
 // FQA: Fully Qualified Addressing
 // --------------------------------
 
-// A useful typedef
+// Two useful typedefs
 typedef uint16_t i2cip_fqa_t;
+typedef const char*& i2cip_id_t;
 
 // Address segments: Least Significant Bit positions, lengths, and maximum values
 #define I2CIP_FQA_I2CBUS_LSB  13
@@ -39,5 +41,45 @@ typedef uint16_t i2cip_fqa_t;
 #define I2CIP_FQA_SEG_MUXBUS(fqa) I2CIP_FQA_SEG(fqa, I2CIP_FQA_MUXBUS_LSB, I2CIP_FQA_MUXBUS_LEN) // Extracts the MUX bus number segment from an FQA
 #define I2CIP_FQA_SEG_MODULE(fqa) I2CIP_FQA_SEG(fqa, I2CIP_FQA_MODULE_LSB, I2CIP_FQA_MODULE_LEN) // Extracts the MUX number segment from an FQA
 #define I2CIP_FQA_SEG_I2CBUS(fqa) I2CIP_FQA_SEG(fqa, I2CIP_FQA_I2CBUS_LSB, I2CIP_FQA_I2CBUS_LEN) // Extracts the I2C bus number segment from an FQA
+
+// I2C Wire Implementation
+#define I2CIP_MAXBUFFER 32  // I2C buffer size
+#define I2CIP_NUM_WIRES 1   // Number of I2C wires - TODO: autodetect and populate `wires[]` based on hardware spec macros
+
+extern TwoWire Wire;
+extern bool wiresBegun[];
+
+static TwoWire* const wires[I2CIP_NUM_WIRES] = { &Wire };
+
+#define I2CIP_FQA_TO_WIRE(fqa) (wires[I2CIP_FQA_SEG_I2CBUS(fqa)])
+
+#define I2CIP_ERR_BREAK(errlev) if((errlev) != I2CIP::I2CIP_ERR_NONE) { return (errlev); }
+
+namespace I2CIP {
+  /**
+   * Errorlevels for I2CIP communication.
+   */
+  typedef enum {
+    I2CIP_ERR_NONE = 0, // No error
+    I2CIP_ERR_SOFT = 1, // Communications error, device still reachable
+    I2CIP_ERR_HARD = 2, // Device unreachable
+  } i2cip_errorlevel_t;
+  
+  /**
+   * Create an FQA from segments. Validates.
+   * @param wire I2C bus number
+   * @param mux MUX number
+   * @param bus MUX bus number
+   * @param addr Device address
+   * @return A valid FQA, or 0 if any segment has an invalid value.
+   */
+  i2cip_fqa_t createFQA(const uint8_t& wire, const uint8_t& mux, const uint8_t& bus, const uint8_t& addr);
+
+  /**
+   * Initialize an I2C interface (if it has not already been initialized)
+   * @param fqa
+   */
+  void beginWire(const i2cip_fqa_t fqa);
+};
 
 #endif

@@ -1,8 +1,7 @@
 #include <Arduino.h>
 #include <unity.h>
 
-#include <i2cip/fqa.h>
-#include <I2CIP.h>
+#include <fqa.h>
 #include "../config.h"
 
 #define I2CIP_TEST_FQA_WIRE 0b1010000000000000 // I2C Bus 5
@@ -26,6 +25,10 @@ void test_fqa_segments(void) {
   TEST_ASSERT_EQUAL_UINT16_MESSAGE(0x50, I2CIP_FQA_SEG_DEVADR(fqa), "FQA Seg: Device Address");
 }
 
+void test_fqa_to_wire(void) {
+  TEST_ASSERT_EQUAL_PTR_MESSAGE(&Wire, wires[0], "wires[0] points to &Wire");
+}
+
 void setup() {
   delay(2000);
 
@@ -33,6 +36,7 @@ void setup() {
 
   RUN_TEST(test_fqa_create);
   RUN_TEST(test_fqa_segments);
+  RUN_TEST(test_fqa_to_wire);
 
   UNITY_END();
 }
