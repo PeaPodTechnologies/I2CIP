@@ -1,5 +1,7 @@
 #include <mux.h>
 
+#include <fqa.h>
+
 namespace I2CIP {
 
   namespace MUX {
@@ -31,6 +33,7 @@ namespace I2CIP {
         success = false;
 
         #ifdef I2CIP_DEBUG_SERIAL
+          DEBUG_DELAY();
           I2CIP_DEBUG_SERIAL.print("MUX Write Failed\n");
         #endif
       }
@@ -39,12 +42,14 @@ namespace I2CIP {
       if (I2CIP_FQA_TO_WIRE(fqa)->endTransmission() != 0) {
         #ifdef I2CIP_DEBUG_SERIAL
           I2CIP_DEBUG_SERIAL.print("MUX Transmission Failed\n");
+          DEBUG_DELAY();
         #endif
         return I2CIP_ERR_HARD;
       }
 
       #ifdef I2CIP_DEBUG_SERIAL
         I2CIP_DEBUG_SERIAL.print("MUX Bus Set\n");
+        DEBUG_DELAY();
       #endif
 
       return (success ? I2CIP_ERR_NONE : I2CIP_ERR_SOFT);
@@ -69,7 +74,9 @@ namespace I2CIP {
       }
 
       #ifdef I2CIP_DEBUG_SERIAL
+        DEBUG_DELAY();
         I2CIP_DEBUG_SERIAL.print("MUX Bus Reset\n");
+        DEBUG_DELAY();
       #endif
 
       return I2CIP_ERR_NONE;

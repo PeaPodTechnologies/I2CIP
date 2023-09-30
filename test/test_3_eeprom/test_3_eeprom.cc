@@ -6,6 +6,9 @@
 
 // ALL MACROS
 
+char buffer[I2CIP_TEST_BUFFERSIZE] = { '\0' };
+size_t bufferlen = 0;
+
 void test_eeprom_ping(void) {
   char msg[30];
   sprintf(msg, "Device unreachable (%01X.%01X.%01X.%02X)", I2CIP_FQA_SEG_I2CBUS(eeprom_fqa), I2CIP_FQA_SEG_MODULE(eeprom_fqa), I2CIP_FQA_SEG_MUXBUS(eeprom_fqa), I2CIP_FQA_SEG_DEVADR(eeprom_fqa));
@@ -35,8 +38,8 @@ void test_eeprom_read_word(void) {
   uint16_t c = '\0';
   I2CIP::i2cip_errorlevel_t result = eeprom.readRegisterWord((uint16_t)0, c);
   TEST_ASSERT_EQUAL_UINT8_MESSAGE(I2CIP::I2CIP_ERR_NONE, result, "EEPROM Read Byte");
-  TEST_ASSERT_EQUAL_UINT8_MESSAGE(I2CIP_TEST_EEPROM_BYTE, (c & 0xFF), "EEPROM Read Byte (Match 1/2)");
-  TEST_ASSERT_EQUAL_UINT8_MESSAGE(I2CIP_TEST_EEPROM_BYTE2, (c >> 8), "EEPROM Read Byte (Match 2/2)");
+  TEST_ASSERT_EQUAL_UINT8_MESSAGE(I2CIP_TEST_EEPROM_BYTE0, (c & 0xFF), "EEPROM Read Byte (Match 1/2)");
+  TEST_ASSERT_EQUAL_UINT8_MESSAGE(I2CIP_TEST_EEPROM_BYTE1, (c >> 8), "EEPROM Read Byte (Match 2/2)");
 }
 
 void test_eeprom_overwrite_contents(void) {

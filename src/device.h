@@ -260,4 +260,6 @@ namespace I2CIP {
   };
 };
 
+#include <device.tpp>
+
 #endif

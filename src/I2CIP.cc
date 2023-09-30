@@ -70,6 +70,8 @@ i2cip_errorlevel_t Module::operator()(void) {
   i2cip_errorlevel_t errlev = MUX::pingMUX(this->eeprom->getFQA()) ? I2CIP_ERR_NONE : I2CIP_ERR_HARD;
   I2CIP_ERR_BREAK(errlev);
 
+  if(this->eeprom == nullptr) return I2CIP_ERR_HARD;
+
   // 2. Check EEPROM - Alive?
   errlev = this->eeprom->pingTimeout();
   I2CIP_ERR_BREAK(errlev);
@@ -89,6 +91,10 @@ i2cip_errorlevel_t Module::operator()(const i2cip_fqa_t& fqa) {
   if(device == nullptr) return I2CIP_ERR_HARD;
   i2cip_errorlevel_t errlev = device->pingTimeout();
   I2CIP_ERR_BREAK(errlev);
+
+  // TODO: Anything?
+
+  return errlev;
 }
 
 Device* Module::operator[](const i2cip_fqa_t& fqa) {

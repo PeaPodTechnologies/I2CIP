@@ -60,9 +60,9 @@ namespace I2CIP {
    * Errorlevels for I2CIP communication.
    */
   typedef enum {
-    I2CIP_ERR_NONE = 0, // No error
-    I2CIP_ERR_SOFT = 1, // Communications error, device still reachable
-    I2CIP_ERR_HARD = 2, // Device unreachable
+    I2CIP_ERR_NONE = 0x0, // No error
+    I2CIP_ERR_SOFT = 0x1, // Communications error, device still reachable
+    I2CIP_ERR_HARD = 0x2, // Device unreachable
   } i2cip_errorlevel_t;
   
   /**
@@ -77,9 +77,9 @@ namespace I2CIP {
 
   /**
    * Initialize an I2C interface (if it has not already been initialized)
-   * @param fqa
+   * @param wire
    */
-  void beginWire(const i2cip_fqa_t fqa);
+  void beginWire(const uint8_t& wire);
 };
 
 #endif

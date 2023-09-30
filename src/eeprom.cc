@@ -1,12 +1,31 @@
 #include <eeprom.h>
 
-const char* id_eeprom = "EEPROM";
+#include <fqa.h>
+#include <device.h>
+
+const char* csos_id_eeprom = "eeprom";
 
 using namespace I2CIP;
 
-EEPROM::EEPROM(const i2cip_fqa_t& fqa) : Device(fqa, id_eeprom) { }
+EEPROM::EEPROM(const i2cip_fqa_t& fqa) : Device(fqa, csos_id_eeprom) {
+  #ifdef I2CIP_DEBUG_SERIAL
+    DEBUG_DELAY();
+    I2CIP_DEBUG_SERIAL.print("EEPROM Constructed (0x");
+    I2CIP_DEBUG_SERIAL.print(I2CIP_FQA_SEG_DEVADR(fqa), HEX);
+    I2CIP_DEBUG_SERIAL.print(")\n");
+    DEBUG_DELAY();
+  #endif
+}
 
-EEPROM::EEPROM(const uint8_t& wire, const uint8_t& module, const uint8_t& addr) : Device(createFQA(wire, module, I2CIP_MUX_BUS_DEFAULT, addr), id_eeprom) { }
+EEPROM::EEPROM(const uint8_t& wire, const uint8_t& module, const uint8_t& addr) : Device(createFQA(wire, module, I2CIP_MUX_BUS_DEFAULT, addr), csos_id_eeprom) {
+  #ifdef I2CIP_DEBUG_SERIAL
+    DEBUG_DELAY();
+    I2CIP_DEBUG_SERIAL.print("EEPROM Constructed (0x");
+    I2CIP_DEBUG_SERIAL.print(addr, HEX);
+    I2CIP_DEBUG_SERIAL.print(")\n");
+    DEBUG_DELAY();
+  #endif
+}
 
 i2cip_errorlevel_t EEPROM::readContents(uint8_t* dest, size_t& num_read, size_t max_read) {
   size_t bytes_read = max_read;
@@ -31,10 +50,12 @@ i2cip_errorlevel_t EEPROM::clearContents(bool setbus, uint16_t numbytes) {
     }
 
     #ifdef I2CIP_DEBUG_SERIAL
+      DEBUG_DELAY();
       I2CIP_DEBUG_SERIAL.print("Cleared EEPROM bytes ");
       I2CIP_DEBUG_SERIAL.print(bytes_written);
       I2CIP_DEBUG_SERIAL.print(" - ");
       I2CIP_DEBUG_SERIAL.println((bytes_written + pagelen - 1));
+      DEBUG_DELAY();
     #endif
 
     // Note: Timeout ping before each byte write to await completion of last write cycle
@@ -72,6 +93,7 @@ i2cip_errorlevel_t EEPROM::overwriteContents(uint8_t* buffer, size_t len, bool c
     }
 
     #ifdef I2CIP_DEBUG_SERIAL
+      DEBUG_DELAY();
       I2CIP_DEBUG_SERIAL.print("Bytes ");
       I2CIP_DEBUG_SERIAL.print(bytes_written);
       I2CIP_DEBUG_SERIAL.print(" - ");
@@ -81,6 +103,7 @@ i2cip_errorlevel_t EEPROM::overwriteContents(uint8_t* buffer, size_t len, bool c
         I2CIP_DEBUG_SERIAL.print((char)((buffer+bytes_written)[i]));
       }
       I2CIP_DEBUG_SERIAL.print("'... ");
+      DEBUG_DELAY();
     #endif
 
     // Note: Timeout ping before each byte write to await completion of last write cycle
@@ -89,12 +112,15 @@ i2cip_errorlevel_t EEPROM::overwriteContents(uint8_t* buffer, size_t len, bool c
 
     #ifdef I2CIP_DEBUG_SERIAL
       I2CIP_DEBUG_SERIAL.println("... ACK'd");
+      DEBUG_DELAY();
     #endif
 
     if(buffer[bytes_written] == '\0') {
       // Null terminator
       #ifdef I2CIP_DEBUG_SERIAL
+        DEBUG_DELAY();
         I2CIP_DEBUG_SERIAL.println("Overwrite stopped - null terminator");
+        DEBUG_DELAY();
       #endif
       break;
     }

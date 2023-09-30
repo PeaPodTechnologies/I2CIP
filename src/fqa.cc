@@ -3,7 +3,7 @@
 // Has wire N been wires[N].begin() yet?
 bool wiresBegun[I2CIP_NUM_WIRES] = { false };
 
-i2cip_fqa_t createFQA(const uint8_t& wire, const uint8_t& mux, const uint8_t& bus, const uint8_t& addr) {
+i2cip_fqa_t I2CIP::createFQA(const uint8_t& wire, const uint8_t& mux, const uint8_t& bus, const uint8_t& addr) {
   if (( wire < I2CIP_FQA_I2CBUS_MAX ) &&
       ( mux  < I2CIP_FQA_MODULE_MAX ) &&
       ( bus  < I2CIP_FQA_MUXBUS_MAX ) &&
@@ -14,11 +14,13 @@ i2cip_fqa_t createFQA(const uint8_t& wire, const uint8_t& mux, const uint8_t& bu
   return (i2cip_fqa_t)0;
 }
 
-void beginWire(const uint8_t& wire) {
+void I2CIP::beginWire(const uint8_t& wire) {
   if(!wiresBegun[wire]) {
     #ifdef I2CIP_DEBUG_SERIAL
+      DEBUG_DELAY();
       I2CIP_DEBUG_SERIAL.print("Initializing I2C wire ");
       I2CIP_DEBUG_SERIAL.println(wire);
+      DEBUG_DELAY();
     #endif
     wires[wire]->begin();
     wiresBegun[wire] = true;

@@ -1,5 +1,8 @@
 #include <device.h>
 
+#include <fqa.h>
+#include <mux.h>
+
 using namespace I2CIP;
 
 // CONSTRUCTORs AND PROPERTY GETTERS/SETTERS
@@ -19,6 +22,7 @@ i2cip_errorlevel_t Device::ping(const i2cip_fqa_t& fqa, bool resetbus) {
 
   // Begin transmission
   #ifdef I2CIP_DEBUG_SERIAL
+    DEBUG_DELAY();
     I2CIP_DEBUG_SERIAL.print("Ping... ");
   #endif
 
@@ -31,6 +35,7 @@ i2cip_errorlevel_t Device::ping(const i2cip_fqa_t& fqa, bool resetbus) {
 
   #ifdef I2CIP_DEBUG_SERIAL
     I2CIP_DEBUG_SERIAL.println("Pong!");
+    DEBUG_DELAY();
   #endif
 
   // Switch MUX bus back
@@ -51,6 +56,7 @@ i2cip_errorlevel_t Device::pingTimeout(const i2cip_fqa_t& fqa, bool setbus, bool
 
   // Check if it's actually lost
   #ifdef I2CIP_DEBUG_SERIAL
+    DEBUG_DELAY();
     I2CIP_DEBUG_SERIAL.print("Ping... ");
   #endif
   
@@ -66,6 +72,7 @@ i2cip_errorlevel_t Device::pingTimeout(const i2cip_fqa_t& fqa, bool setbus, bool
 
     // Begin transmission
     #ifdef I2CIP_DEBUG_SERIAL
+      DEBUG_DELAY();
       I2CIP_DEBUG_SERIAL.print("Ping... ");
     #endif
 
@@ -87,11 +94,15 @@ i2cip_errorlevel_t Device::pingTimeout(const i2cip_fqa_t& fqa, bool setbus, bool
 
   #ifdef I2CIP_DEBUG_SERIAL
     if(errlev == I2CIP_ERR_HARD) {
+      DEBUG_DELAY();
       I2CIP_DEBUG_SERIAL.println("Timed Out!");
+      DEBUG_DELAY();
     } else {
+      DEBUG_DELAY();
       I2CIP_DEBUG_SERIAL.print("Pong! Ping Timeout: ");
       I2CIP_DEBUG_SERIAL.print(millis()-start);
       I2CIP_DEBUG_SERIAL.print("ms... ");
+      DEBUG_DELAY();
     }
   #endif
   
@@ -149,11 +160,13 @@ i2cip_errorlevel_t Device::write(const i2cip_fqa_t& fqa, const uint8_t* buffer, 
   if (sent != len) {
     success = false;
     #ifdef I2CIP_DEBUG_SERIAL
+      DEBUG_DELAY();
       I2CIP_DEBUG_SERIAL.print("Write Failed (");
       I2CIP_DEBUG_SERIAL.print(sent);
       I2CIP_DEBUG_SERIAL.print("/");
       I2CIP_DEBUG_SERIAL.print(len);
       I2CIP_DEBUG_SERIAL.print(" bytes sent)\n");
+      DEBUG_DELAY();
     #endif
   }
 
@@ -161,6 +174,7 @@ i2cip_errorlevel_t Device::write(const i2cip_fqa_t& fqa, const uint8_t* buffer, 
   if (I2CIP_FQA_TO_WIRE(fqa)->endTransmission() != 0) {
     #ifdef I2CIP_DEBUG_SERIAL
       I2CIP_DEBUG_SERIAL.print("No ACK On Write! ");
+      DEBUG_DELAY();
     #endif
     return I2CIP_ERR_HARD;
   }
@@ -355,6 +369,7 @@ i2cip_errorlevel_t Device::readRegister(const i2cip_fqa_t& fqa, const uint16_t& 
     bool read_stop = (pos + read_len >= len);
 
     #ifdef I2CIP_DEBUG_SERIAL
+      DEBUG_DELAY();
       I2CIP_DEBUG_SERIAL.print("Reading bytes ");
       I2CIP_DEBUG_SERIAL.print(pos);
       I2CIP_DEBUG_SERIAL.print(" - ");
@@ -390,7 +405,8 @@ i2cip_errorlevel_t Device::readRegister(const i2cip_fqa_t& fqa, const uint16_t& 
   }
 endloop2:
   #ifdef I2CIP_DEBUG_SERIAL
-    Serial.println("'");
+    I2CIP_DEBUG_SERIAL.println("'");
+    DEBUG_DELAY();
   #endif
 
   // Reset MUX bus if `reset` == true
@@ -506,9 +522,3 @@ DeviceGroup& DeviceGroup::operator=(const DeviceGroup& rhs) {
   this->key = rhs.key;
   return *this;
 }
-
-template <typename G, typename A> InputInterface<G, A>::operator i2cip_itype_t() const { return I2CIP_ITYPE_INPUT; }
-
-template <typename S, typename B> OutputInterface<S, B>::operator i2cip_itype_t() const { return I2CIP_ITYPE_OUTPUT; }
-
-template <typename G, typename A, typename S, typename B> IOInterface<G, A, S, B>::operator i2cip_itype_t() const { return I2CIP_ITYPE_IO; }
