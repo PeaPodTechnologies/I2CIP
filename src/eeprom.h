@@ -7,6 +7,7 @@
 #define I2CIP_EEPROM_SIZE     100   // EEPROM size in bytes
 #define I2CIP_EEPROM_ADDR     0x50  // SPRT EEPROM address
 #define I2CIP_EEPROM_TIMEOUT  100    // How long to wait for a write to complete (ms)
+#define I2CIP_EEPROM_DEFAULT  ("[{\"eeprom\":[80]}]")
 
 extern const char* id_eeprom;
 
@@ -15,9 +16,25 @@ namespace I2CIP {
   class Device;
   template <typename G, typename A, typename S, typename B> class IOInterface;
 
-  typedef struct { uint16_t pos; size_t len; } args_eeprom_t;
+  extern const char* const i2cip_eeprom_default;
+  extern const uint16_t i2cip_eeprom_capacity;
+  extern const char* i2cip_eeprom_id;
 
-  class EEPROM : public Device, public IOInterface<uint8_t*, args_eeprom_t, uint8_t*, args_eeprom_t> {
+  Device* eepromFactory(const i2cip_fqa_t& fqa);
+  extern const factory_device_t i2cip_eeprom_factory;
+
+  /**
+   * 24LC32 EEPROM
+   * 
+   * This class is a wrapper for on- and off-module EEPROM as an I2CIP device and a high-level null-terminated UTF-8 C-string I/O peripheral.
+   * NOTE: This object handles all C-string memory management, including allocation and deallocation. All pass-by-ref(!) pointer arguments are reassigned. Similar array-valued interfaces should follow the same pattern.
+   * 
+   * G - Getter type: char* (null-terminated; writable heap)
+   * A - Getter argument type: uint16_t (max bytes to read)
+   * S - Setter type: const char* (null-terminated; immutable)
+   * B - Setter argument type: uint16_t (max bytes to write)
+  */
+  class EEPROM : public Device, public IOInterface<char*, uint16_t, const char*, uint16_t> {
   public:
     EEPROM(const i2cip_fqa_t& fqa);
     EEPROM(const uint8_t& wire, const uint8_t& module, const uint8_t& addr = I2CIP_EEPROM_ADDR);
@@ -34,17 +51,22 @@ namespace I2CIP {
 
     /**
      * Read a section from EEPROM.
-     * @param dest Byte
-     * @param args Address to read from
+     * @param dest Destination heap (pointer reassigned, not overwritten)
+     * @param args Number of bytes to read
      **/
-    i2cip_errorlevel_t get(uint8_t*& dest, const args_eeprom_t& args) override;
+    i2cip_errorlevel_t get(char*& dest, const uint16_t& args) override;
   
     /**
      * Write to a section of EEPROM.
-     * @param value New byte
-     * @param args Address to write to
+     * @param value Value to write (null-terminated)
+     * @param args Number of bytes to write
      **/
-    i2cip_errorlevel_t set(uint8_t* const& value, const args_eeprom_t& args) override;
+    i2cip_errorlevel_t set(const char * const& value, const uint16_t& args) override;
+
+    void resetCache(void) override;
+    const uint16_t& getDefaultA(void) const override;
+    const char* const& getFailsafe(void) const override;
+    const uint16_t& getDefaultB(void) const override;
   };
 }
 

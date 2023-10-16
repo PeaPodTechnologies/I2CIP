@@ -7,6 +7,8 @@
 #define I2CIP_TEST_MUXINSTR 0b00010000 // Bus 4
 #define I2CIP_TEST_MUXADDR  0x72       // Mux 2
 
+const i2cip_fqa_t& eeprom_fqa = I2CIP::createFQA(WIRENUM, MODULE, I2CIP_MUX_BUS_DEFAULT, I2CIP_EEPROM_ADDR);
+
 using namespace I2CIP;
 
 void test_mux_bus_to_instr(void) {

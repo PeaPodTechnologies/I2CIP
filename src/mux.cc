@@ -1,6 +1,7 @@
 #include <mux.h>
 
 #include <fqa.h>
+#include <debug.h>
 
 namespace I2CIP {
 

@@ -25,10 +25,30 @@
 
 namespace I2CIP {
 
+  typedef enum { I2CIP_ITYPE_NULL = 0b00, I2CIP_ITYPE_INPUT = 0b01, I2CIP_ITYPE_OUTPUT = 0b10, I2CIP_ITYPE_IO = 0b11 } i2cip_itype_t;
+
+  // Barebones template-less abstract classes expose voidptr hooks for the device to be used as an input or output
+
+  class InputGetter {
+    public:
+      virtual ~InputGetter() {}
+      virtual i2cip_errorlevel_t get(const void* args = nullptr) = 0;
+  };
+
+  class OutputSetter {
+    public:
+      virtual ~OutputSetter() {}
+      virtual i2cip_errorlevel_t set(const void* value = nullptr, const void* args = nullptr) = 0;
+  };
+
   class Device {
     protected:
       const i2cip_fqa_t fqa;
       const i2cip_id_t id;
+
+      // // Set by public API, deleted on deconstruction
+      InputGetter* input = nullptr;
+      OutputSetter* output = nullptr;
 
       /**
        * Attempt to communicate with a device. Always sets the bus.
@@ -171,9 +191,22 @@ namespace I2CIP {
 
     public:
       Device(const i2cip_fqa_t& fqa, const i2cip_id_t& id);
+      ~Device();
 
-      const i2cip_fqa_t& getFQA(void);
-      const i2cip_id_t& getID(void);
+      void setInput(InputGetter* input);
+      void setOutput(OutputSetter* output);
+
+      void removeInput(void);
+      void removeOutput(void);
+
+      InputGetter* getInput(void) const;
+      OutputSetter* getOutput(void) const;
+
+      i2cip_errorlevel_t get(const void* args = nullptr);
+      i2cip_errorlevel_t set(const void* value = nullptr, const void* args = nullptr);
+
+      const i2cip_fqa_t& getFQA(void) const;
+      const i2cip_id_t& getID(void) const;
 
       i2cip_errorlevel_t ping(bool resetbus = true);
       i2cip_errorlevel_t pingTimeout(bool setbus = true, bool resetbus = true, unsigned int timeout = 100);
@@ -194,7 +227,6 @@ namespace I2CIP {
       i2cip_errorlevel_t readRegisterWord(const uint16_t& reg, uint16_t& dest, bool resetbus = true);
   };
 
-  typedef enum { I2CIP_ITYPE_NULL = 0b00, I2CIP_ITYPE_INPUT = 0b01, I2CIP_ITYPE_OUTPUT = 0b10, I2CIP_ITYPE_IO = 0b11 } i2cip_itype_t;
   typedef Device* (* factory_device_t)(const i2cip_fqa_t& fqa);
 
   class DeviceGroup {
@@ -208,10 +240,13 @@ namespace I2CIP {
 
       DeviceGroup(const char*& key, const i2cip_itype_t& itype, factory_device_t factory = nullptr);
 
-      void add(Device& device);
-      void addGroup(Device* devices[], uint8_t numdevices);
+      bool add(Device& device);
+      bool addGroup(Device* devices[], uint8_t numdevices);
       void remove(Device* device);
-      bool contains(Device* device);
+      bool contains(Device* device) const;
+      bool contains(const i2cip_fqa_t& fqa) const;
+
+      Device* operator[](const i2cip_fqa_t& fqa) const;
 
       Device& operator()(const i2cip_fqa_t& fqa, bool add = true);
 
@@ -223,14 +258,45 @@ namespace I2CIP {
    * @param G type used for "get" variable
    * @param A type used for "get" arguments
    **/
-  template <typename G, typename A> class InputInterface {
+  template <typename G, typename A> class InputInterface : public InputGetter {
+    private:
+      G cache;  // Last RECIEVED value
+      A argsA;  // Last passed arguments
+    protected:
+      /**
+       * Gets the default arguments used for the "get" operation.
+       * A constant reference.
+       * To be implemented by the child class.
+      */
+      virtual const A& getDefaultA(void) const = 0;
+
+      /**
+       * Sets the cache to the default "zero" value.
+       * To be implemented by the child class.
+      */
+      virtual void resetCache(void) = 0;
+
+      void setCache(G value);
     public:
+      InputInterface(Device* device);
+      virtual ~InputInterface() {}
+
+      i2cip_errorlevel_t get(const void* args = nullptr) override;
+
+      /**
+       * Gets the last recieved value.
+      */
+      G getCache(void) const;
+
+      /**
+       * Gets the arguments used for the last "get" operation.
+      */
+      A getArgsA(void) const;
+
       /**
        * Gets the input device's state.
        **/
       virtual i2cip_errorlevel_t get(G& dest, const A& args) = 0;
-
-      virtual explicit operator i2cip_itype_t() const;
   };
 
   /**
@@ -238,14 +304,42 @@ namespace I2CIP {
    * @param S type used for "set" value
    * @param B type used for "set" arguments
    **/
-  template <typename S, typename B> class OutputInterface {
+  template <typename S, typename B> class OutputInterface : public OutputSetter {
+    private:
+      S value;  // Last SET value (not PASSED value)
+      B argsB;  // Last passed arguments
+    protected:
+      /**
+       * Gets the default arguments used for the "set" operation.
+       * To be implemented by the child class.
+      */
+      virtual const B& getDefaultB(void) const = 0;
+
+      /**
+       * Gets the default "zero"/off-state value.
+       * To be implemented by the child class.
+      */
+      virtual const S& getFailsafe(void) const = 0;
     public:
+      OutputInterface(Device* device);
+      virtual ~OutputInterface() {}
+
+      i2cip_errorlevel_t set(const void* value = nullptr, const void* args = nullptr) override;
+
+      /**
+       * Gets the arguments used for the last "set" operation.
+      */
+      B getArgsB(void) const;
+
+      /**
+       * Gets the last set value.
+      */
+      S getValue(void) const;
+
       /**
        * Sets the output device's state.
        **/
       virtual i2cip_errorlevel_t set(const S& value, const B& args) = 0;
-
-      virtual explicit operator i2cip_itype_t() const;
   };
 
   /**
@@ -256,7 +350,9 @@ namespace I2CIP {
    * @param B type used for "set" arguments
    **/
   template <typename G, typename A, typename S, typename B> class IOInterface : public InputInterface<G, A>, public OutputInterface<S, B> {
-    explicit operator i2cip_itype_t() const;
+    public:
+      IOInterface(Device* device);
+      virtual ~IOInterface() {}
   };
 };
 

@@ -83,36 +83,39 @@ E.g. `0:3:1:043` (`0b000:0 11:00 1:010 1011`, `0x0668`) indicates a device on I2
 
 # Compatible Hardware Specification
 
+## Multiplexers
+
+> Multiplexers are used to split the I2C bus into many individually-selectable sub-busses, or simply busses. This allows for multiple devices to share I2C/device-address space independently on multiple subnets, enabling massive scalability of dynamic routing.
+
+The I2C Multiplexer is a device that allows for the selection of one of 8 busses to be connected to the I2C bus. It is selectable by a 3-bit address, 0x70 to 0x77, and has 8 busses. Busses are selected in a bitwise fashion: `0b00000001` selects bus 0, `0b00000010` selects bus 1, etc. while disabling all other busses, and `0b00000000` disables all busses.
+
 ## Static Partial Routing Table (SPRT) EEPROM
 
-> EEPROM on Bus 0 at address `0x50` stores a UTF-8-encoded JSON-formatted partial routing table (with *decimal-encoded* addresses).
+> 24LC32 16-bit 4kB EEPROM on Bus 0 at address `0x50` stores a UTF-8-encoded JSON-formatted partial routing table (with *decimal-encoded* addresses).
 
 A partial routing table (see below) indexes only the devices on a bus.
 
 ```json
 // Indexed by BUS
 [
-	// Bus 0
+	// Bus 0 (default bus)
 	{
 		// Array is used to list all occurrences of flexible-address devices
-		"deviceid" : [ 65 ], // Decimal encoding (0x41).
-		"..." : [],
+		"eeprom" : [ 80 ], // Decimal encoding (0x50) - This is the EEPROM we are reading from
+		"mydevice" : [ 101, 43 ],
 	},
 	//Bus 1, etc. up to Bus 7 (makes 8 buses)
+	{ },
 	{
-		"..." : [],
+		"eeprom" : [80], // A different eeprom, on bus 2
 	},
+	{ },
+	{ },
+	{ },
+	{ },
+	{ },
 ]
 ```
 
 > Note: when flashed, all comments, whitespaces, and trailing commas MUST be removed. All strings must be double quotes.
-
-# Software Development
-
-## Paradigm
-
-- RoutingTable class *composes* (de/allocates) the actual stored values as *device groups* and uses BST/HT simply to sort them for traversal by FQA or ID (respectively)
-- BST/Hash Table utility classes *aggregate* the values they hold; this means they are stored by *reference* (template type T: `T& value`) and do *NOT* manage the lifecycle of the values they store
-
-- Both use entry classes and creates them by *construction* (passing in values *by reference*); this prevents unnecessary allocation by `malloc`
-- Utility classes store and return entries by *pointer*; this allows getters to return `nullptr` if no matching entry is found
+<!-- TODO: Is this true? -->

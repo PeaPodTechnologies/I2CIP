@@ -34,7 +34,7 @@ typedef const char*& i2cip_id_t;
  * @param lsb Right-most (least significant) bit position
  * @param len Length of the segment
  */
-#define I2CIP_FQA_SEG(fqa, lsb, len) (uint8_t)((fqa >> lsb) & (0xFFFF >> (16 - len)))
+#define I2CIP_FQA_SEG(fqa, lsb, len) ((uint8_t)((fqa >> lsb) & (0xFFFF >> (16 - len))))
 
 // Shorthands
 #define I2CIP_FQA_SEG_DEVADR(fqa) I2CIP_FQA_SEG(fqa, I2CIP_FQA_DEVADR_LSB, I2CIP_FQA_DEVADR_LEN) // Extracts the device address segment from an FQA

@@ -2,6 +2,7 @@
 
 #include <fqa.h>
 #include <mux.h>
+#include <debug.h>
 
 using namespace I2CIP;
 
@@ -9,9 +10,23 @@ using namespace I2CIP;
 
 Device::Device(const i2cip_fqa_t& fqa, const i2cip_id_t& id) : fqa(fqa), id(id) { }
 
-const i2cip_fqa_t& Device::getFQA(void) { return this->fqa; }
+Device::~Device(void) { if(input != nullptr) { delete input; } if(output != nullptr) { delete output; } }
 
-const i2cip_id_t& Device::getID(void) { return this->id; }
+void Device::setInput(InputGetter* input) { if(this->input != nullptr) { delete this->input; } this->input = input; }
+void Device::setOutput(OutputSetter* output) { if(this->output != nullptr) { delete this->output; } this->output = output; }
+
+void Device::removeInput(void) { if(this->input != nullptr) { delete this->input; } this->input = nullptr; }
+void Device::removeOutput(void) { if(this->output != nullptr) { delete this->output; } this->output = nullptr; }
+
+InputGetter* Device::getInput(void) const { return this->input; }
+OutputSetter* Device::getOutput(void) const { return this->output; }
+
+i2cip_errorlevel_t Device::get(const void* args) { return (this->getInput() == nullptr) ? I2CIP_ERR_SOFT : this->input->get(args); }
+i2cip_errorlevel_t Device::set(const void* value, const void* args) { return (this->output == nullptr) ? I2CIP_ERR_SOFT : this->output->set(value, args); }
+
+const i2cip_fqa_t& Device::getFQA(void) const { return this->fqa; }
+
+const i2cip_id_t& Device::getID(void) const { return this->id; }
 
 // STATIC CLASS-MEMBER FUNCTIONS (PRIVATE INTERNAL API)
 
@@ -55,41 +70,43 @@ i2cip_errorlevel_t Device::pingTimeout(const i2cip_fqa_t& fqa, bool setbus, bool
   }
 
   // Check if it's actually lost
-  #ifdef I2CIP_DEBUG_SERIAL
-    DEBUG_DELAY();
-    I2CIP_DEBUG_SERIAL.print("Ping... ");
-  #endif
   
   I2CIP_FQA_TO_WIRE(fqa)->beginTransmission(I2CIP_FQA_SEG_DEVADR(fqa));
   i2cip_errorlevel_t errlev = (I2CIP_FQA_TO_WIRE(fqa)->endTransmission() == 0 ? I2CIP_ERR_NONE : I2CIP_ERR_HARD);
 
+  #ifdef I2CIP_DEBUG_SERIAL
+    DEBUG_DELAY();
+    I2CIP_DEBUG_SERIAL.print("Ping... ");
+  #endif
+
   unsigned long start = millis();
 
   // Count down until out of time of found
-  while (errlev != I2CIP_ERR_NONE && (millis()-start) < timeout) {
-    // Delta 1ms
-    delay(1);
-
-    // Begin transmission
-    #ifdef I2CIP_DEBUG_SERIAL
-      DEBUG_DELAY();
-      I2CIP_DEBUG_SERIAL.print("Ping... ");
+  while ((millis()-start) < timeout) {
+    #ifndef I2CIP_DEBUG_SERIAL
+      // Delta 1ms
+      delay(1);
     #endif
 
+    // Begin transmission
     I2CIP_FQA_TO_WIRE(fqa)->beginTransmission(I2CIP_FQA_SEG_DEVADR(fqa));
 
     // End transmission, check state
     errlev = (I2CIP_FQA_TO_WIRE(fqa)->endTransmission() == 0 ? I2CIP_ERR_NONE : I2CIP_ERR_HARD);
+
+    if (errlev == I2CIP_ERR_NONE) {
+      break;
+    }
+
+    #ifdef I2CIP_DEBUG_SERIAL
+      DEBUG_DELAY();
+      I2CIP_DEBUG_SERIAL.print("Ping... ");
+    #endif
   }
   
   // Double check MUX before attempting to switch
   if(errlev == I2CIP_ERR_HARD && !MUX::pingMUX(fqa)) {
     return I2CIP_ERR_HARD;
-  }
-
-  // Switch MUX bus back
-  if (resetbus) {
-    errlev = MUX::resetBus(fqa);
   }
 
   #ifdef I2CIP_DEBUG_SERIAL
@@ -101,10 +118,15 @@ i2cip_errorlevel_t Device::pingTimeout(const i2cip_fqa_t& fqa, bool setbus, bool
       DEBUG_DELAY();
       I2CIP_DEBUG_SERIAL.print("Pong! Ping Timeout: ");
       I2CIP_DEBUG_SERIAL.print(millis()-start);
-      I2CIP_DEBUG_SERIAL.print("ms... ");
+      I2CIP_DEBUG_SERIAL.print("ms\n");
       DEBUG_DELAY();
     }
   #endif
+
+  // Switch MUX bus back
+  if (resetbus) {
+    errlev = MUX::resetBus(fqa);
+  }
   
   return errlev;
 }
@@ -439,48 +461,30 @@ i2cip_errorlevel_t Device::readRegisterByte(const uint16_t& reg, uint8_t& dest, 
 i2cip_errorlevel_t Device::readRegisterWord(const uint8_t& reg, uint16_t& dest, bool resetbus) { return Device::readRegisterWord(this->fqa, reg, dest, resetbus);  }
 i2cip_errorlevel_t Device::readRegisterWord(const uint16_t& reg, uint16_t& dest, bool resetbus) { return Device::readRegisterWord(this->fqa, reg, dest, resetbus); }
 
-// template <> void InputInterface<char*>::toJSONField(char* const& data, char* buf) {
-//   sprintf(buf, "\"%s\":\"%s\"", this->id, data);
-// }
-
-// template <> void InputInterface<int>::toJSONField(const int& data, char* buf) {
-//   sprintf(buf, "\"%s\":%d", this->id, data);
-// }
-
-// template <> void InputInterface<float>::toJSONField(const float& data, char* buf) {
-//   sprintf(buf, "\"%s\":%.2f", this->id, (double)data);
-// }
-
-// template <> void InputInterface<bool>::toJSONField(const bool& data, char* buf) {
-//   if(data) {
-//     sprintf(buf, "\"%s\":true", this->id);
-//   } else {
-//     sprintf(buf, "\"%s\":false", this->id);
-//   }
-// }
-
 DeviceGroup::DeviceGroup(i2cip_id_t key, const i2cip_itype_t& itype, factory_device_t factory) : key(key), itype(itype), factory(factory) { for(int i = 0; i < I2CIP_DEVICES_PER_GROUP; i++) { devices[i] = nullptr; } }
 
-void DeviceGroup::add(Device& device) {
-  if(strcmp(device.getID(), this->key) != 0 || this->contains(&device)) return;
+bool DeviceGroup::add(Device& device) {
+  if(strcmp(device.getID(), this->key) != 0 || this->contains(&device)) return false;
   
   unsigned int n = 0;
-  while(this->devices[n] != nullptr) { n++; if(n > I2CIP_DEVICES_PER_GROUP) return;}
+  while(this->devices[n] != nullptr) { n++; if(n > I2CIP_DEVICES_PER_GROUP) return false;}
 
   // Append new devices
   this->devices[n] = &device;
   this->numdevices = (n + 1);
+  return true;
 }
 
-void DeviceGroup::addGroup(Device* devices[], uint8_t numdevices) {
+bool DeviceGroup::addGroup(Device* devices[], uint8_t numdevices) {
   unsigned int n = 0;
-  while(this->devices[n] != nullptr) { n++; if(n > I2CIP_DEVICES_PER_GROUP) return;}
+  while(this->devices[n] != nullptr) { n++; if(n + numdevices > I2CIP_DEVICES_PER_GROUP) return false; }
   
   // Append new devices
-  for(unsigned int i = 0; i < numdevices && this->devices[i] != nullptr; i++) {
+  for(unsigned int i = 0; i < numdevices && (n + i) < I2CIP_DEVICES_PER_GROUP; i++) {
     this->devices[n+i] = devices[i];
     this->numdevices++;
   }
+  return true;
 }
 
 void DeviceGroup::remove(Device* device) {
@@ -497,12 +501,23 @@ void DeviceGroup::remove(Device* device) {
   }
 }
 
-bool DeviceGroup::contains(Device* device) {
-  if(strcmp(device->getID(), this->key) != 0) return false;
+bool DeviceGroup::contains(Device* device) const {
+  if(strcmp(device->getID(), this->key) != 0 || device == nullptr) return false;
+  return this->contains(device->getFQA());
+}
+
+bool DeviceGroup::contains(const i2cip_fqa_t& fqa) const {
   for(int i = 0; i < this->numdevices; i++) {
-    if(this->devices[i]->getFQA() == device->getFQA()) return true;
+    if(this->devices[i]->getFQA() == fqa) return true;
   }
   return false;
+}
+
+Device* DeviceGroup::operator[](const i2cip_fqa_t& fqa) const {
+  for(int i = 0; i < this->numdevices; i++) {
+    if(this->devices[i]->getFQA() == fqa) return this->devices[i];
+  }
+  return nullptr;
 }
 
 Device& DeviceGroup::operator()(const i2cip_fqa_t& fqa, bool add) {

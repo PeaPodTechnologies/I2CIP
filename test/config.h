@@ -1,6 +1,8 @@
 #ifndef I2CIP_TESTS_TEST_H_
 #define I2CIP_TESTS_TEST_H_
 
+#define DEBUG_SERIAL Serial // Uncomment to enable debug
+#include <debug.h>
 #include <I2CIP.h>
 
 // TESTING PARAMETERS
@@ -12,11 +14,6 @@
 #define I2CIP_TEST_EEPROM_BYTE1 '{'
 #define I2CIP_TEST_EEPROM_WORD  (uint16_t)(I2CIP_TEST_EEPROM_BYTE << 8 | I2CIP_TEST_EEPROM_BYTE2)
 
-const char* eeprom_contents = "[{\"eeprom\":[80],\"sht31\":[68]}]";
-
-#define I2CIP_TEST_EEPROM_OVERWRITE 1
-
-I2CIP::EEPROM eeprom = I2CIP::EEPROM(WIRENUM, MODULE);
-const i2cip_fqa_t& eeprom_fqa = eeprom.getFQA();
+#define I2CIP_TEST_EEPROM_OVERWRITE 1 // Uncomment to enable EEPROM overwrite test
 
 #endif
