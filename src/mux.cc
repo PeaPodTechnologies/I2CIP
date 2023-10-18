@@ -35,21 +35,21 @@ namespace I2CIP {
 
         #ifdef I2CIP_DEBUG_SERIAL
           DEBUG_DELAY();
-          I2CIP_DEBUG_SERIAL.print("MUX Write Failed\n");
+          I2CIP_DEBUG_SERIAL.print(F("MUX Write Failed\n"));
         #endif
       }
 
       // End transmission
       if (I2CIP_FQA_TO_WIRE(fqa)->endTransmission() != 0) {
         #ifdef I2CIP_DEBUG_SERIAL
-          I2CIP_DEBUG_SERIAL.print("MUX Transmission Failed\n");
+          I2CIP_DEBUG_SERIAL.print(F("MUX Transmission Failed\n"));
           DEBUG_DELAY();
         #endif
         return I2CIP_ERR_HARD;
       }
 
       #ifdef I2CIP_DEBUG_SERIAL
-        I2CIP_DEBUG_SERIAL.print("MUX Bus Set\n");
+        I2CIP_DEBUG_SERIAL.print(F("MUX Bus Set\n"));
         DEBUG_DELAY();
       #endif
 
@@ -76,7 +76,7 @@ namespace I2CIP {
 
       #ifdef I2CIP_DEBUG_SERIAL
         DEBUG_DELAY();
-        I2CIP_DEBUG_SERIAL.print("MUX Bus Reset\n");
+        I2CIP_DEBUG_SERIAL.print(F("MUX Bus Reset\n"));
         DEBUG_DELAY();
       #endif
 

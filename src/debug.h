@@ -4,7 +4,7 @@
 #include <Arduino.h>
 
 // Uncomment to enable debug
-#define DEBUG_SERIAL Serial
+// #define DEBUG_SERIAL Serial
 
 // CROSS-LIBRARY DEBUG COMPATIBILITY
 #ifdef DEBUG_SERIAL
@@ -24,7 +24,7 @@
 
 #ifdef I2CIP_DEBUG_SERIAL
 #ifndef DEBUG_DELAY
-#define DEBUG_DELAY() {delay(1);}
+#define DEBUG_DELAY() {delay(10);}
 #endif
 #endif
 

@@ -6,6 +6,8 @@
 #include <device.h>
 #include <eeprom.h>
 #include <debug.h>
+#include <bst.h>
+#include <hashtable.h>
 
 // #define I2CIP_FQA_SUBNET_MATCH(fqa, wire, module) (bool)(I2CIP_FQA_SEG_I2CBUS(fqa) == wire && I2CIP_FQA_SEG_MODULE(fqa) == module)
 #define I2CIP_FQA_SUBNET_MATCH(fqa, _fqa) (bool)(I2CIP_FQA_SEG_I2CBUS(fqa) == I2CIP_FQA_SEG_I2CBUS(_fqa) && I2CIP_FQA_SEG_MODULE(fqa) == I2CIP_FQA_SEG_MODULE(_fqa))
@@ -14,11 +16,17 @@
 
 namespace I2CIP {
 
+  // BST of device IDs by FQA
+  typedef BST<i2cip_fqa_t, const char*&> i2cip_devicetree_t;
+  // BST node; key: FQA, value: ID
+  typedef BSTNode<i2cip_fqa_t, const char*&> i2cip_device_t;
+
+  
+
   // Enables fundamentals subnet communication and state awareness.
-  // State data structure is implemented by the child class. Virtual functions are provided to access the state data structure.
-  // The Module itself only provides three functions:
-  // 1. Module Self-check
-  // 2. Device Check
+  // State is reflected across two data structures:
+  // 1. A BST of Device* by FQA
+  // 2. A HashTable of DeviceGroup& by ID
 
   class Module {
     private:
@@ -27,17 +35,21 @@ namespace I2CIP {
 
       bool isFQAinSubnet(const i2cip_fqa_t& fqa);
 
+      // Tables/trees are allocated STATICALLY, their entries are dynamic
+      BST<i2cip_fqa_t, Device*> devices_fqabst = BST<i2cip_fqa_t, Device*>();
+      HashTable<DeviceGroup&> devices_idgroups = HashTable<DeviceGroup&>();
+
+      HashTableEntry<DeviceGroup&>* addEmptyGroup(const char* id);
     protected:
       Module(const uint8_t& wire, const uint8_t& module, const uint8_t& eeprom_addr = I2CIP_EEPROM_ADDR);
 
-      EEPROM eeprom; // EEPROM device
+      EEPROM eeprom; // EEPROM device - to be added to `devices_fqabst` and `devices_idgroups` on construction
+
+      virtual DeviceGroup* deviceGroupFactory(const char* id);
     public:
       // Module(const i2cip_fqa_t& fqa);
       
       virtual ~Module() { }
-
-      
-      i2cip_errorlevel_t operator()(const i2cip_fqa_t& fqa); // Device Check
 
       uint8_t getWireNum(void) const;
       uint8_t getModuleNum(void) const;
@@ -58,17 +70,31 @@ namespace I2CIP {
        *  Intended Implementation:
        *  2b i.   Read EEPROM (by Bus)
        *  2b ii.  Ping Devices (by ID)
-       *  2b iii. Create (new) Devices and add to DeviceGroups (Made Available Internal API via `operator[]` functions)
+       *  2b iii. Create (new) Devices and `add` to DeviceGroups (Made Available Internal API via `operator[]` functions)
       */
       static bool build(Module& m);
       virtual bool parseEEPROMContents(const uint8_t* buffer, size_t buflen) = 0;
+      bool add(Device& device, bool overwrite = false);
 
-      virtual bool add(Device& device);
+      /**
+       * 3. Device Lookup: HashTable<DeviceGroup&> by ID, BST<Device*> by FQA
+       *  Intended Implementation:
+       *  3a i.   Check if FQA is in subnet
+       *  3a ii.  Check if FQA is in DeviceGroups
+       * 
+       *  3b i.   Check if ID is in DeviceGroups
+       *  3b ii.  Return DeviceGroup
+       *  
+      */
+      DeviceGroup& operator[](i2cip_id_t id);
+      Device* operator[](const i2cip_fqa_t& fqa) const;
 
-      virtual Device* operator[](const i2cip_fqa_t& fqa) const = 0;
-      virtual DeviceGroup* operator[](const i2cip_id_t& id) = 0;
+      /**
+       * 4. Device Check
+      */
+      i2cip_errorlevel_t operator()(const i2cip_fqa_t& fqa, bool update = false, bool fail = false);
 
-      virtual void remove(Device* device) = 0;
+      void remove(Device* device, bool del = true);
 
       inline operator const EEPROM&() const { return this->eeprom; }
   };

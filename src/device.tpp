@@ -25,7 +25,7 @@ template <typename G, typename A> A InputInterface<G, A>::getArgsA(void) const {
 
 template <typename G, typename A> i2cip_errorlevel_t InputInterface<G, A>::get(const void* args) { 
   G temp = this->cache;
-  A arg = (args == nullptr) ? this->getDefaultA() : *(A* const)args;
+  A arg = (args == &InputGetter::failptr_get) ? this->getDefaultA() : ((args == nullptr) ? this->getArgsA() : *(A* const)args);
   i2cip_errorlevel_t errlev = this->get(temp, arg);
 
   // If successful, update last cache
@@ -40,11 +40,11 @@ template <typename S, typename B> S OutputInterface<S, B>::getValue(void) const 
 template <typename S, typename B> B OutputInterface<S, B>::getArgsB(void) const { return this->argsB; }
 
 template <typename S, typename B> i2cip_errorlevel_t OutputInterface<S, B>::set(const void* value, const void* args) {
-  // 1. If `set` value is not given, use failsafe
-  S val = (value == nullptr) ? this->getFailsafe() : *(S* const)value;
+  // 1. If `set` value is not given, repeat last action
+  S val = (value == &OutputSetter::failptr_set) ? this->getFailsafe() : ((value == nullptr) ? this->getValue() : *(S* const)value);
 
-  // 2. If `set` args are not given, use default
-  B arg = (args == nullptr) ? this->getDefaultB() : *(B* const)args;
+  // 2. If `set` args are not given, use last args 
+  B arg = (args == &OutputSetter::failptr_set) ? this->getDefaultB() : ((value == nullptr) ? this->getArgsB() : *(B* const)args);
 
   // 3. Attempt `set`
   i2cip_errorlevel_t errlev = this->set(val, arg);

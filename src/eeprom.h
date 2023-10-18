@@ -9,8 +9,6 @@
 #define I2CIP_EEPROM_TIMEOUT  100    // How long to wait for a write to complete (ms)
 #define I2CIP_EEPROM_DEFAULT  ("[{\"eeprom\":[80]}]")
 
-extern const char* id_eeprom;
-
 namespace I2CIP {
 
   class Device;
@@ -18,7 +16,7 @@ namespace I2CIP {
 
   extern const char* const i2cip_eeprom_default;
   extern const uint16_t i2cip_eeprom_capacity;
-  extern const char* i2cip_eeprom_id;
+  extern const char i2cip_eeprom_id[] PROGMEM;
 
   Device* eepromFactory(const i2cip_fqa_t& fqa);
   extern const factory_device_t i2cip_eeprom_factory;
@@ -35,38 +33,44 @@ namespace I2CIP {
    * B - Setter argument type: uint16_t (max bytes to write)
   */
   class EEPROM : public Device, public IOInterface<char*, uint16_t, const char*, uint16_t> {
-  public:
-    EEPROM(const i2cip_fqa_t& fqa);
-    EEPROM(const uint8_t& wire, const uint8_t& module, const uint8_t& addr = I2CIP_EEPROM_ADDR);
+    friend Device* I2CIP::eepromFactory(const i2cip_fqa_t& fqa);
+    friend class Module;
 
-    i2cip_errorlevel_t readContents(uint8_t* dest, size_t& num_read, size_t max_read = I2CIP_EEPROM_SIZE);
+    private:
+      static bool _id_set;
+      static char* _id; // to be initialized (copied from constructor parameters) in eeprom.cc
+    public:
+      EEPROM(const i2cip_fqa_t& fqa);
+      EEPROM(const uint8_t& wire, const uint8_t& module, const uint8_t& addr = I2CIP_EEPROM_ADDR);
 
-    i2cip_errorlevel_t writeByte(const uint16_t& bytenum, const uint8_t& value, bool setbus = true);
+      i2cip_errorlevel_t readContents(uint8_t* dest, size_t& num_read, size_t max_read = I2CIP_EEPROM_SIZE);
 
-    i2cip_errorlevel_t clearContents(bool setbus = true, uint16_t numbytes = I2CIP_EEPROM_SIZE);
+      i2cip_errorlevel_t writeByte(const uint16_t& bytenum, const uint8_t& value, bool setbus = true);
 
-    i2cip_errorlevel_t overwriteContents(const char* contents, bool clear = true, bool setbus = true);
+      i2cip_errorlevel_t clearContents(bool setbus = true, uint16_t numbytes = I2CIP_EEPROM_SIZE);
 
-    i2cip_errorlevel_t overwriteContents(uint8_t* buffer, size_t len, bool clear = true, bool setbus = true);
+      i2cip_errorlevel_t overwriteContents(const char* contents, bool clear = true, bool setbus = true);
 
-    /**
-     * Read a section from EEPROM.
-     * @param dest Destination heap (pointer reassigned, not overwritten)
-     * @param args Number of bytes to read
-     **/
-    i2cip_errorlevel_t get(char*& dest, const uint16_t& args) override;
-  
-    /**
-     * Write to a section of EEPROM.
-     * @param value Value to write (null-terminated)
-     * @param args Number of bytes to write
-     **/
-    i2cip_errorlevel_t set(const char * const& value, const uint16_t& args) override;
+      i2cip_errorlevel_t overwriteContents(uint8_t* buffer, size_t len, bool clear = true, bool setbus = true);
 
-    void resetCache(void) override;
-    const uint16_t& getDefaultA(void) const override;
-    const char* const& getFailsafe(void) const override;
-    const uint16_t& getDefaultB(void) const override;
+      /**
+       * Read a section from EEPROM.
+       * @param dest Destination heap (pointer reassigned, not overwritten)
+       * @param args Number of bytes to read
+       **/
+      i2cip_errorlevel_t get(char*& dest, const uint16_t& args) override;
+    
+      /**
+       * Write to a section of EEPROM.
+       * @param value Value to write (null-terminated)
+       * @param args Number of bytes to write
+       **/
+      i2cip_errorlevel_t set(const char * const& value, const uint16_t& args) override;
+
+      void resetCache(void) override;
+      const uint16_t& getDefaultA(void) const override;
+      const char* const& getFailsafe(void) const override;
+      const uint16_t& getDefaultB(void) const override;
   };
 }
 

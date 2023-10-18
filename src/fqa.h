@@ -10,7 +10,7 @@
 
 // Two useful typedefs
 typedef uint16_t i2cip_fqa_t;
-typedef const char*& i2cip_id_t;
+typedef const char* i2cip_id_t;
 
 // Address segments: Least Significant Bit positions, lengths, and maximum values
 #define I2CIP_FQA_I2CBUS_LSB  13

@@ -4,7 +4,10 @@
 #include <device.h>
 #include <debug.h>
 
-const char* I2CIP::i2cip_eeprom_id = "eeprom";
+const char I2CIP::i2cip_eeprom_id[] PROGMEM = {"eeprom"};
+
+bool I2CIP::EEPROM::_id_set;
+char* I2CIP::EEPROM::_id;
 
 // Default EEPROM module self-discovery JSON string
 static char eeprom_default[20] = I2CIP_EEPROM_DEFAULT;
@@ -16,43 +19,59 @@ const uint16_t I2CIP::i2cip_eeprom_capacity = I2CIP_EEPROM_SIZE;
 
 const I2CIP::factory_device_t I2CIP::i2cip_eeprom_factory = &I2CIP::eepromFactory;
 
+// Handles ID pointer assignment too
 I2CIP::Device* I2CIP::eepromFactory(const i2cip_fqa_t& fqa) {
-  return (I2CIP::Device*)(new I2CIP::EEPROM(fqa));
+  if(I2CIP::EEPROM::_id_set) {
+    return (I2CIP::Device*)(new I2CIP::EEPROM(fqa));
+  }
+  
+  return nullptr;
 }
 
 using namespace I2CIP;
 
-EEPROM::EEPROM(const i2cip_fqa_t& fqa) : Device(fqa, i2cip_eeprom_id), IOInterface<char*, uint16_t, const char*, uint16_t>((Device*)this) {
+EEPROM::EEPROM(const i2cip_fqa_t& fqa) : Device(fqa), IOInterface<char*, uint16_t, const char*, uint16_t>((Device*)this) {
+  if(!I2CIP::EEPROM::_id_set) {
+    delete I2CIP::EEPROM::_id;
+
+    uint8_t idlen = strlen_P(i2cip_eeprom_id);
+    I2CIP::EEPROM::_id = new char[idlen+1];
+
+    if(I2CIP::EEPROM::_id != nullptr) {
+      this->id = I2CIP::EEPROM::_id;
+    }
+
+    // Read in PROGMEM
+    for (uint8_t k = 0; k < idlen; k++) {
+      char c = pgm_read_byte_near(i2cip_eeprom_id + k);
+      // DEBUG_SERIAL.print(c);
+      I2CIP::EEPROM::_id[k] = c;
+    }
+
+    I2CIP::EEPROM::_id[idlen] = '\0';
+    I2CIP::EEPROM::_id_set = true;
+  }
+
   #ifdef I2CIP_DEBUG_SERIAL
     DEBUG_DELAY();
-    I2CIP_DEBUG_SERIAL.print("EEPROM Constructed (");
+    I2CIP_DEBUG_SERIAL.print(F("EEPROM Constructed (ID '"));
+    I2CIP_DEBUG_SERIAL.print(this->id);
+    I2CIP_DEBUG_SERIAL.print(F("' @0x"));
+    I2CIP_DEBUG_SERIAL.print((uint16_t)&(this->id[0]), HEX);
+    I2CIP_DEBUG_SERIAL.print(F("; FQA "));
     I2CIP_DEBUG_SERIAL.print(I2CIP_FQA_SEG_I2CBUS(fqa), HEX);
-    I2CIP_DEBUG_SERIAL.print(":");
+    I2CIP_DEBUG_SERIAL.print(F(":"));
     I2CIP_DEBUG_SERIAL.print(I2CIP_FQA_SEG_MODULE(fqa), HEX);
-    I2CIP_DEBUG_SERIAL.print(":");
+    I2CIP_DEBUG_SERIAL.print(F(":"));
     I2CIP_DEBUG_SERIAL.print(I2CIP_FQA_SEG_MUXBUS(fqa), HEX);
-    I2CIP_DEBUG_SERIAL.print(":");
+    I2CIP_DEBUG_SERIAL.print(F(":"));
     I2CIP_DEBUG_SERIAL.print(I2CIP_FQA_SEG_DEVADR(fqa), HEX);
-    I2CIP_DEBUG_SERIAL.print(")\n");
+    I2CIP_DEBUG_SERIAL.print(F(")\n"));
     DEBUG_DELAY();
   #endif
 }
 
-EEPROM::EEPROM(const uint8_t& wire, const uint8_t& module, const uint8_t& addr) : Device(createFQA(wire, module, I2CIP_MUX_BUS_DEFAULT, addr), i2cip_eeprom_id), IOInterface<char*, uint16_t, const char*, uint16_t>((Device*)this) {
-  #ifdef I2CIP_DEBUG_SERIAL
-    DEBUG_DELAY();
-    I2CIP_DEBUG_SERIAL.print("EEPROM Constructed (");
-    I2CIP_DEBUG_SERIAL.print(wire, HEX);
-    I2CIP_DEBUG_SERIAL.print(":");
-    I2CIP_DEBUG_SERIAL.print(module, HEX);
-    I2CIP_DEBUG_SERIAL.print(":");
-    I2CIP_DEBUG_SERIAL.print(I2CIP_MUX_BUS_DEFAULT, HEX);
-    I2CIP_DEBUG_SERIAL.print(":");
-    I2CIP_DEBUG_SERIAL.print(addr, HEX);
-    I2CIP_DEBUG_SERIAL.print(")\n");
-    DEBUG_DELAY();
-  #endif
-}
+EEPROM::EEPROM(const uint8_t& wire, const uint8_t& module, const uint8_t& addr) : EEPROM(I2CIP_FQA_CREATE(wire, module, I2CIP_MUX_BUS_DEFAULT, addr)) { }
 
 i2cip_errorlevel_t EEPROM::readContents(uint8_t* dest, size_t& num_read, size_t max_read) {
   size_t bytes_read = max_read;
@@ -78,9 +97,9 @@ i2cip_errorlevel_t EEPROM::clearContents(bool setbus, uint16_t numbytes) {
 
     #ifdef I2CIP_DEBUG_SERIAL
       DEBUG_DELAY();
-      I2CIP_DEBUG_SERIAL.print("Cleared EEPROM bytes ");
+      I2CIP_DEBUG_SERIAL.print(F("Cleared EEPROM bytes "));
       I2CIP_DEBUG_SERIAL.print(bytes_written);
-      I2CIP_DEBUG_SERIAL.print(" - ");
+      I2CIP_DEBUG_SERIAL.print(F(" - "));
       I2CIP_DEBUG_SERIAL.println((bytes_written + pagelen - 1));
       DEBUG_DELAY();
     #endif
@@ -121,15 +140,15 @@ i2cip_errorlevel_t EEPROM::overwriteContents(uint8_t* buffer, size_t len, bool c
 
     #ifdef I2CIP_DEBUG_SERIAL
       DEBUG_DELAY();
-      I2CIP_DEBUG_SERIAL.print("Bytes ");
+      I2CIP_DEBUG_SERIAL.print(F("Bytes "));
       I2CIP_DEBUG_SERIAL.print(bytes_written);
-      I2CIP_DEBUG_SERIAL.print(" - ");
+      I2CIP_DEBUG_SERIAL.print(F(" - "));
       I2CIP_DEBUG_SERIAL.print(bytes_written + pagelen);
-      I2CIP_DEBUG_SERIAL.print(" written '");
+      I2CIP_DEBUG_SERIAL.print(F(" written '"));
       for(int i = 0; i < pagelen; i++) {
         I2CIP_DEBUG_SERIAL.print((char)((buffer+bytes_written)[i]));
       }
-      I2CIP_DEBUG_SERIAL.print("'... ");
+      I2CIP_DEBUG_SERIAL.print(F("'... "));
       DEBUG_DELAY();
     #endif
 

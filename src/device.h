@@ -25,30 +25,39 @@
 
 namespace I2CIP {
 
+  class Module;
+
   typedef enum { I2CIP_ITYPE_NULL = 0b00, I2CIP_ITYPE_INPUT = 0b01, I2CIP_ITYPE_OUTPUT = 0b10, I2CIP_ITYPE_IO = 0b11 } i2cip_itype_t;
 
   // Barebones template-less abstract classes expose voidptr hooks for the device to be used as an input or output
 
   class InputGetter {
+    protected:
+      static const char failptr_get = '\a';
     public:
       virtual ~InputGetter() {}
       virtual i2cip_errorlevel_t get(const void* args = nullptr) = 0;
   };
 
   class OutputSetter {
+    protected:
+      static const char failptr_set = '\a';
     public:
       virtual ~OutputSetter() {}
       virtual i2cip_errorlevel_t set(const void* value = nullptr, const void* args = nullptr) = 0;
+      i2cip_errorlevel_t reset(void) { return this->set(nullptr, nullptr); }
   };
 
   class Device {
     protected:
       const i2cip_fqa_t fqa;
-      const i2cip_id_t id;
+      i2cip_id_t id;
 
       // // Set by public API, deleted on deconstruction
       InputGetter* input = nullptr;
       OutputSetter* output = nullptr;
+
+      Device(const i2cip_fqa_t& fqa);
 
       /**
        * Attempt to communicate with a device. Always sets the bus.
@@ -190,7 +199,7 @@ namespace I2CIP {
       static i2cip_errorlevel_t readRegisterWord(const i2cip_fqa_t& fqa, const uint16_t& reg, uint16_t& dest, bool resetbus = true);
 
     public:
-      Device(const i2cip_fqa_t& fqa, const i2cip_id_t& id);
+      // Device(const i2cip_fqa_t& fqa, i2cip_id_t id);
       ~Device();
 
       void setInput(InputGetter* input);
@@ -205,8 +214,8 @@ namespace I2CIP {
       i2cip_errorlevel_t get(const void* args = nullptr);
       i2cip_errorlevel_t set(const void* value = nullptr, const void* args = nullptr);
 
-      const i2cip_fqa_t& getFQA(void) const;
-      const i2cip_id_t& getID(void) const;
+      i2cip_fqa_t getFQA(void) const;
+      i2cip_id_t getID(void) const;
 
       i2cip_errorlevel_t ping(bool resetbus = true);
       i2cip_errorlevel_t pingTimeout(bool setbus = true, bool resetbus = true, unsigned int timeout = 100);
@@ -230,25 +239,29 @@ namespace I2CIP {
   typedef Device* (* factory_device_t)(const i2cip_fqa_t& fqa);
 
   class DeviceGroup {
+    friend class Module;
+
+    protected:
+      // Factory
+      Device& operator()(const i2cip_fqa_t& fqa, bool add = true);
+
+      bool add(Device& device);
+      bool addGroup(Device* devices[], uint8_t numdevices);
+      void remove(Device* device);
+
     public:
-      const i2cip_id_t key;
+      i2cip_id_t key;
       uint8_t numdevices = 0;
       Device* devices[I2CIP_DEVICES_PER_GROUP] = { nullptr };
 
       factory_device_t factory;
       i2cip_itype_t itype;
 
-      DeviceGroup(const char*& key, const i2cip_itype_t& itype, factory_device_t factory = nullptr);
-
-      bool add(Device& device);
-      bool addGroup(Device* devices[], uint8_t numdevices);
-      void remove(Device* device);
+      DeviceGroup(i2cip_id_t key, const i2cip_itype_t& itype, factory_device_t factory = nullptr);
       bool contains(Device* device) const;
       bool contains(const i2cip_fqa_t& fqa) const;
 
       Device* operator[](const i2cip_fqa_t& fqa) const;
-
-      Device& operator()(const i2cip_fqa_t& fqa, bool add = true);
 
       DeviceGroup& operator=(const DeviceGroup& rhs);
   };

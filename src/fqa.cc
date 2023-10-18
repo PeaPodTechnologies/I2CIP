@@ -20,7 +20,7 @@ void I2CIP::beginWire(const uint8_t& wire) {
   if(!wiresBegun[wire]) {
     #ifdef I2CIP_DEBUG_SERIAL
       DEBUG_DELAY();
-      I2CIP_DEBUG_SERIAL.print("Initializing I2C wire ");
+      I2CIP_DEBUG_SERIAL.print(F("Initializing I2C wire "));
       I2CIP_DEBUG_SERIAL.println(wire);
       DEBUG_DELAY();
     #endif
