@@ -14,7 +14,7 @@ namespace I2CIP {
   class Device;
   template <typename G, typename A, typename S, typename B> class IOInterface;
 
-  extern const char* const i2cip_eeprom_default;
+  extern const char i2cip_eeprom_default[] PROGMEM;
   extern const uint16_t i2cip_eeprom_capacity;
   extern const char i2cip_eeprom_id[] PROGMEM;
 
@@ -38,7 +38,13 @@ namespace I2CIP {
 
     private:
       static bool _id_set;
-      static char* _id; // to be initialized (copied from constructor parameters) in eeprom.cc
+      static char _id[]; // to be loaded from progmem
+
+      static bool _failsafe_set;
+      static char _failsafe[]; // to be loaded from progmem
+      static uint16_t _failsafe_b;
+
+      char readBuffer[I2CIP_EEPROM_SIZE+1] = { '\0' };
     public:
       EEPROM(const i2cip_fqa_t& fqa);
       EEPROM(const uint8_t& wire, const uint8_t& module, const uint8_t& addr = I2CIP_EEPROM_ADDR);
@@ -67,9 +73,9 @@ namespace I2CIP {
        **/
       i2cip_errorlevel_t set(const char * const& value, const uint16_t& args) override;
 
-      void resetCache(void) override;
+      void clearCache(void) override;
       const uint16_t& getDefaultA(void) const override;
-      const char* const& getFailsafe(void) const override;
+      void resetFailsafe(void) override;
       const uint16_t& getDefaultB(void) const override;
   };
 }

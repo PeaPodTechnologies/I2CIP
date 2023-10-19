@@ -3,42 +3,74 @@
 
 #include "../config.h"
 
-#include <I2CIP.h>
-
 using namespace I2CIP;
 
-class BasicModule : public Module {
-  public:
-    BasicModule(const uint8_t& wire, const uint8_t& module) : Module(wire, module) { }
-    
-    bool parseEEPROMContents(const uint8_t* buffer, size_t buflen) override {
-      #ifdef I2CIP_DEBUG_SERIAL
-        DEBUG_DELAY();
-        I2CIP_DEBUG_SERIAL.print(F("No Parsing Yet!\n"));
-        DEBUG_DELAY();
-      #endif
-      return true;
-    }
-};
+#define DEBUG_SERIAL Serial // Uncomment to enable debug
 
-BasicModule* m;  // to be initialized in setup()
+Module* m;  // to be initialized in setup()
+
+void test_module_init(void) {
+  #ifdef DEBUG_SERIAL
+    DEBUG_SERIAL.println(F("==== [ Initializing Module ] ===="));
+    DEBUG_DELAY();
+  #endif
+
+  m = new Module(0, 0);
+  TEST_ASSERT_TRUE_MESSAGE(m != nullptr, "Module Initialization Fail");
+
+  if(m == nullptr) while(true) { // Blink
+    digitalWrite(LED_BUILTIN, HIGH);
+    delay(100);
+    digitalWrite(LED_BUILTIN, LOW);
+    delay(100);
+  }
+  else {
+    #ifdef DEBUG_SERIAL
+      DEBUG_SERIAL.println(F("Barebones Module Initialized!"));
+      DEBUG_DELAY();
+    #endif
+  }
+}
+
+void test_module_discovery(void) {
+  #ifdef DEBUG_SERIAL
+    DEBUG_SERIAL.println(F("==== [ Discovering Module ] ===="));
+    DEBUG_DELAY();
+  #endif
+
+  bool r = m->discover();
+  // if(!r) {
+  //   while (true) { // Blink
+  //     digitalWrite(LED_BUILTIN, HIGH);
+  //     delay(100);
+  //     digitalWrite(LED_BUILTIN, LOW);
+  //     delay(100);
+  //   }
+  // }
+
+  TEST_ASSERT_TRUE_MESSAGE(r, "Module Discovery Fail");
+  if(r) {
+    #ifdef DEBUG_SERIAL
+      DEBUG_SERIAL.print(F("Module Discovered\n"));
+      DEBUG_DELAY();
+    #endif
+  }
+}
 
 void setup(void) {
   Serial.begin(115200);
 
-  #ifdef DEBUG_SERIAL
-  DEBUG_SERIAL.println("\nInitializing BasicModule...");
-  #endif
+  delay(2000);
 
-  // Initialize module
-  m = new BasicModule(0, 0);
+  UNITY_BEGIN();
+  
+  RUN_TEST(test_module_init);
 
-  // if((EEPROM*)(m) == nullptr) while(true);
-
-  i2cip_fqa_t fqa = ((const EEPROM&)(*m)).getFQA();
+  i2cip_fqa_t fqa = ((const EEPROM&)(*m));
 
   #ifdef DEBUG_SERIAL
-    DEBUG_SERIAL.print(F("BasicModule Initialized! EEPROM FQA "));
+    DEBUG_DELAY();
+    DEBUG_SERIAL.print(F("EEPROM FQA "));
     DEBUG_SERIAL.print(I2CIP_FQA_SEG_I2CBUS(fqa), HEX);
     DEBUG_SERIAL.print(':');
     DEBUG_SERIAL.print(I2CIP_FQA_SEG_MODULE(fqa), HEX);
@@ -53,20 +85,15 @@ void setup(void) {
     DEBUG_SERIAL.print('\n');
   #endif
 
+  delay(1000);
+
   // Build module
-  if(!Module::build(*m)) while(true) { // Blink
-    digitalWrite(LED_BUILTIN, HIGH);
-    delay(100);
-    digitalWrite(LED_BUILTIN, LOW);
-    delay(100);
-  }
+  RUN_TEST(test_module_discovery);
 
-  delay(2000);
-
-  UNITY_BEGIN();
+  delay(1000);
 }
 
-bool fail = false;
+static bool fail = false;
 
 void test_module_self_check(void) {
   i2cip_errorlevel_t errlev = (*m)();
@@ -75,15 +102,44 @@ void test_module_self_check(void) {
 }
 
 void test_module_eeprom_check(void) {
-  i2cip_errorlevel_t errlev = (*m)(((const EEPROM&)(*m)).getFQA());
+  i2cip_errorlevel_t errlev = (*m)(((const EEPROM&)(*m)));
   TEST_ASSERT_EQUAL_UINT8_MESSAGE(I2CIP_ERR_NONE, errlev, "EEPROM check failed! Check EEPROM wiring.");
   if(errlev > I2CIP_ERR_NONE) fail = true;
 }
 
 void test_module_eeprom_update(void) {
-  i2cip_errorlevel_t errlev = (*m)(((const EEPROM&)(*m)).getFQA(), true);
-  TEST_ASSERT_EQUAL_UINT8_MESSAGE(I2CIP_ERR_NONE, errlev, "EEPROM check failed! Check EEPROM wiring.");
+  i2cip_errorlevel_t errlev = (*m)(((const EEPROM&)(*m)), true);
+  TEST_ASSERT_EQUAL_UINT8_MESSAGE(I2CIP_ERR_NONE, errlev, "EEPROM read/write failed! Check EEPROM wiring.");
   if(errlev > I2CIP_ERR_NONE) fail = true;
+  
+  uint8_t len = strlen_P(i2cip_eeprom_default);
+  char str[len+1] = { '\0' };
+  for (uint8_t k = 0; k < len; k++) {
+    char c = pgm_read_byte_near(i2cip_eeprom_default + k);
+    str[k] = c;
+  }
+
+  str[len] = '\0';
+
+  const char* cache = ((const EEPROM&)(*m)).getCache();
+  const char* value = ((const EEPROM&)(*m)).getValue();
+
+  #ifdef DEBUG_SERIAL
+    DEBUG_DELAY();
+    DEBUG_SERIAL.print(F("EEPROM Cache Test: '"));
+    DEBUG_SERIAL.print(cache);
+    DEBUG_SERIAL.print(F("' @0x"));
+    DEBUG_SERIAL.print((uint16_t)cache, HEX);
+    DEBUG_SERIAL.print(F("\nEEPROM Value: "));
+    DEBUG_SERIAL.print(value);
+    DEBUG_SERIAL.print(F(" @0x"));
+    DEBUG_SERIAL.print((uint16_t)value, HEX);
+    DEBUG_SERIAL.print('\n');
+    DEBUG_DELAY();
+  #endif
+
+  TEST_ASSERT_EQUAL_STRING_MESSAGE(str, cache, "GET Cache Mismatch");
+  TEST_ASSERT_EQUAL_STRING_MESSAGE(str, value, "SET Value Mismatch");
 }
 
 i2cip_errorlevel_t errlev;
@@ -92,33 +148,24 @@ void loop(void) {
 
   RUN_TEST(test_module_self_check);
 
-  if(fail) {
-    UNITY_END();
-    while(true);
-  }
+  if(fail) goto stop;
 
   delay(1000);
 
   RUN_TEST(test_module_eeprom_check);
 
-  if(fail) {
-    UNITY_END();
-    while(true);
-  }
+  if(fail) goto stop;
   
   #if I2CIP_TEST_EEPROM_OVERWRITE == 1
   delay(1000);
 
   RUN_TEST(test_module_eeprom_update);
 
-  if(fail) {
-    UNITY_END();
-    while(true);
-  }
+  if(fail) goto stop;
   #endif
 
   if(count > 3) {
-    UNITY_END();
+    stop: UNITY_END();
     while(true);
   }
 

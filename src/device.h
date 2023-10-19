@@ -36,7 +36,7 @@ namespace I2CIP {
       static const char failptr_get = '\a';
     public:
       virtual ~InputGetter() {}
-      virtual i2cip_errorlevel_t get(const void* args = nullptr) = 0;
+      virtual i2cip_errorlevel_t get(const void* args = nullptr) { return I2CIP_ERR_HARD; } // Unimplemented; delete this device
   };
 
   class OutputSetter {
@@ -44,7 +44,7 @@ namespace I2CIP {
       static const char failptr_set = '\a';
     public:
       virtual ~OutputSetter() {}
-      virtual i2cip_errorlevel_t set(const void* value = nullptr, const void* args = nullptr) = 0;
+      virtual i2cip_errorlevel_t set(const void* value = nullptr, const void* args = nullptr) { return I2CIP_ERR_HARD; } // Unimplemented; delete this device
       i2cip_errorlevel_t reset(void) { return this->set(nullptr, nullptr); }
   };
 
@@ -57,7 +57,7 @@ namespace I2CIP {
       InputGetter* input = nullptr;
       OutputSetter* output = nullptr;
 
-      Device(const i2cip_fqa_t& fqa);
+      Device(const i2cip_fqa_t& fqa, i2cip_id_t id);
 
       /**
        * Attempt to communicate with a device. Always sets the bus.
@@ -234,6 +234,8 @@ namespace I2CIP {
       i2cip_errorlevel_t readRegisterByte(const uint16_t& reg, uint8_t& dest, bool resetbus = true);
       i2cip_errorlevel_t readRegisterWord(const uint8_t& reg, uint16_t& dest, bool resetbus = true);
       i2cip_errorlevel_t readRegisterWord(const uint16_t& reg, uint16_t& dest, bool resetbus = true);
+
+      inline operator i2cip_fqa_t() const { return this->fqa; }
   };
 
   typedef Device* (* factory_device_t)(const i2cip_fqa_t& fqa);
@@ -276,6 +278,9 @@ namespace I2CIP {
       G cache;  // Last RECIEVED value
       A argsA;  // Last passed arguments
     protected:
+      void setCache(G value);
+      void setArgsA(A args);
+      
       /**
        * Gets the default arguments used for the "get" operation.
        * A constant reference.
@@ -287,9 +292,7 @@ namespace I2CIP {
        * Sets the cache to the default "zero" value.
        * To be implemented by the child class.
       */
-      virtual void resetCache(void) = 0;
-
-      void setCache(G value);
+      virtual void clearCache(void);
     public:
       InputInterface(Device* device);
       virtual ~InputInterface() {}
@@ -309,7 +312,7 @@ namespace I2CIP {
       /**
        * Gets the input device's state.
        **/
-      virtual i2cip_errorlevel_t get(G& dest, const A& args) = 0;
+      virtual i2cip_errorlevel_t get(G& dest, const A& args) { return I2CIP_ERR_HARD; } // Unimplemented; Disable this device
   };
 
   /**
@@ -322,6 +325,9 @@ namespace I2CIP {
       S value;  // Last SET value (not PASSED value)
       B argsB;  // Last passed arguments
     protected:
+      void setValue(S value);
+      void setArgsB(B args);
+
       /**
        * Gets the default arguments used for the "set" operation.
        * To be implemented by the child class.
@@ -332,7 +338,7 @@ namespace I2CIP {
        * Gets the default "zero"/off-state value.
        * To be implemented by the child class.
       */
-      virtual const S& getFailsafe(void) const = 0;
+      virtual void resetFailsafe(void);
     public:
       OutputInterface(Device* device);
       virtual ~OutputInterface() {}
@@ -352,7 +358,7 @@ namespace I2CIP {
       /**
        * Sets the output device's state.
        **/
-      virtual i2cip_errorlevel_t set(const S& value, const B& args) = 0;
+      virtual i2cip_errorlevel_t set(const S& value, const B& args) { return I2CIP_ERR_HARD; } // Unimplemented; Disable this device
   };
 
   /**

@@ -41,13 +41,12 @@ namespace I2CIP {
 
       HashTableEntry<DeviceGroup&>* addEmptyGroup(const char* id);
     protected:
-      Module(const uint8_t& wire, const uint8_t& module, const uint8_t& eeprom_addr = I2CIP_EEPROM_ADDR);
-
       EEPROM eeprom; // EEPROM device - to be added to `devices_fqabst` and `devices_idgroups` on construction
 
       virtual DeviceGroup* deviceGroupFactory(const char* id);
     public:
-      // Module(const i2cip_fqa_t& fqa);
+      Module(const uint8_t& wire, const uint8_t& module, const uint8_t& eeprom_addr = I2CIP_EEPROM_ADDR);
+      Module(const i2cip_fqa_t& eeprom_fqa);
       
       virtual ~Module() { }
 
@@ -72,8 +71,8 @@ namespace I2CIP {
        *  2b ii.  Ping Devices (by ID)
        *  2b iii. Create (new) Devices and `add` to DeviceGroups (Made Available Internal API via `operator[]` functions)
       */
-      static bool build(Module& m);
-      virtual bool parseEEPROMContents(const uint8_t* buffer, size_t buflen) = 0;
+      bool discover();
+      virtual bool parseEEPROMContents(const char* contents);
       bool add(Device& device, bool overwrite = false);
 
       /**

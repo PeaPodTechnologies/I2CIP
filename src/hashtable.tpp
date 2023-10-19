@@ -16,12 +16,12 @@ inline static uint8_t hash(const char* s) {
 
 // HASH TABLE ENTRY
 
-template <typename T> HashTableEntry<T>::HashTableEntry(const char* key, T value, HashTableEntry<T>* last) : key(strdup(key)), value(value), next(last) { }
+template <typename T> HashTableEntry<T>::HashTableEntry(const char* key, T value, HashTableEntry<T>* last) : key(key), value(value), next(last) { }
 
 template <typename T> HashTableEntry<T>::~HashTableEntry() {
   // Free our key then trigger the next entry
-  free((void*)this->key);
-  delete(this->next);
+  delete this->key;
+  delete this->next;
 }
 
 // HASH TABLE

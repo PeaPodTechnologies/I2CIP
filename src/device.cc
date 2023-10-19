@@ -8,7 +8,7 @@ using namespace I2CIP;
 
 // CONSTRUCTORs AND PROPERTY GETTERS/SETTERS
 
-Device::Device(const i2cip_fqa_t& fqa) : fqa(fqa) { }
+Device::Device(const i2cip_fqa_t& fqa, i2cip_id_t id) : fqa(fqa), id(id) { }
 
 Device::~Device(void) { if(input != nullptr) { delete input; } if(output != nullptr) { delete output; } }
 
@@ -400,6 +400,7 @@ i2cip_errorlevel_t Device::readRegister(const i2cip_fqa_t& fqa, const uint16_t& 
       I2CIP_DEBUG_SERIAL.print(F(" - "));
       I2CIP_DEBUG_SERIAL.print(pos+read_len);
       I2CIP_DEBUG_SERIAL.print(F(": '"));
+      DEBUG_DELAY();
     #endif
 
     // Request bytes; How many have we received?
@@ -421,9 +422,6 @@ i2cip_errorlevel_t Device::readRegister(const i2cip_fqa_t& fqa, const uint16_t& 
         goto endloop2;
       }
     }
-    #ifdef I2CIP_DEBUG_SERIAL
-      I2CIP_DEBUG_SERIAL.println("'");
-    #endif
     
     // Advance the index by the amount of bytes received
     pos += recv;
@@ -467,7 +465,14 @@ i2cip_errorlevel_t Device::readRegisterWord(const uint16_t& reg, uint16_t& dest,
 DeviceGroup::DeviceGroup(i2cip_id_t key, const i2cip_itype_t& itype, factory_device_t factory) : key(key), factory(factory), itype(itype) { for(int i = 0; i < I2CIP_DEVICES_PER_GROUP; i++) { devices[i] = nullptr; } }
 
 bool DeviceGroup::add(Device& device) {
-  if(strcmp(device.getID(), this->key) != 0 || this->contains(&device)) return false;
+  if(strcmp(device.getID(), this->key) != 0 || this->contains(&device)) {
+    #ifdef I2CIP_DEBUG_SERIAL
+      DEBUG_DELAY();
+      I2CIP_DEBUG_SERIAL.print(F("DeviceGroup::add() failed"));
+      DEBUG_DELAY();
+    #endif
+    return false;
+  }
   
   unsigned int n = 0;
   while(this->devices[n] != nullptr) { n++; if(n > I2CIP_DEVICES_PER_GROUP) return false;}
