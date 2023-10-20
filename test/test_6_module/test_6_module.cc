@@ -3,9 +3,11 @@
 
 #include "../config.h"
 
+#include <debug.h>
+#include <I2CIP.h>
+
 using namespace I2CIP;
 
-#define DEBUG_SERIAL Serial // Uncomment to enable debug
 
 Module* m;  // to be initialized in setup()
 

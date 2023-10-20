@@ -9,6 +9,11 @@
 #define I2CIP_EEPROM_TIMEOUT  100    // How long to wait for a write to complete (ms)
 #define I2CIP_EEPROM_DEFAULT  ("[{\"24LC32\":[80]}]")
 
+// Future-Proofing ;)
+namespace ControlSystemsOS {
+  class Linker;
+}
+
 namespace I2CIP {
 
   class Device;
@@ -35,6 +40,7 @@ namespace I2CIP {
   class EEPROM : public Device, public IOInterface<char*, uint16_t, const char*, uint16_t> {
       friend Device* I2CIP::eepromFactory(const i2cip_fqa_t& fqa);
       friend class Module;
+      friend class ControlSystemsOS::Linker; // Future-Proofing ;)
 
       EEPROM(const i2cip_fqa_t& fqa);
     private:

@@ -38,7 +38,7 @@ void setup(void) {
   DEBUG_SERIAL.print('\n');
 
   // Build module
-  if(!:discover(*m)) while(true) { // Blink
+  if(!m->discover()) while(true) { // Blink
     digitalWrite(LED_BUILTIN, HIGH);
     delay(100);
     digitalWrite(LED_BUILTIN, LOW);
