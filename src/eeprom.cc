@@ -75,6 +75,29 @@ EEPROM::EEPROM(const i2cip_fqa_t& fqa) : Device(fqa, (const char*)_id), IOInterf
   #endif
 }
 
+EEPROM::~EEPROM() {
+  #ifdef I2CIP_DEBUG_SERIAL
+    DEBUG_DELAY();
+    I2CIP_DEBUG_SERIAL.print(F("EEPROM Destructed (ID '"));
+    I2CIP_DEBUG_SERIAL.print(this->id);
+    I2CIP_DEBUG_SERIAL.print(F("' @0x"));
+    I2CIP_DEBUG_SERIAL.print((uint16_t)&(this->id[0]), HEX);
+    I2CIP_DEBUG_SERIAL.print(F("; FQA "));
+    I2CIP_DEBUG_SERIAL.print(I2CIP_FQA_SEG_I2CBUS(this->fqa), HEX);
+    I2CIP_DEBUG_SERIAL.print(F(":"));
+    I2CIP_DEBUG_SERIAL.print(I2CIP_FQA_SEG_MODULE(this->fqa), HEX);
+    I2CIP_DEBUG_SERIAL.print(F(":"));
+    I2CIP_DEBUG_SERIAL.print(I2CIP_FQA_SEG_MUXBUS(this->fqa), HEX);
+    I2CIP_DEBUG_SERIAL.print(F(":"));
+    I2CIP_DEBUG_SERIAL.print(I2CIP_FQA_SEG_DEVADR(this->fqa), HEX);
+    I2CIP_DEBUG_SERIAL.print(F(")\n"));
+    DEBUG_DELAY();
+  #endif
+
+  // Cleanup
+  if(this->getValue() != nullptr && this->getValue() != _failsafe) delete this->getValue();
+}
+
 // EEPROM::EEPROM(const uint8_t& wire, const uint8_t& module, const uint8_t& addr) : EEPROM(I2CIP_FQA_CREATE(wire, module, I2CIP_MUX_BUS_DEFAULT, addr)) { }
 
 i2cip_errorlevel_t EEPROM::readContents(uint8_t* dest, size_t& num_read, size_t max_read) {

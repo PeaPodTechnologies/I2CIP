@@ -47,6 +47,7 @@ namespace I2CIP {
 
       char readBuffer[I2CIP_EEPROM_SIZE+1] = { '\0' };
     public:
+      ~EEPROM();
 
       i2cip_errorlevel_t readContents(uint8_t* dest, size_t& num_read, size_t max_read = I2CIP_EEPROM_SIZE);
 

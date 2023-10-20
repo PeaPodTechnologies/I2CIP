@@ -142,6 +142,11 @@ void test_module_eeprom_update(void) {
   TEST_ASSERT_EQUAL_STRING_MESSAGE(str, value, "SET Value Mismatch");
 }
 
+void test_module_delete(void) {
+  delete(m);
+  TEST_ASSERT_TRUE_MESSAGE(true, "Module Deletion Fail");
+}
+
 i2cip_errorlevel_t errlev;
 uint8_t count = 1;
 void loop(void) {
@@ -164,8 +169,9 @@ void loop(void) {
   if(fail) goto stop;
   #endif
 
-  if(count > 3) {
-    stop: UNITY_END();
+  if(count > 1) {
+    stop: RUN_TEST(test_module_delete);
+    UNITY_END();
     while(true);
   }
 

@@ -19,6 +19,8 @@ using I2CIP::IOInterface;
 
 template <typename G, typename A> InputInterface<G, A>::InputInterface(Device* device) { device->setInput(this); }
 
+template <typename G, typename A> InputInterface<G, A>::~InputInterface() { }
+
 template <typename G, typename A> G InputInterface<G, A>::getCache(void) const { return this->cache; }
 
 template <typename G, typename A> void InputInterface<G, A>::setCache(G value) { this->cache = value; }
@@ -72,6 +74,8 @@ template <typename G, typename A> i2cip_errorlevel_t InputInterface<G, A>::get(c
 }
 
 template <typename S, typename B> OutputInterface<S, B>::OutputInterface(Device* device) { device->setOutput(this); }
+
+template <typename S, typename B> OutputInterface<S, B>::~OutputInterface() { }
 
 template <typename S, typename B> void OutputInterface<S, B>::setValue(S value) { this->value = value; }
 
@@ -130,6 +134,8 @@ template <typename S, typename B> i2cip_errorlevel_t OutputInterface<S, B>::set(
 }
 
 template <typename G, typename A, typename S, typename B> IOInterface<G, A, S, B>::IOInterface(Device* device) : InputInterface<G, A>(device), OutputInterface<S, B>(device) { }
+
+template <typename G, typename A, typename S, typename B> IOInterface<G, A, S, B>::~IOInterface() { }
 
 #endif
 #endif

@@ -36,7 +36,7 @@ namespace I2CIP {
     protected:
       static const char failptr_get = '\a';
     public:
-      virtual ~InputGetter() {}
+      virtual ~InputGetter() = 0;
       virtual i2cip_errorlevel_t get(const void* args = nullptr) { return I2CIP_ERR_HARD; } // Unimplemented; delete this device
   };
 
@@ -44,7 +44,7 @@ namespace I2CIP {
     protected:
       static const char failptr_set = '\a';
     public:
-      virtual ~OutputSetter() {}
+      virtual ~OutputSetter() = 0;
       virtual i2cip_errorlevel_t set(const void* value = nullptr, const void* args = nullptr) { return I2CIP_ERR_HARD; } // Unimplemented; delete this device
       i2cip_errorlevel_t reset(void) { return this->set(nullptr, nullptr); }
   };
@@ -201,7 +201,7 @@ namespace I2CIP {
 
     public:
       // Device(const i2cip_fqa_t& fqa, i2cip_id_t id);
-      ~Device();
+      virtual ~Device() = 0;
 
       void setInput(InputGetter* input);
       void setOutput(OutputSetter* output);
@@ -258,6 +258,7 @@ namespace I2CIP {
       i2cip_itype_t itype;
 
       DeviceGroup(const i2cip_id_t& key, const i2cip_itype_t& itype, factory_device_t factory = nullptr);
+
       ~DeviceGroup();
       
       bool contains(Device* device) const;
@@ -297,7 +298,7 @@ namespace I2CIP {
       virtual void clearCache(void);
     public:
       InputInterface(Device* device);
-      virtual ~InputInterface() {}
+      virtual ~InputInterface() = 0;
 
       i2cip_errorlevel_t get(const void* args = nullptr) override;
 
@@ -343,7 +344,8 @@ namespace I2CIP {
       virtual void resetFailsafe(void);
     public:
       OutputInterface(Device* device);
-      virtual ~OutputInterface() {}
+      
+      virtual ~OutputInterface() = 0;
 
       i2cip_errorlevel_t set(const void* value = nullptr, const void* args = nullptr) override;
 
@@ -373,7 +375,7 @@ namespace I2CIP {
   template <typename G, typename A, typename S, typename B> class IOInterface : public InputInterface<G, A>, public OutputInterface<S, B> {
     public:
       IOInterface(Device* device);
-      virtual ~IOInterface() {}
+      virtual ~IOInterface() = 0;
   };
 };
 

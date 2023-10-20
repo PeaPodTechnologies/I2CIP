@@ -48,7 +48,7 @@ namespace I2CIP {
       Module(const uint8_t& wire, const uint8_t& module, const uint8_t& eeprom_addr = I2CIP_EEPROM_ADDR);
       Module(const i2cip_fqa_t& eeprom_fqa);
       
-      ~Module();
+      virtual ~Module();
 
       uint8_t getWireNum(void) const;
       uint8_t getModuleNum(void) const;

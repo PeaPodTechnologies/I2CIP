@@ -33,7 +33,7 @@ Module::~Module() {
   // Delete all DeviceGroups, deleting all Devices (incl. EEPROM)
   for(uint8_t i = 0; i < HASHTABLE_SLOTS; i++) {
     if(this->devices_idgroups.hashtable[i] != nullptr) {
-      delete (&this->devices_idgroups.hashtable[i]->value);
+      delete (&(this->devices_idgroups.hashtable[i]->value));
     }
   }
 
