@@ -112,10 +112,10 @@ template <typename S, typename B> i2cip_errorlevel_t OutputInterface<S, B>::set(
     DEBUG_DELAY();
   #endif
 
-  if (value == &OutputSetter::failptr_set || (value == nullptr && this->getValue() == nullptr)) this->resetFailsafe();
+  if (value == &OutputSetter::failptr_set) this->resetFailsafe();
 
   // 1. If `set` value is not given, repeat last action
-  S val = ((value == nullptr) ? this->getValue() : *(S* const)value);
+  S val = ((value == nullptr || value == &OutputSetter::failptr_set) ? this->getValue() : *(S* const)value);
 
   // 2. If `set` args are not given, use last args 
   B arg = (args == &OutputSetter::failptr_set) ? this->getDefaultB() : ((args == nullptr || value == nullptr) ? this->getArgsB() : *(B* const)args);

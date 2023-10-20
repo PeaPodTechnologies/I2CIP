@@ -7,7 +7,7 @@
 #define I2CIP_EEPROM_SIZE     100   // EEPROM size in bytes
 #define I2CIP_EEPROM_ADDR     0x50  // SPRT EEPROM address
 #define I2CIP_EEPROM_TIMEOUT  100    // How long to wait for a write to complete (ms)
-#define I2CIP_EEPROM_DEFAULT  ("[{\"eeprom\":[80]}]")
+#define I2CIP_EEPROM_DEFAULT  ("[{\"24LC32\":[80]}]")
 
 namespace I2CIP {
 
@@ -33,9 +33,10 @@ namespace I2CIP {
    * B - Setter argument type: uint16_t (max bytes to write)
   */
   class EEPROM : public Device, public IOInterface<char*, uint16_t, const char*, uint16_t> {
-    friend Device* I2CIP::eepromFactory(const i2cip_fqa_t& fqa);
-    friend class Module;
+      friend Device* I2CIP::eepromFactory(const i2cip_fqa_t& fqa);
+      friend class Module;
 
+      EEPROM(const i2cip_fqa_t& fqa);
     private:
       static bool _id_set;
       static char _id[]; // to be loaded from progmem
@@ -46,8 +47,6 @@ namespace I2CIP {
 
       char readBuffer[I2CIP_EEPROM_SIZE+1] = { '\0' };
     public:
-      EEPROM(const i2cip_fqa_t& fqa);
-      EEPROM(const uint8_t& wire, const uint8_t& module, const uint8_t& addr = I2CIP_EEPROM_ADDR);
 
       i2cip_errorlevel_t readContents(uint8_t* dest, size_t& num_read, size_t max_read = I2CIP_EEPROM_SIZE);
 

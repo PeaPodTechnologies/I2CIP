@@ -45,7 +45,7 @@ template <typename T> HashTableEntry<T>* HashTable<T>::operator[](const char* ke
 
 // Public methods
 
-template <typename T> HashTableEntry<T>* HashTable<T>::set(const char* key, const T value, bool overwrite) {
+template <typename T> HashTableEntry<T>* HashTable<T>::set(const char* key, T value, bool overwrite) {
   HashTableEntry<T>* head = get(key);
 
   // Match found?

@@ -27,9 +27,9 @@ const char OutputSetter::failptr_set;
 i2cip_errorlevel_t Device::get(const void* args) { return (this->getInput() == nullptr) ? I2CIP_ERR_SOFT : this->input->get(args); }
 i2cip_errorlevel_t Device::set(const void* value, const void* args) { return (this->output == nullptr) ? I2CIP_ERR_SOFT : this->output->set(value, args); }
 
-i2cip_fqa_t Device::getFQA(void) const { return this->fqa; }
+const i2cip_fqa_t& Device::getFQA(void) const { return this->fqa; }
 
-i2cip_id_t Device::getID(void) const { return this->id; }
+const i2cip_id_t& Device::getID(void) const { return this->id; }
 
 // STATIC CLASS-MEMBER FUNCTIONS (PRIVATE INTERNAL API)
 
@@ -462,7 +462,9 @@ i2cip_errorlevel_t Device::readRegisterByte(const uint16_t& reg, uint8_t& dest, 
 i2cip_errorlevel_t Device::readRegisterWord(const uint8_t& reg, uint16_t& dest, bool resetbus) { return Device::readRegisterWord(this->fqa, reg, dest, resetbus);  }
 i2cip_errorlevel_t Device::readRegisterWord(const uint16_t& reg, uint16_t& dest, bool resetbus) { return Device::readRegisterWord(this->fqa, reg, dest, resetbus); }
 
-DeviceGroup::DeviceGroup(i2cip_id_t key, const i2cip_itype_t& itype, factory_device_t factory) : key(key), factory(factory), itype(itype) { for(int i = 0; i < I2CIP_DEVICES_PER_GROUP; i++) { devices[i] = nullptr; } }
+DeviceGroup::DeviceGroup(const i2cip_id_t& key, const i2cip_itype_t& itype, factory_device_t factory) : key(key), factory(factory), itype(itype) { for(int i = 0; i < I2CIP_DEVICES_PER_GROUP; i++) { devices[i] = nullptr; } }
+
+DeviceGroup::~DeviceGroup(void) { for(int i = 0; i < I2CIP_DEVICES_PER_GROUP; i++) { if(devices[i] != nullptr) { delete devices[i]; } } }
 
 bool DeviceGroup::add(Device& device) {
   if(strcmp(device.getID(), this->key) != 0 || this->contains(&device)) {
@@ -528,20 +530,20 @@ Device* DeviceGroup::operator[](const i2cip_fqa_t& fqa) const {
   return nullptr;
 }
 
-Device& DeviceGroup::operator()(const i2cip_fqa_t& fqa, bool add) {
-  Device& device = *this->factory(fqa);
+Device* DeviceGroup::operator()(const i2cip_fqa_t& fqa) {
+  // Device* device = this->factory(fqa);
 
-  if(add) {
-    this->add(device);
-  }
+  // if(add && device != nullptr) {
+  //   this->add(*device);
+  // }
 
-  return device;
+  return this->factory(fqa);
 }
 
-DeviceGroup& DeviceGroup::operator=(const DeviceGroup& rhs) {
-  for(unsigned char i = 0; i < I2CIP_DEVICES_PER_GROUP; i++) this->devices[i] = rhs.devices[i];
-  this->numdevices = rhs.numdevices;
-  this->factory = rhs.factory;
-  this->key = rhs.key;
-  return *this;
-}
+// DeviceGroup& DeviceGroup::operator=(const DeviceGroup& rhs) {
+//   for(unsigned char i = 0; i < I2CIP_DEVICES_PER_GROUP; i++) this->devices[i] = rhs.devices[i];
+//   this->numdevices = rhs.numdevices;
+//   this->factory = rhs.factory;
+//   this->key = rhs.key;
+//   return *this;
+// }

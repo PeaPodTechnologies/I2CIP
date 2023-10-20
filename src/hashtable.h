@@ -35,7 +35,7 @@ template <typename T> class HashTable {
      * @param overwrite Overwrite existing value if found? Default: `true`
      * @return Pointer to the new entry
      */
-    HashTableEntry<T>* set(const char* key, const T value, bool overwrite = true);
+    HashTableEntry<T>* set(const char* key, T value, bool overwrite = true);
 
     /**
      * Look at the index for that key, down the chain until either key=key or next = nullptr

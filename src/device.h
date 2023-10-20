@@ -21,7 +21,8 @@
  **/
 #define OVERWRITE_BITS(existing, data, lsb, bits) ((existing) & ~(((1 << (bits)) - 1) << (lsb)) | (((data) & ((1 << (bits)) - 1)) << (lsb)))
 
-#define I2CIP_DEVICES_PER_GROUP 4
+#define I2CIP_DEVICES_PER_GROUP ((size_t)16)
+#define I2CIP_ID_SIZE ((size_t)10)
 
 namespace I2CIP {
 
@@ -214,8 +215,8 @@ namespace I2CIP {
       i2cip_errorlevel_t get(const void* args = nullptr);
       i2cip_errorlevel_t set(const void* value = nullptr, const void* args = nullptr);
 
-      i2cip_fqa_t getFQA(void) const;
-      i2cip_id_t getID(void) const;
+      const i2cip_fqa_t& getFQA(void) const;
+      const i2cip_id_t& getID(void) const;
 
       i2cip_errorlevel_t ping(bool resetbus = true);
       i2cip_errorlevel_t pingTimeout(bool setbus = true, bool resetbus = true, unsigned int timeout = 100);
@@ -244,9 +245,6 @@ namespace I2CIP {
     friend class Module;
 
     protected:
-      // Factory
-      Device& operator()(const i2cip_fqa_t& fqa, bool add = true);
-
       bool add(Device& device);
       bool addGroup(Device* devices[], uint8_t numdevices);
       void remove(Device* device);
@@ -259,13 +257,17 @@ namespace I2CIP {
       factory_device_t factory;
       i2cip_itype_t itype;
 
-      DeviceGroup(i2cip_id_t key, const i2cip_itype_t& itype, factory_device_t factory = nullptr);
+      DeviceGroup(const i2cip_id_t& key, const i2cip_itype_t& itype, factory_device_t factory = nullptr);
+      ~DeviceGroup();
+      
       bool contains(Device* device) const;
       bool contains(const i2cip_fqa_t& fqa) const;
 
       Device* operator[](const i2cip_fqa_t& fqa) const;
 
-      DeviceGroup& operator=(const DeviceGroup& rhs);
+      // DeviceGroup& operator=(const DeviceGroup& rhs);
+
+      Device* operator()(const i2cip_fqa_t& fqa);
   };
 
   /**

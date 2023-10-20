@@ -41,14 +41,14 @@ namespace I2CIP {
 
       HashTableEntry<DeviceGroup&>* addEmptyGroup(const char* id);
     protected:
-      EEPROM eeprom; // EEPROM device - to be added to `devices_fqabst` and `devices_idgroups` on construction
+      EEPROM* const eeprom; // EEPROM device - to be added to `devices_fqabst` and `devices_idgroups` on construction
 
-      virtual DeviceGroup* deviceGroupFactory(const char* id);
+      virtual DeviceGroup* deviceGroupFactory(const i2cip_id_t& id);
     public:
       Module(const uint8_t& wire, const uint8_t& module, const uint8_t& eeprom_addr = I2CIP_EEPROM_ADDR);
       Module(const i2cip_fqa_t& eeprom_fqa);
       
-      virtual ~Module() { }
+      ~Module();
 
       uint8_t getWireNum(void) const;
       uint8_t getModuleNum(void) const;
@@ -85,7 +85,7 @@ namespace I2CIP {
        *  3b ii.  Return DeviceGroup
        *  
       */
-      DeviceGroup& operator[](i2cip_id_t id);
+      DeviceGroup* operator[](i2cip_id_t id);
       Device* operator[](const i2cip_fqa_t& fqa) const;
 
       /**
@@ -95,7 +95,7 @@ namespace I2CIP {
 
       void remove(Device* device, bool del = true);
 
-      inline operator const EEPROM&() const { return this->eeprom; }
+      inline operator const EEPROM&() const { return *this->eeprom; }
   };
 };
 
