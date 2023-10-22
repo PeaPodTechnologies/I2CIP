@@ -56,7 +56,7 @@ DeviceGroup* Module::deviceGroupFactory(const i2cip_id_t& id) {
       DEBUG_DELAY();
     #endif
 
-    return new DeviceGroup(EEPROM::_id, I2CIP_ITYPE_IO, i2cip_eeprom_factory);
+    return new DeviceGroup(EEPROM::_id, i2cip_eeprom_factory);
   }
 
   #ifdef I2CIP_DEBUG_SERIAL

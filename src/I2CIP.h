@@ -43,7 +43,7 @@ namespace I2CIP {
     protected:
       EEPROM* const eeprom; // EEPROM device - to be added to `devices_fqabst` and `devices_idgroups` on construction
 
-      virtual DeviceGroup* deviceGroupFactory(const i2cip_id_t& id);
+      virtual DeviceGroup* deviceGroupFactory(const i2cip_id_t& id) = 0;
     public:
       Module(const uint8_t& wire, const uint8_t& module, const uint8_t& eeprom_addr = I2CIP_EEPROM_ADDR);
       Module(const i2cip_fqa_t& eeprom_fqa);

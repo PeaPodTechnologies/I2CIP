@@ -28,7 +28,7 @@ namespace I2CIP {
 
   class Module;
 
-  typedef enum { I2CIP_ITYPE_NULL = 0b00, I2CIP_ITYPE_INPUT = 0b01, I2CIP_ITYPE_OUTPUT = 0b10, I2CIP_ITYPE_IO = 0b11 } i2cip_itype_t;
+  // typedef enum { I2CIP_ITYPE_NULL = 0b00, I2CIP_ITYPE_INPUT = 0b01, I2CIP_ITYPE_OUTPUT = 0b10, I2CIP_ITYPE_IO = 0b11 } i2cip_itype_t;
 
   // Barebones template-less abstract classes expose voidptr hooks for the device to be used as an input or output
 
@@ -200,7 +200,6 @@ namespace I2CIP {
       static i2cip_errorlevel_t readRegisterWord(const i2cip_fqa_t& fqa, const uint16_t& reg, uint16_t& dest, bool resetbus = true);
 
     public:
-      // Device(const i2cip_fqa_t& fqa, i2cip_id_t id);
       virtual ~Device() = 0;
 
       void setInput(InputGetter* input);
@@ -255,9 +254,8 @@ namespace I2CIP {
       Device* devices[I2CIP_DEVICES_PER_GROUP] = { nullptr };
 
       factory_device_t factory;
-      i2cip_itype_t itype;
 
-      DeviceGroup(const i2cip_id_t& key, const i2cip_itype_t& itype, factory_device_t factory = nullptr);
+      DeviceGroup(const i2cip_id_t& key, factory_device_t factory = nullptr);
 
       ~DeviceGroup();
       

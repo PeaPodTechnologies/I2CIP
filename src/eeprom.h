@@ -10,9 +10,9 @@
 #define I2CIP_EEPROM_DEFAULT  ("[{\"24LC32\":[80]}]")
 
 // Future-Proofing ;)
-namespace ControlSystemsOS {
-  class Linker;
-}
+// namespace ControlSystemsOS {
+//   class Linker;
+// }
 
 namespace I2CIP {
 
@@ -40,7 +40,7 @@ namespace I2CIP {
   class EEPROM : public Device, public IOInterface<char*, uint16_t, const char*, uint16_t> {
       friend Device* I2CIP::eepromFactory(const i2cip_fqa_t& fqa);
       friend class Module;
-      friend class ControlSystemsOS::Linker; // Future-Proofing ;)
+      // friend class ControlSystemsOS::Linker; // Future-Proofing ;)
 
       EEPROM(const i2cip_fqa_t& fqa);
     private:
@@ -83,6 +83,8 @@ namespace I2CIP {
       const uint16_t& getDefaultA(void) const override;
       void resetFailsafe(void) override;
       const uint16_t& getDefaultB(void) const override;
+
+      static const char* getStaticIDBuffer() { return &(EEPROM::_id[0]); }
   };
 }
 

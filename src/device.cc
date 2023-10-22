@@ -483,7 +483,7 @@ i2cip_errorlevel_t Device::readRegisterByte(const uint16_t& reg, uint8_t& dest, 
 i2cip_errorlevel_t Device::readRegisterWord(const uint8_t& reg, uint16_t& dest, bool resetbus) { return Device::readRegisterWord(this->fqa, reg, dest, resetbus);  }
 i2cip_errorlevel_t Device::readRegisterWord(const uint16_t& reg, uint16_t& dest, bool resetbus) { return Device::readRegisterWord(this->fqa, reg, dest, resetbus); }
 
-DeviceGroup::DeviceGroup(const i2cip_id_t& key, const i2cip_itype_t& itype, factory_device_t factory) : key(key), factory(factory), itype(itype) { for(uint8_t i = 0; i < I2CIP_DEVICES_PER_GROUP; i++) { devices[i] = nullptr; } }
+DeviceGroup::DeviceGroup(const i2cip_id_t& key, factory_device_t factory) : key(key), factory(factory) { for(uint8_t i = 0; i < I2CIP_DEVICES_PER_GROUP; i++) { devices[i] = nullptr; } }
 
 DeviceGroup::~DeviceGroup(void) { 
   #ifdef I2CIP_DEBUG_SERIAL
