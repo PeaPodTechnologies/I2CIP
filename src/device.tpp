@@ -54,7 +54,10 @@ template <typename G, typename A> i2cip_errorlevel_t InputInterface<G, A>::get(c
 
   if (args == &InputGetter::failptr_get) this->clearCache();
   G temp = this->cache;
+
+  if(!this->argsAset) { this->argsA = this->getDefaultA(); this->argsAset = true; }
   A arg = (args == &InputGetter::failptr_get) ? this->getDefaultA() : ((args == nullptr) ? this->getArgsA() : *(A* const)args);
+
   i2cip_errorlevel_t errlev = this->get(temp, arg);
 
   // If successful, update last cache
@@ -116,10 +119,12 @@ template <typename S, typename B> i2cip_errorlevel_t OutputInterface<S, B>::set(
     DEBUG_DELAY();
   #endif
 
+  // If fail, reset to failsafe value
   if (value == &OutputSetter::failptr_set) this->resetFailsafe();
-
   // 1. If `set` value is not given, repeat last action
   S val = ((value == nullptr || value == &OutputSetter::failptr_set) ? this->getValue() : *(S* const)value);
+
+  if(!this->argsBset) { this->argsB = this->getDefaultB(); this->argsBset = true; }
 
   // 2. If `set` args are not given, use last args 
   B arg = (args == &OutputSetter::failptr_set) ? this->getDefaultB() : ((args == nullptr || value == nullptr) ? this->getArgsB() : *(B* const)args);

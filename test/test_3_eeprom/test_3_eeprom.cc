@@ -1,8 +1,10 @@
 #include <Arduino.h>
 #include <unity.h>
 
-#include <eeprom.h>
 #include "../config.h"
+#include <debug.h>
+
+#include <eeprom.h>
 
 using namespace I2CIP;
 
@@ -23,9 +25,7 @@ size_t bufferlen = 0;
 
 void test_device_oop(void) {
   // Initialize EEPROM - Done after Serial.begin for debug output to work
-  eeprom = new EEPROM(eeprom_fqa);
-
-  delay(2000);
+  eeprom = (EEPROM*)I2CIP::eepromFactory(eeprom_fqa);
 
   TEST_ASSERT_TRUE_MESSAGE(eeprom != nullptr, "EEPROM Object Instantiation");
 
@@ -98,27 +98,25 @@ void test_device_io_default(void) {
 void setup() {
   Serial.begin(115200);
 
-  I2CIP_DEBUG_SERIAL.println("EEPROM Test");
-
   delay(2000);
 
   UNITY_BEGIN();
 
-  delay(2000);
+  delay(1000);
   RUN_TEST(test_device_oop);
-  delay(2000);
+  delay(1000);
   RUN_TEST(test_eeprom_ping);
-  delay(2000);
+  delay(1000);
   RUN_TEST(test_eeprom_write_byte);
-  delay(2000);
+  delay(1000);
   RUN_TEST(test_eeprom_read_byte);
-  delay(2000);
+  delay(1000);
   RUN_TEST(test_eeprom_write_word);
-  delay(2000);
+  delay(1000);
   RUN_TEST(test_eeprom_read_word);
-  delay(2000);
+  delay(1000);
   RUN_TEST(test_device_io_default);
-  delay(2000);
+  delay(1000);
   
   #ifdef I2CIP_TEST_EEPROM_OVERWRITE
     RUN_TEST(test_eeprom_overwrite_contents);

@@ -1,6 +1,8 @@
 #ifndef UNIT_TEST
 #include <Arduino.h>
 
+#include "../test/config.h"
+
 // Uncomment to enable debug
 #define DEBUG_SERIAL Serial
 #include <debug.h>
@@ -23,7 +25,7 @@ void setup(void) {
   // if((EEPROM*)(m) == nullptr) while(true);
 
   i2cip_fqa_t fqa = ((const EEPROM&)(*m)).getFQA();
-  DEBUG_SERIAL.print("BasicModule Initialized! EEPROM FQA ");
+  DEBUG_SERIAL.print("Module Initialized! EEPROM FQA ");
   DEBUG_SERIAL.print(I2CIP_FQA_SEG_I2CBUS(fqa), HEX);
   DEBUG_SERIAL.print(":");
   DEBUG_SERIAL.print(I2CIP_FQA_SEG_MODULE(fqa), HEX);
@@ -45,18 +47,19 @@ void setup(void) {
     delay(100);
   }
 }
+
 i2cip_errorlevel_t errlev;
 
 void loop(void) {
   errlev = (*m)();
-  DEBUG_SERIAL.print(F("ERRORLEVEL: "));
-  DEBUG_SERIAL.print(errlev);
+  DEBUG_SERIAL.print(F("Module ERRORLEVEL: 0x"));
+  DEBUG_SERIAL.print(errlev, HEX);
   DEBUG_SERIAL.print('\n');
   delay(1000);
 
   errlev = (*m)(((const EEPROM&)(*m)).getFQA());
-  DEBUG_SERIAL.print(F("ERRORLEVEL: "));
-  DEBUG_SERIAL.print(errlev);
+  DEBUG_SERIAL.print(F("Module ERRORLEVEL: 0x"));
+  DEBUG_SERIAL.print(errlev, HEX);
   DEBUG_SERIAL.print('\n');
   delay(1000);
 }

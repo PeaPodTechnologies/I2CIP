@@ -38,6 +38,7 @@ namespace I2CIP {
     public:
       virtual ~InputGetter() = 0;
       virtual i2cip_errorlevel_t get(const void* args = nullptr) { return I2CIP_ERR_HARD; } // Unimplemented; delete this device
+      i2cip_errorlevel_t failGet(void) { return this->get(&failptr_get); }
   };
 
   class OutputSetter {
@@ -46,7 +47,9 @@ namespace I2CIP {
     public:
       virtual ~OutputSetter() = 0;
       virtual i2cip_errorlevel_t set(const void* value = nullptr, const void* args = nullptr) { return I2CIP_ERR_HARD; } // Unimplemented; delete this device
-      i2cip_errorlevel_t reset(void) { return this->set(nullptr, nullptr); }
+      i2cip_errorlevel_t reset(const void* args = nullptr) { return this->set(&failptr_set, args); }
+      i2cip_errorlevel_t failSet(const void* value) { return this->set(value, &failptr_set); }
+      i2cip_errorlevel_t failSet(void) { return this->set(&failptr_set, &failptr_set); }
   };
 
   class Device {
@@ -278,6 +281,8 @@ namespace I2CIP {
     private:
       G cache;  // Last RECIEVED value
       A argsA;  // Last passed arguments
+
+      bool argsAset = false;
     protected:
       void setCache(G value);
       void setArgsA(A args);
@@ -288,12 +293,6 @@ namespace I2CIP {
        * To be implemented by the child class.
       */
       virtual const A& getDefaultA(void) const = 0;
-
-      /**
-       * Sets the cache to the default "zero" value.
-       * To be implemented by the child class.
-      */
-      virtual void clearCache(void);
     public:
       InputInterface(Device* device);
       virtual ~InputInterface() = 0;
@@ -304,6 +303,12 @@ namespace I2CIP {
        * Gets the last recieved value.
       */
       G getCache(void) const;
+
+      /**
+       * Sets the cache to the default "zero" value.
+       * To be implemented by the child class.
+      */
+      virtual void clearCache(void);
 
       /**
        * Gets the arguments used for the last "get" operation.
@@ -325,6 +330,8 @@ namespace I2CIP {
     private:
       S value;  // Last SET value (not PASSED value)
       B argsB;  // Last passed arguments
+
+      bool argsBset = false;
     protected:
       void setValue(S value);
       void setArgsB(B args);
@@ -334,12 +341,6 @@ namespace I2CIP {
        * To be implemented by the child class.
       */
       virtual const B& getDefaultB(void) const = 0;
-
-      /**
-       * Gets the default "zero"/off-state value.
-       * To be implemented by the child class.
-      */
-      virtual void resetFailsafe(void);
     public:
       OutputInterface(Device* device);
       
@@ -356,6 +357,12 @@ namespace I2CIP {
        * Gets the last set value.
       */
       S getValue(void) const;
+
+      /**
+       * Gets the default "zero"/off-state value.
+       * To be implemented by the child class.
+      */
+      virtual void resetFailsafe(void);
 
       /**
        * Sets the output device's state.

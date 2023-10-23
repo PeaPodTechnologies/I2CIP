@@ -8,7 +8,6 @@
 
 using namespace I2CIP;
 
-
 Module* m;  // to be initialized in setup()
 
 void test_module_init(void) {

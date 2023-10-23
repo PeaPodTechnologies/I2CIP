@@ -40,10 +40,12 @@ namespace I2CIP {
       HashTable<DeviceGroup&> devices_idgroups = HashTable<DeviceGroup&>();
 
       HashTableEntry<DeviceGroup&>* addEmptyGroup(const char* id);
+
+      bool eeprom_added = false;
+      
     protected:
       EEPROM* const eeprom; // EEPROM device - to be added to `devices_fqabst` and `devices_idgroups` on construction
-
-      virtual DeviceGroup* deviceGroupFactory(const i2cip_id_t& id) = 0;
+      
     public:
       Module(const uint8_t& wire, const uint8_t& module, const uint8_t& eeprom_addr = I2CIP_EEPROM_ADDR);
       Module(const i2cip_fqa_t& eeprom_fqa);
@@ -71,9 +73,19 @@ namespace I2CIP {
        *  2b ii.  Ping Devices (by ID)
        *  2b iii. Create (new) Devices and `add` to DeviceGroups (Made Available Internal API via `operator[]` functions)
       */
-      bool discover();
+
+      /**
+       * Discover devices on the module.
+       * Side effect: Adds its own EEPROM to the proper DeviceGroup
+       * Side effect: Recurses if EEPROM parse fails; attempts to overwrite with default contents and reparse
+       * @param recurse {bool} - Whether to recursively parse EEPROM or not
+       * @returns `false` IFF fail to add EEPROM | failed to ping EEPROM | failed to parse EEPROM; `true` otherwise
+      */
+      bool discover(bool recurse = true);
       virtual bool parseEEPROMContents(const char* contents);
       bool add(Device& device, bool overwrite = false);
+      // virtual DeviceGroup* deviceGroupFactory(const i2cip_id_t& id) = 0;
+      virtual DeviceGroup* deviceGroupFactory(const i2cip_id_t& id);
 
       /**
        * 3. Device Lookup: HashTable<DeviceGroup&> by ID, BST<Device*> by FQA
