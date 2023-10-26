@@ -9,7 +9,7 @@
 #define I2CIP_EEPROM_TIMEOUT  100    // How long to wait for a write to complete (ms)
 
 #define I2CIP_EEPROM_ID       "24LC32"
-#define I2CIP_EEPROM_DEFAULT  "[{\"" I2CIP_EEPROM_ID "\":[80]}]"
+#define I2CIP_EEPROM_DEFAULT  "[{\"" I2CIP_EEPROM_ID "\":[80],\"SHT31\":[68]}]"
 
 // Future-Proofing ;)
 // namespace ControlSystemsOS {

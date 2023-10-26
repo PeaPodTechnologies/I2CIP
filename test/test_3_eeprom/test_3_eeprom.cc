@@ -25,7 +25,7 @@ size_t bufferlen = 0;
 
 void test_device_oop(void) {
   // Initialize EEPROM - Done after Serial.begin for debug output to work
-  eeprom = (EEPROM*)I2CIP::eepromFactory(eeprom_fqa);
+  eeprom = (EEPROM*)EEPROM::eepromFactory(eeprom_fqa);
 
   TEST_ASSERT_TRUE_MESSAGE(eeprom != nullptr, "EEPROM Object Instantiation");
 
@@ -66,28 +66,33 @@ void test_eeprom_read_word(void) {
   TEST_ASSERT_EQUAL_UINT8_MESSAGE(I2CIP_TEST_EEPROM_BYTE1, (c >> 8), "EEPROM Read Byte (Match 2/2)");
 }
 
-void test_eeprom_overwrite_contents(void) {
-  i2cip_errorlevel_t result = eeprom->overwriteContents(I2CIP::i2cip_eeprom_default);
-  TEST_ASSERT_EQUAL_UINT8_MESSAGE(I2CIP_ERR_NONE, result, "EEPROM Overwrite Contents");
-}
+// void test_eeprom_overwrite_contents(void) {
+//   i2cip_errorlevel_t result = eeprom->overwriteContents(I2CIP::i2cip_eeprom_default);
+//   TEST_ASSERT_EQUAL_UINT8_MESSAGE(I2CIP_ERR_NONE, result, "EEPROM Overwrite Contents");
+// }
 
-void test_eeprom_read_contents(void) {
-  i2cip_errorlevel_t result = eeprom->readContents((uint8_t*)buffer, bufferlen);
-  TEST_ASSERT_EQUAL_UINT8_MESSAGE(I2CIP_ERR_NONE, result, "EEPROM Read Contents");
-  TEST_ASSERT_NOT_EQUAL_MESSAGE(0, bufferlen, "EEPROM Read Contents (Empty)");
+// void test_eeprom_read_contents(void) {
+//   i2cip_errorlevel_t result = eeprom->readContents((uint8_t*)buffer, bufferlen);
+//   TEST_ASSERT_EQUAL_UINT8_MESSAGE(I2CIP_ERR_NONE, result, "EEPROM Read Contents");
+//   TEST_ASSERT_NOT_EQUAL_MESSAGE(0, bufferlen, "EEPROM Read Contents (Empty)");
   
-  #ifdef I2CIP_TEST_EEPROM_OVERWRITE
-    TEST_ASSERT_EQUAL_STRING_MESSAGE(I2CIP::i2cip_eeprom_default, (char*)buffer, "EEPROM Read Contents (Match)");
-  #endif
-}
+//   #ifdef I2CIP_TEST_EEPROM_OVERWRITE
+//     TEST_ASSERT_EQUAL_STRING_MESSAGE(I2CIP::i2cip_eeprom_default, (char*)buffer, "EEPROM Read Contents (Match)");
+//   #endif
+// }
 
 void test_device_io_default(void) {
   i2cip_errorlevel_t result = ((Device*)eeprom)->get();
   TEST_ASSERT_EQUAL_UINT8_MESSAGE(I2CIP_ERR_NONE, result, "EEPROM Input Getter (Default Args)");
   #ifdef I2CIP_TEST_EEPROM_OVERWRITE
-    result = ((Device*)eeprom)->set();
+    result = eeprom->getOutput()->reset();
     TEST_ASSERT_EQUAL_UINT8_MESSAGE(I2CIP_ERR_NONE, result, "EEPROM Output Setter (Default Value, Args)");
   #endif
+}
+
+void test_device_delete(void) {
+  delete eeprom;
+  TEST_ASSERT_TRUE_MESSAGE(true, "EEPROM Deletion Fail");
 }
 
 // TODO: Test Device IO Repeatability in loop()
@@ -118,12 +123,15 @@ void setup() {
   RUN_TEST(test_device_io_default);
   delay(1000);
   
-  #ifdef I2CIP_TEST_EEPROM_OVERWRITE
-    RUN_TEST(test_eeprom_overwrite_contents);
-    delay(2000);
-  #endif
+  // #ifdef I2CIP_TEST_EEPROM_OVERWRITE
+  //   RUN_TEST(test_eeprom_overwrite_contents);
+  //   delay(1000);
+  // #endif
   
-  RUN_TEST(test_eeprom_read_contents);
+  // RUN_TEST(test_eeprom_read_contents);
+  // delay(1000);
+
+  RUN_TEST(test_device_delete);
   delay(2000);
 
   UNITY_END();

@@ -19,9 +19,9 @@
  * @param lsb       Position to insert (LSB)
  * @param bits      Number of bits to overwrite
  **/
-#define OVERWRITE_BITS(existing, data, lsb, bits) ((existing) & ~(((1 << (bits)) - 1) << (lsb)) | (((data) & ((1 << (bits)) - 1)) << (lsb)))
+#define OVERWRITE_BITS(existing, data, lsb, bits) (((existing) & ~(((1 << (bits)) - 1) << (lsb))) | (((data) & ((1 << (bits)) - 1)) << (lsb)))
 
-#define I2CIP_DEVICES_PER_GROUP ((size_t)16)
+#define I2CIP_DEVICES_PER_GROUP ((size_t)4)
 #define I2CIP_ID_SIZE ((size_t)10)
 
 namespace I2CIP {
