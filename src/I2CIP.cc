@@ -471,7 +471,14 @@ i2cip_errorlevel_t Module::operator()(void) {
     DEBUG_DELAY();
   #endif
 
-  // 1. Check MUX - If we have lost the switch the entire subnet is down!
+  // 1. If No EEPROM, Discover
+  if(!this->eeprom_added) {
+    if(!this->discover()) return I2CIP_ERR_SOFT;
+    // Serial.print("EEPROM 0x");
+    // Serial.println(I2CIP_FQA_SEG_DEVADR(this->eeprom->getFQA()), HEX);
+  }
+
+  // 2. Check MUX - If we have lost the switch the entire subnet is down!
   i2cip_errorlevel_t errlev = MUX::pingMUX(this->eeprom->getFQA()) ? I2CIP_ERR_NONE : I2CIP_ERR_HARD;
   I2CIP_ERR_BREAK(errlev);
 
