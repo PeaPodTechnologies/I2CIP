@@ -95,7 +95,7 @@ bool Module::discover(bool recurse) {
       I2CIP_DEBUG_SERIAL.print(F("-> First-Time EEPROM Addition\n"));
       DEBUG_DELAY();
     #endif
-    bool r = add(*eeprom);
+    bool r = add(*eeprom, true);
     if(!r) {
       #ifdef I2CIP_DEBUG_SERIAL
         DEBUG_DELAY();
@@ -104,7 +104,11 @@ bool Module::discover(bool recurse) {
       #endif
       return false;
     }
+
     this->eeprom_added = true;
+
+    // !! Super important: prevents EEPROM from being overwritten during call operator update
+    eeprom->setOutput(nullptr);
   }
 
   // Read EEPROM
@@ -506,7 +510,6 @@ i2cip_errorlevel_t Module::operator()(const i2cip_fqa_t& fqa, bool update, bool 
     return I2CIP_ERR_SOFT;
   }
   i2cip_errorlevel_t errlev = device->pingTimeout();
-  // I2CIP_ERR_BREAK(errlev);
 
   #ifdef I2CIP_DEBUG_SERIAL
     DEBUG_DELAY();
@@ -517,6 +520,8 @@ i2cip_errorlevel_t Module::operator()(const i2cip_fqa_t& fqa, bool update, bool 
     }
     DEBUG_DELAY();
   #endif
+  
+  I2CIP_ERR_BREAK(errlev);
 
   if(update) {
     // 3. Update device (optional)

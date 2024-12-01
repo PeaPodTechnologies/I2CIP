@@ -11,6 +11,8 @@ using namespace I2CIP;
 EEPROM* eeprom = nullptr; // to be initialized in setup()
 const i2cip_fqa_t& eeprom_fqa = I2CIP::createFQA(WIRENUM, MODULE, I2CIP_MUX_BUS_DEFAULT, I2CIP_EEPROM_ADDR);
 
+const char* eeprom_contents = "[{\"24LC32\":[80],\"SHT31\":[68]}]";
+
 // Explain FQA in detail:
 /**
  * FQA (Fully Qualified Address) is a 16-bit unsigned integer that contains the following information:
@@ -66,20 +68,20 @@ void test_eeprom_read_word(void) {
   TEST_ASSERT_EQUAL_UINT8_MESSAGE(I2CIP_TEST_EEPROM_BYTE1, (c >> 8), "EEPROM Read Byte (Match 2/2)");
 }
 
-// void test_eeprom_overwrite_contents(void) {
-//   i2cip_errorlevel_t result = eeprom->overwriteContents(I2CIP::i2cip_eeprom_default);
-//   TEST_ASSERT_EQUAL_UINT8_MESSAGE(I2CIP_ERR_NONE, result, "EEPROM Overwrite Contents");
-// }
+void test_eeprom_overwrite_contents(void) {
+  i2cip_errorlevel_t result = eeprom->overwriteContents(eeprom_contents);
+  TEST_ASSERT_EQUAL_UINT8_MESSAGE(I2CIP_ERR_NONE, result, "EEPROM Overwrite Contents");
+}
 
-// void test_eeprom_read_contents(void) {
-//   i2cip_errorlevel_t result = eeprom->readContents((uint8_t*)buffer, bufferlen);
-//   TEST_ASSERT_EQUAL_UINT8_MESSAGE(I2CIP_ERR_NONE, result, "EEPROM Read Contents");
-//   TEST_ASSERT_NOT_EQUAL_MESSAGE(0, bufferlen, "EEPROM Read Contents (Empty)");
+void test_eeprom_read_contents(void) {
+  i2cip_errorlevel_t result = eeprom->readContents((uint8_t*)buffer, bufferlen);
+  TEST_ASSERT_EQUAL_UINT8_MESSAGE(I2CIP_ERR_NONE, result, "EEPROM Read Contents");
+  TEST_ASSERT_NOT_EQUAL_MESSAGE(0, bufferlen, "EEPROM Read Contents (Empty)");
   
-//   #ifdef I2CIP_TEST_EEPROM_OVERWRITE
-//     TEST_ASSERT_EQUAL_STRING_MESSAGE(I2CIP::i2cip_eeprom_default, (char*)buffer, "EEPROM Read Contents (Match)");
-//   #endif
-// }
+  #ifdef I2CIP_TEST_EEPROM_OVERWRITE
+    TEST_ASSERT_EQUAL_STRING_MESSAGE(eeprom_contents, (char*)buffer, "EEPROM Read Contents (Match)");
+  #endif
+}
 
 void test_device_io_default(void) {
   i2cip_errorlevel_t result = ((Device*)eeprom)->get();
@@ -123,16 +125,15 @@ void setup() {
   RUN_TEST(test_device_io_default);
   delay(1000);
   
-  // #ifdef I2CIP_TEST_EEPROM_OVERWRITE
-  //   RUN_TEST(test_eeprom_overwrite_contents);
-  //   delay(1000);
-  // #endif
+  #ifdef I2CIP_TEST_EEPROM_OVERWRITE
+    RUN_TEST(test_eeprom_overwrite_contents);
+    delay(1000);
+  #endif
   
-  // RUN_TEST(test_eeprom_read_contents);
-  // delay(1000);
+  RUN_TEST(test_eeprom_read_contents);
+  delay(1000);
 
   RUN_TEST(test_device_delete);
-  delay(2000);
 
   UNITY_END();
 }

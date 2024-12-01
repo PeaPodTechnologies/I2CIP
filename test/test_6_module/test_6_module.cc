@@ -109,7 +109,8 @@ void test_module_eeprom_check(void) {
 }
 
 void test_module_eeprom_update(void) {
-  i2cip_errorlevel_t errlev = (*m)(((const EEPROM&)(*m)), true);
+  // i2cip_errorlevel_t errlev = (*m)(((const EEPROM&)(*m)), true);
+  i2cip_errorlevel_t errlev = m->operator()(((const EEPROM&)(*m)), true);
   TEST_ASSERT_EQUAL_UINT8_MESSAGE(I2CIP_ERR_NONE, errlev, "EEPROM read/write failed! Check EEPROM wiring.");
   if(errlev > I2CIP_ERR_NONE) fail = true;
   
@@ -149,33 +150,26 @@ void test_module_delete(void) {
 }
 
 i2cip_errorlevel_t errlev;
-uint8_t count = 1;
+uint8_t count = 2;
 void loop(void) {
 
-  RUN_TEST(test_module_self_check);
-
-  if(fail) goto stop;
+  if (!fail) RUN_TEST(test_module_self_check);
 
   delay(1000);
 
-  RUN_TEST(test_module_eeprom_check);
-
-  if(fail) goto stop;
+  if (!fail) RUN_TEST(test_module_eeprom_check);
   
-  #if I2CIP_TEST_EEPROM_OVERWRITE == 1
   delay(1000);
 
-  RUN_TEST(test_module_eeprom_update);
+  if (!fail) RUN_TEST(test_module_eeprom_update); // NOTE: Does not test EEPROM overwrite - see test_3_eeprom::test_eeprom_overwrite_contents
 
-  if(fail) goto stop;
-  #endif
-
-  if(count > 1) {
-    stop: RUN_TEST(test_module_delete);
+  if(fail || count == 0) {
+    delay(1000);
+    RUN_TEST(test_module_delete);
     UNITY_END();
     while(true);
   }
 
   delay(1000);
-  count++;
+  count--;
 }
