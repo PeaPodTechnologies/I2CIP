@@ -249,7 +249,7 @@ i2cip_errorlevel_t EEPROM::get(char*& dest, const uint16_t& args) {
   #endif
 
   if(errlev == I2CIP_ERR_NONE) {
-    dest = &this->readBuffer[0];
+    dest = this->readBuffer;
   }
   return errlev;
 }
@@ -303,7 +303,7 @@ void EEPROM::clearCache(void) {
 
   #ifdef I2CIP_DEBUG_SERIAL
     DEBUG_DELAY();
-    I2CIP_DEBUG_SERIAL.print(F("EEPROM Cache Cleared\n"));
+    I2CIP_DEBUG_SERIAL.print(F("EEPROM Cache Cleared (Repointed to Null)\n"));
     DEBUG_DELAY();
   #endif
 }

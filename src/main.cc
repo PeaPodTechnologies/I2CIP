@@ -220,7 +220,7 @@ i2cip_errorlevel_t updateModule(uint8_t wirenum, uint8_t modulenum) {
   }
 
   // Bonus Points - Print EEPROM contents
-  const char* cache = ((EEPROM*)modules[modulenum])->getCache();
+  const char* cache = eeprom.getCache();
   if(cache == nullptr || cache[0] == '\0') {
     DEBUG_SERIAL.println(F(" EMPTY"));
     return errlev;

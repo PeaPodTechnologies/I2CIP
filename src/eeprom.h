@@ -5,11 +5,13 @@
 #include <device.h>
 
 #define I2CIP_EEPROM_SIZE     100   // EEPROM size in bytes
-#define I2CIP_EEPROM_ADDR     0x50  // SPRT EEPROM address
-#define I2CIP_EEPROM_TIMEOUT  100    // How long to wait for a write to complete (ms)
+#define I2CIP_EEPROM_ADDR     80    // SPRT EEPROM address (0x50)
+#define I2CIP_EEPROM_TIMEOUT  100   // How long to wait for a write to complete (ms)
 
 #define I2CIP_EEPROM_ID       "24LC32"
-#define I2CIP_EEPROM_DEFAULT  "[{\"" I2CIP_EEPROM_ID "\":[80],\"SHT31\":[68]}]"
+#define STR_IMPL_(x) #x      //stringify argument
+#define STR(x) STR_IMPL_(x)  //indirection to expand argument macros
+#define I2CIP_EEPROM_DEFAULT  "[{\"" I2CIP_EEPROM_ID "\":[" STR(I2CIP_EEPROM_ADDR) "]}]"
 
 // Future-Proofing ;)
 // namespace ControlSystemsOS {
