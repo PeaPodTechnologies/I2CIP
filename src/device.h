@@ -24,6 +24,9 @@
 #define I2CIP_DEVICES_PER_GROUP ((size_t)4)
 #define I2CIP_ID_SIZE ((size_t)10)
 
+class Sensor;
+class Actuator;
+
 namespace I2CIP {
 
   class Module;
@@ -35,16 +38,21 @@ namespace I2CIP {
   class InputGetter {
     protected:
       static const char failptr_get = '\a';
+      Sensor* sensor = nullptr;
     public:
       virtual ~InputGetter() = 0;
       // virtual i2cip_errorlevel_t get(const void* args = nullptr) { return I2CIP_ERR_HARD; } // Unimplemented; delete this device
       virtual i2cip_errorlevel_t get(const void* args = nullptr) = 0; // Unimplemented; delete this device
       i2cip_errorlevel_t failGet(void) { return this->get(&failptr_get); }
+
+      void setSensor(Sensor* sensor) { this->sensor = sensor; }
+      Sensor* getSensor(void) const { return this->sensor; }
   };
 
   class OutputSetter {
     protected:
       static const char failptr_set = '\a';
+      Actuator* actuator = nullptr;
     public:
       virtual ~OutputSetter() = 0;
       virtual i2cip_errorlevel_t set(const void* value = nullptr, const void* args = nullptr) = 0; // Unimplemented; delete this device
@@ -52,6 +60,9 @@ namespace I2CIP {
       i2cip_errorlevel_t reset(const void* args = nullptr) { return this->set(&failptr_set, args); }
       i2cip_errorlevel_t failSet(const void* value) { return this->set(value, &failptr_set); }
       i2cip_errorlevel_t failSet(void) { return this->set(&failptr_set, &failptr_set); }
+
+      void setActuator(Actuator* actuator) { this->actuator = actuator; }
+      Actuator* getActuator(void) const { return this->actuator; }
   };
 
   class Device {

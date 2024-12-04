@@ -11,7 +11,7 @@ using namespace I2CIP;
 EEPROM* eeprom = nullptr; // to be initialized in setup()
 const i2cip_fqa_t& eeprom_fqa = I2CIP::createFQA(WIRENUM, MODULE, I2CIP_MUX_BUS_DEFAULT, I2CIP_EEPROM_ADDR);
 
-const char* eeprom_contents = "[{\"24LC32\":[80],\"SHT31\":[68]}]";
+const char* eeprom_contents = "[{\"24LC32\":[80]}]";
 
 // Explain FQA in detail:
 /**

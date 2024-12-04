@@ -102,6 +102,7 @@ bool Module::discover(bool recurse) {
   #endif
 
   if(!this->eeprom_added) { 
+    EEPROM::loadEEPROMID(); // THIS IS COCONUT.PNG DO NOT ALTER
     #ifdef I2CIP_DEBUG_SERIAL
       DEBUG_DELAY();
       I2CIP_DEBUG_SERIAL.print(F("-> First-Time EEPROM Addition @0x"));
@@ -126,7 +127,8 @@ bool Module::discover(bool recurse) {
     #endif
 
     Device** temp = this->devices_fqabst[this->eeprom->getFQA()];
-    r = (temp != nullptr && *temp == this->eeprom);
+    // r = (temp != nullptr && *temp == this->eeprom);
+    r = (temp != nullptr && strcmp((*temp)->getID(), EEPROM::getStaticIDBuffer()) == 0);
 
     if(!r) {
       #ifdef I2CIP_DEBUG_SERIAL
@@ -142,6 +144,17 @@ bool Module::discover(bool recurse) {
 
     this->eeprom_added = true;
   }
+
+  // PING MUX
+  if(!MUX::pingMUX(eeprom->getFQA())) {
+    #ifdef I2CIP_DEBUG_SERIAL
+      DEBUG_DELAY();
+      I2CIP_DEBUG_SERIAL.print(F("MUX Ping Failed! Aborting...\n"));
+      DEBUG_DELAY();
+    #endif
+    return false;
+  }
+
   // Read EEPROM
   const uint16_t len = I2CIP_EEPROM_SIZE;
   i2cip_errorlevel_t errlev = eeprom->getInput()->get(&len);
@@ -195,14 +208,15 @@ bool Module::discover(bool recurse) {
 // }
 
 HashTableEntry<DeviceGroup&>* Module::addEmptyGroup(const char* id) {
-  if(this->devices_idgroups.get(id) != nullptr) return this->devices_idgroups.get(id); // Group already exists
+  HashTableEntry<I2CIP::DeviceGroup &> * ptr = this->devices_idgroups.get(id);
+  if(ptr != nullptr) return ptr; // Group already exists
 
   #ifdef I2CIP_DEBUG_SERIAL
     DEBUG_DELAY();
     I2CIP_DEBUG_SERIAL.print(F("Creating new DeviceGroup '"));
     I2CIP_DEBUG_SERIAL.print(id);
     I2CIP_DEBUG_SERIAL.print("' @0x");
-    I2CIP_DEBUG_SERIAL.print((uint16_t)&id[0], HEX);
+    I2CIP_DEBUG_SERIAL.print((uint16_t)id, HEX);
     I2CIP_DEBUG_SERIAL.print("\n");
     DEBUG_DELAY();
   #endif
@@ -293,17 +307,11 @@ bool Module::add(Device* device, bool overwrite) {
     #endif
   }
 
-  if(overwrite && entry->value.contains(device)) {
-  #ifdef I2CIP_DEBUG_SERIAL
-      DEBUG_DELAY();
-      I2CIP_DEBUG_SERIAL.print(F("Removing Old Device\n"));
-      DEBUG_DELAY();
-    #endif
+  if(entry->value.contains(device)) {
+    // Identical ID and FQA
 
-    Device* old = entry->value[device->getFQA()];
-
-    // Delete old device
-    this->remove(old, (uint16_t)old != (uint16_t)device && strcmp(entry->value.key, device->getID()) != 0);
+    device = entry->value[device->getFQA()];
+    if(device == nullptr) return false;
   }
 
   BSTNode<i2cip_fqa_t, Device*>* dptr = this->devices_fqabst.insert(device->getFQA(), device, true);
@@ -658,9 +666,10 @@ Device* Module::operator[](const i2cip_fqa_t& fqa) const {
     I2CIP_DEBUG_SERIAL.print(I2CIP_FQA_SEG_DEVADR(fqa), HEX);
     I2CIP_DEBUG_SERIAL.print("):");
     DEBUG_DELAY();
+    delay(10);
   #endif
   
-  Device* d = *(this->devices_fqabst.operator[](fqa));
+  Device** d = this->devices_fqabst.operator[](fqa);
 
   #ifdef I2CIP_DEBUG_SERIAL
     if(d == nullptr) {
@@ -671,7 +680,7 @@ Device* Module::operator[](const i2cip_fqa_t& fqa) const {
     DEBUG_DELAY();
   #endif
 
-  return d;
+  return *d;
 }
 
 DeviceGroup* Module::operator[](i2cip_id_t id) {
@@ -807,7 +816,7 @@ i2cip_errorlevel_t Module::operator()(const i2cip_fqa_t& fqa, bool update, bool 
     I2CIP_DEBUG_SERIAL.print(I2CIP_FQA_SEG_MUXBUS(fqa), HEX);
     I2CIP_DEBUG_SERIAL.print(':');
     I2CIP_DEBUG_SERIAL.print(I2CIP_FQA_SEG_DEVADR(fqa), HEX);
-    I2CIP_DEBUG_SERIAL.print(")!\n");
+    I2CIP_DEBUG_SERIAL.print(")\n");
     DEBUG_DELAY();
   #endif
 

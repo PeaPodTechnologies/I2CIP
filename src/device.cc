@@ -90,23 +90,25 @@ i2cip_errorlevel_t Device::ping(const i2cip_fqa_t& fqa, bool resetbus) {
   return I2CIP_ERR_NONE;
 }
 
-i2cip_errorlevel_t Device::pingTimeout(const i2cip_fqa_t& fqa, bool setbus, bool resetbus, unsigned int timeout) {
-  i2cip_errorlevel_t errlev;
+i2cip_errorlevel_t Device::pingTimeout(const i2cip_fqa_t& fqa, bool setbus, bool resetbus, unsigned int timeout) {;
 
-  if(setbus) {
-    errlev = MUX::setBus(fqa);
-    I2CIP_ERR_BREAK(errlev);
-  }
+  i2cip_errorlevel_t errlev = setbus ? MUX::setBus(fqa) : I2CIP_ERR_NONE;
+  I2CIP_ERR_BREAK(errlev);
 
   // Check if it's actually lost
   
-  // I2CIP_FQA_TO_WIRE(fqa)->beginTransmission(I2CIP_FQA_SEG_DEVADR(fqa));
-  // errlev = (I2CIP_FQA_TO_WIRE(fqa)->endTransmission() == 0 ? I2CIP_ERR_NONE : I2CIP_ERR_HARD);
-
-  // #ifdef I2CIP_DEBUG_SERIAL
-  //   DEBUG_DELAY();
-  //   I2CIP_DEBUG_SERIAL.print(F("Ping... "));
-  // #endif
+  I2CIP_FQA_TO_WIRE(fqa)->beginTransmission(I2CIP_FQA_SEG_DEVADR(fqa));
+  errlev = (I2CIP_FQA_TO_WIRE(fqa)->endTransmission() == 0 ? I2CIP_ERR_NONE : I2CIP_ERR_HARD);
+  if(errlev == I2CIP_ERR_NONE) {
+    #ifdef I2CIP_DEBUG_SERIAL
+      DEBUG_DELAY();
+      I2CIP_DEBUG_SERIAL.println(F("Ping!"));
+    #endif
+  }
+  #ifdef I2CIP_DEBUG_SERIAL
+    DEBUG_DELAY();
+    I2CIP_DEBUG_SERIAL.print(F("Ping... "));
+  #endif
 
   unsigned long start = millis();
 
@@ -136,7 +138,7 @@ i2cip_errorlevel_t Device::pingTimeout(const i2cip_fqa_t& fqa, bool setbus, bool
   
   // Double check MUX before attempting to switch
   if(errlev != I2CIP_ERR_NONE && !MUX::pingMUX(fqa)) {
-    return I2CIP_ERR_HARD;
+    errlev = I2CIP_ERR_HARD;
   }
 
   #ifdef I2CIP_DEBUG_SERIAL

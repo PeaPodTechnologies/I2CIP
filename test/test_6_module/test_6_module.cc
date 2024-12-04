@@ -125,19 +125,19 @@ void test_module_eeprom_update(void) {
   const char* cache = (m->operator const I2CIP::EEPROM &()).getCache();
   // const char* value = (m->operator const I2CIP::EEPROM &()).getValue();
 
-  #ifdef DEBUG_SERIAL
-    DEBUG_DELAY();
-    DEBUG_SERIAL.print(F("EEPROM Cache Test: '"));
-    DEBUG_SERIAL.print(cache);
-    DEBUG_SERIAL.print(F("' @0x"));
-    DEBUG_SERIAL.print((uint16_t)cache, HEX);
-    DEBUG_SERIAL.print(F("\nEEPROM Value: "));
-    DEBUG_SERIAL.print(value);
-    DEBUG_SERIAL.print(F(" @0x"));
-    DEBUG_SERIAL.print((uint16_t)value, HEX);
-    DEBUG_SERIAL.print('\n');
-    DEBUG_DELAY();
-  #endif
+  // #ifdef DEBUG_SERIAL
+  //   DEBUG_DELAY();
+  //   DEBUG_SERIAL.print(F("EEPROM Cache Test: '"));
+  //   DEBUG_SERIAL.print(cache);
+  //   DEBUG_SERIAL.print(F("' @0x"));
+  //   DEBUG_SERIAL.print((uint16_t)cache, HEX);
+  //   DEBUG_SERIAL.print(F("\nEEPROM Value: "));
+  //   DEBUG_SERIAL.print(value);
+  //   DEBUG_SERIAL.print(F(" @0x"));
+  //   DEBUG_SERIAL.print((uint16_t)value, HEX);
+  //   DEBUG_SERIAL.print('\n');
+  //   DEBUG_DELAY();
+  // #endif
 
   TEST_ASSERT_EQUAL_STRING_MESSAGE(str, cache, "GET Cache Mismatch");
   // TEST_ASSERT_EQUAL_STRING_MESSAGE(str, value, "SET Value Mismatch");
