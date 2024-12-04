@@ -37,7 +37,8 @@ namespace I2CIP {
       static const char failptr_get = '\a';
     public:
       virtual ~InputGetter() = 0;
-      virtual i2cip_errorlevel_t get(const void* args = nullptr) { return I2CIP_ERR_HARD; } // Unimplemented; delete this device
+      // virtual i2cip_errorlevel_t get(const void* args = nullptr) { return I2CIP_ERR_HARD; } // Unimplemented; delete this device
+      virtual i2cip_errorlevel_t get(const void* args = nullptr) = 0; // Unimplemented; delete this device
       i2cip_errorlevel_t failGet(void) { return this->get(&failptr_get); }
   };
 
@@ -46,7 +47,8 @@ namespace I2CIP {
       static const char failptr_set = '\a';
     public:
       virtual ~OutputSetter() = 0;
-      virtual i2cip_errorlevel_t set(const void* value = nullptr, const void* args = nullptr) { return I2CIP_ERR_HARD; } // Unimplemented; delete this device
+      virtual i2cip_errorlevel_t set(const void* value = nullptr, const void* args = nullptr) = 0; // Unimplemented; delete this device
+      // virtual i2cip_errorlevel_t set(const void* value = nullptr, const void* args = nullptr) { return I2CIP_ERR_HARD; } // Unimplemented; delete this device
       i2cip_errorlevel_t reset(const void* args = nullptr) { return this->set(&failptr_set, args); }
       i2cip_errorlevel_t failSet(const void* value) { return this->set(value, &failptr_set); }
       i2cip_errorlevel_t failSet(void) { return this->set(&failptr_set, &failptr_set); }
@@ -248,6 +250,7 @@ namespace I2CIP {
 
     protected:
       bool add(Device& device);
+      bool add(Device* device);
       bool addGroup(Device* devices[], uint8_t numdevices);
       void remove(Device* device);
 
@@ -302,7 +305,7 @@ namespace I2CIP {
       /**
        * Gets the last recieved value.
       */
-      const G& getCache(void) const; // MADE A CHANGE HERE
+      G getCache(void) const;
 
       /**
        * Sets the cache to the default "zero" value.

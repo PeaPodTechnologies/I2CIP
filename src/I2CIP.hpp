@@ -84,6 +84,7 @@ namespace I2CIP {
       bool discover(bool recurse = true);
       virtual bool parseEEPROMContents(const char* contents);
       bool add(Device& device, bool overwrite = false);
+      bool add(Device* device, bool overwrite = false);
       // virtual DeviceGroup* deviceGroupFactory(const i2cip_id_t& id) = 0;
       virtual DeviceGroup* deviceGroupFactory(const i2cip_id_t& id);
 

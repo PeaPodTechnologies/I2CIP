@@ -3,7 +3,7 @@
 #include <Arduino.h>
 
 // Uncomment to enable debug
-// #define DEBUG 1
+#define DEBUG 1
 
 // CROSS-LIBRARY DEBUG COMPATIBILITY
 #ifdef DEBUG

@@ -45,7 +45,7 @@ Device* EEPROM::eepromFactory(const i2cip_fqa_t& fqa, const i2cip_id_t& id) {
     #endif
   }
 
-  return (Device*)(new EEPROM(fqa, _id));
+  return (Device*)(new EEPROM(fqa, id));
 }
 
 Device* EEPROM::eepromFactory(const i2cip_fqa_t& fqa) { return eepromFactory(fqa, EEPROM::_id); }

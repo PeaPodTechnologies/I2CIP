@@ -21,7 +21,7 @@ template <typename G, typename A> InputInterface<G, A>::InputInterface(Device* d
 
 template <typename G, typename A> InputInterface<G, A>::~InputInterface() { }
 
-template <typename G, typename A> const G& InputInterface<G, A>::getCache(void) const { return this->cache; }
+template <typename G, typename A> G InputInterface<G, A>::getCache(void) const { return this->cache; }
 
 template <typename G, typename A> void InputInterface<G, A>::setCache(G value) { this->cache = value; }
 

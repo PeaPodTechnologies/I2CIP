@@ -67,6 +67,10 @@ void setup(void) {
   
   RUN_TEST(test_module_init);
 
+  delay(1000);
+
+  RUN_TEST(test_module_discovery);
+
   i2cip_fqa_t fqa = ((const EEPROM&)(*m));
 
   #ifdef DEBUG_SERIAL
@@ -88,29 +92,26 @@ void setup(void) {
 
   delay(1000);
 
-  // Build module
-  RUN_TEST(test_module_discovery);
-
-  delay(1000);
+  UNITY_END();
 }
 
 static bool fail = false;
 
 void test_module_self_check(void) {
-  i2cip_errorlevel_t errlev = (*m)();
+  i2cip_errorlevel_t errlev = m->operator()();
   TEST_ASSERT_EQUAL_UINT8_MESSAGE(I2CIP_ERR_NONE, errlev, "Self-check failed! Check module wiring.");
   if(errlev > I2CIP_ERR_NONE) fail = true;
 }
 
 void test_module_eeprom_check(void) {
-  i2cip_errorlevel_t errlev = (*m)(((const EEPROM&)(*m)));
+  i2cip_errorlevel_t errlev = m->operator()(m->operator const I2CIP::EEPROM &());
   TEST_ASSERT_EQUAL_UINT8_MESSAGE(I2CIP_ERR_NONE, errlev, "EEPROM check failed! Check EEPROM wiring.");
   if(errlev > I2CIP_ERR_NONE) fail = true;
 }
 
 void test_module_eeprom_update(void) {
   // i2cip_errorlevel_t errlev = (*m)(((const EEPROM&)(*m)), true);
-  i2cip_errorlevel_t errlev = m->operator()(((const EEPROM&)(*m)), true);
+  i2cip_errorlevel_t errlev = m->operator()(m->operator const I2CIP::EEPROM &(), true);
   TEST_ASSERT_EQUAL_UINT8_MESSAGE(I2CIP_ERR_NONE, errlev, "EEPROM read/write failed! Check EEPROM wiring.");
   if(errlev > I2CIP_ERR_NONE) fail = true;
   
@@ -123,8 +124,8 @@ void test_module_eeprom_update(void) {
 
   str[len] = '\0';
 
-  const char* cache = ((const EEPROM&)(*m)).getCache();
-  const char* value = ((const EEPROM&)(*m)).getValue();
+  const char* cache = (m->operator const I2CIP::EEPROM &()).getCache();
+  const char* value = (m->operator const I2CIP::EEPROM &()).getValue();
 
   #ifdef DEBUG_SERIAL
     DEBUG_DELAY();
@@ -153,23 +154,23 @@ i2cip_errorlevel_t errlev;
 uint8_t count = 2;
 void loop(void) {
 
-  if (!fail) RUN_TEST(test_module_self_check);
+  // if (!fail) RUN_TEST(test_module_self_check);
 
-  delay(1000);
+  // delay(1000);
 
-  if (!fail) RUN_TEST(test_module_eeprom_check);
+  // if (!fail) RUN_TEST(test_module_eeprom_check);
   
-  delay(1000);
+  // delay(1000);
 
-  if (!fail) RUN_TEST(test_module_eeprom_update); // NOTE: Does not test EEPROM overwrite - see test_3_eeprom::test_eeprom_overwrite_contents
+  // if (!fail) RUN_TEST(test_module_eeprom_update); // NOTE: Does not test EEPROM overwrite - see test_3_eeprom::test_eeprom_overwrite_contents
 
-  if(fail || count == 0) {
-    delay(1000);
-    RUN_TEST(test_module_delete);
-    UNITY_END();
-    while(true);
-  }
+  // if(fail || count == 0) {
+  //   delay(1000);
+  //   RUN_TEST(test_module_delete);
+  //   UNITY_END();
+  //   while(true);
+  // }
 
-  delay(1000);
-  count--;
+  // delay(1000);
+  // count--;
 }

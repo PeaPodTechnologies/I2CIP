@@ -57,7 +57,7 @@ namespace I2CIP {
       static Device* eepromFactory(const i2cip_fqa_t& fqa, const i2cip_id_t& id);
       static Device* eepromFactory(const i2cip_fqa_t& fqa);
 
-      ~EEPROM();
+      // ~EEPROM();
 
       i2cip_errorlevel_t readContents(uint8_t* dest, size_t& num_read, size_t max_read = I2CIP_EEPROM_SIZE);
 

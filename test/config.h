@@ -1,8 +1,7 @@
 #ifndef I2CIP_TESTS_TEST_H_
 #define I2CIP_TESTS_TEST_H_
 
-#define DEBUG_SERIAL Serial // Uncomment to enable debug
-#include <debug.h>
+#include "../src/debug.h"
 #include <I2CIP.h>
 
 // TESTING PARAMETERS

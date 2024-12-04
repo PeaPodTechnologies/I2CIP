@@ -12,7 +12,7 @@ using namespace I2CIP;
 //   }
 // }
 
-Module::Module(const uint8_t& wire, const uint8_t& mux, const uint8_t& eeprom_addr) : wire(wire), mux(mux), eeprom((EEPROM*)EEPROM::eepromFactory(createFQA(wire, mux, I2CIP_MUX_BUS_DEFAULT, eeprom_addr))) {
+Module::Module(const uint8_t& wire, const uint8_t& mux, const uint8_t& eeprom_addr) : wire(wire), mux(mux), eeprom((EEPROM*)(EEPROM::eepromFactory(createFQA(wire, mux, I2CIP_MUX_BUS_DEFAULT, eeprom_addr)))) {
   #ifdef I2CIP_DEBUG_SERIAL
     DEBUG_DELAY();
     I2CIP_DEBUG_SERIAL.print(F("Module "));
@@ -22,8 +22,8 @@ Module::Module(const uint8_t& wire, const uint8_t& mux, const uint8_t& eeprom_ad
     DEBUG_DELAY();
   #endif
 
-  eeprom->clearCache(); // ensure cache is nullptr
-  eeprom->resetFailsafe(); // ensure default EEPROM buffer is cached for next write
+  // eeprom->clearCache(); // ensure cache is nullptr
+  // eeprom->resetFailsafe(); // ensure default EEPROM buffer is cached for next write
 
   // !! Super important: prevents EEPROM from being overwritten during call operator update
   eeprom->setOutput(nullptr);
@@ -106,7 +106,7 @@ bool Module::discover(bool recurse) {
       I2CIP_DEBUG_SERIAL.println((uint16_t)eeprom, HEX);
       DEBUG_DELAY();
     #endif
-    bool r = add(*eeprom, true);
+    bool r = this->add(this->eeprom, true);
     if(!r) {
       #ifdef I2CIP_DEBUG_SERIAL
         DEBUG_DELAY();
@@ -115,16 +115,45 @@ bool Module::discover(bool recurse) {
       #endif
       return false;
     }
+    #ifdef I2CIP_DEBUG_SERIAL
+      else {
+        DEBUG_DELAY();
+        I2CIP_DEBUG_SERIAL.print(F("-> EEPROM Self-Add Success"));
+        DEBUG_DELAY();
+      }
+    #endif
+
+    Device** temp = this->devices_fqabst[this->eeprom->getFQA()];
+    r = (temp != nullptr && *temp == this->eeprom);
+
+    if(!r) {
+      #ifdef I2CIP_DEBUG_SERIAL
+        DEBUG_DELAY();
+        I2CIP_DEBUG_SERIAL.print(F("-> FQA LOOKUP EEPROM* MISMATCH: "));
+        I2CIP_DEBUG_SERIAL.print((uint16_t)temp, HEX);
+        I2CIP_DEBUG_SERIAL.print(" != ");
+        I2CIP_DEBUG_SERIAL.println((uint16_t)this->eeprom, HEX);
+        DEBUG_DELAY();
+      #endif
+      return false;
+    }
 
     this->eeprom_added = true;
   }
-
   // Read EEPROM
   const uint16_t len = I2CIP_EEPROM_SIZE;
   i2cip_errorlevel_t errlev = eeprom->getInput()->get(&len);
+  // i2cip_errorlevel_t errlev = eeprom->getInput()->failGet();
   // eeprom->readContents(buf, len, I2CIP_EEPROM_SIZE);
 
-  if(errlev != I2CIP_ERR_NONE || eeprom->getCache() == nullptr) return false;
+  if(errlev != I2CIP_ERR_NONE || eeprom->getCache() == nullptr) {
+    #ifdef I2CIP_DEBUG_SERIAL
+      DEBUG_DELAY();
+      I2CIP_DEBUG_SERIAL.print(F("EEPROM Get Failed! Aborting...\n"));
+      DEBUG_DELAY();
+    #endif
+    return false;
+  }
 
   #ifdef I2CIP_DEBUG_SERIAL
     DEBUG_DELAY();
@@ -210,6 +239,92 @@ bool Module::parseEEPROMContents(const char* contents) {
   return true;
 }
 
+bool Module::add(Device* device, bool overwrite) {
+  if(device == nullptr) return false;
+
+  i2cip_fqa_t fqa = device->getFQA();
+
+  #ifdef I2CIP_DEBUG_SERIAL
+    DEBUG_DELAY();
+    I2CIP_DEBUG_SERIAL.print(F("-> Module Add Device* @0x"));
+    I2CIP_DEBUG_SERIAL.print((uint16_t)device, HEX);
+    I2CIP_DEBUG_SERIAL.print(F("(ID '"));
+    I2CIP_DEBUG_SERIAL.print(device->getID());
+    I2CIP_DEBUG_SERIAL.print(F("' @0x"));
+    I2CIP_DEBUG_SERIAL.print((uint16_t)(device->getID()), HEX);  
+    I2CIP_DEBUG_SERIAL.print(F("; FQA "));
+    I2CIP_DEBUG_SERIAL.print(I2CIP_FQA_SEG_I2CBUS(fqa), HEX);
+    I2CIP_DEBUG_SERIAL.print(':');
+    I2CIP_DEBUG_SERIAL.print(I2CIP_FQA_SEG_MODULE(fqa), HEX);
+    I2CIP_DEBUG_SERIAL.print(':');
+    I2CIP_DEBUG_SERIAL.print(I2CIP_FQA_SEG_MUXBUS(fqa), HEX);
+    I2CIP_DEBUG_SERIAL.print(':');
+    I2CIP_DEBUG_SERIAL.print(I2CIP_FQA_SEG_DEVADR(fqa), HEX);
+    I2CIP_DEBUG_SERIAL.print("):\n");
+    DEBUG_DELAY();
+  #endif
+
+  // Search HashTable for DeviceGroup
+  const char* id = device->getID();
+  HashTableEntry<DeviceGroup&>* entry = this->devices_idgroups[id];
+  if(entry == nullptr) {
+    #ifdef I2CIP_DEBUG_SERIAL
+      DEBUG_DELAY();
+      I2CIP_DEBUG_SERIAL.print(F("DeviceGroup Not Found in HashTable, Creating\n"));
+      DEBUG_DELAY();
+    #endif
+    entry = addEmptyGroup(id);
+  }
+  if(entry == nullptr) {
+    // STILL?
+    #ifdef I2CIP_DEBUG_SERIAL
+      DEBUG_DELAY();
+      I2CIP_DEBUG_SERIAL.print(F("Failed to Create DeviceGroup! Check Libraries.\n"));
+      DEBUG_DELAY();
+    #endif
+    return false;
+  } else {
+    #ifdef I2CIP_DEBUG_SERIAL
+      DEBUG_DELAY();
+      I2CIP_DEBUG_SERIAL.print(F("DeviceGroup Found in HashTable\n"));
+      DEBUG_DELAY();
+    #endif
+  }
+
+  if(overwrite && entry->value.contains(device)) {
+  #ifdef I2CIP_DEBUG_SERIAL
+      DEBUG_DELAY();
+      I2CIP_DEBUG_SERIAL.print(F("Removing Old Device\n"));
+      DEBUG_DELAY();
+    #endif
+
+    Device* old = entry->value[device->getFQA()];
+
+    // Delete old device
+    this->remove(old, (uint16_t)old != (uint16_t)device && strcmp(entry->value.key, device->getID()) != 0);
+  }
+
+  BSTNode<i2cip_fqa_t, Device*>* dptr = this->devices_fqabst.insert(device->getFQA(), device, true);
+  bool r = dptr != nullptr && dptr->value != nullptr;
+  if (r) { r = entry->value.add(dptr->value); }
+  #ifdef I2CIP_DEBUG_SERIAL
+    else {
+      DEBUG_DELAY();
+      I2CIP_DEBUG_SERIAL.print(F("Failed to Save Device*!\n"));
+      DEBUG_DELAY();
+  }
+  #endif
+
+  #ifdef I2CIP_DEBUG_SERIAL
+    if(r) {
+        DEBUG_DELAY();
+        I2CIP_DEBUG_SERIAL.print(F("Device* Saved!\n"));
+        DEBUG_DELAY();
+    }
+  #endif
+  return r;
+}
+
 bool Module::add(Device& device, bool overwrite) {
   i2cip_fqa_t fqa = device.getFQA();
 
@@ -289,7 +404,7 @@ bool Module::add(Device& device, bool overwrite) {
 
   BSTNode<i2cip_fqa_t, Device*>* dptr = this->devices_fqabst.insert(fqa, &device, true);
   bool r = dptr != nullptr && dptr->value != nullptr;
-  if (r) { r = entry->value.add(*(dptr->value)); }
+  if (r) { r = entry->value.add(dptr->value); }
   #ifdef I2CIP_DEBUG_SERIAL
     else {
       DEBUG_DELAY();

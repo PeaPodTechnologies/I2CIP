@@ -45,8 +45,10 @@ OutputSetter::~OutputSetter() {
   // #endif
 }
 
-i2cip_errorlevel_t Device::get(const void* args) { return (this->getInput() == nullptr) ? I2CIP_ERR_SOFT : this->input->get(args); }
-i2cip_errorlevel_t Device::set(const void* value, const void* args) { return (this->output == nullptr) ? I2CIP_ERR_SOFT : this->output->set(value, args); }
+// i2cip_errorlevel_t Device::get(const void* args) { return (this->getInput() == nullptr) ? I2CIP_ERR_SOFT : this->input->get(args); }
+// i2cip_errorlevel_t Device::set(const void* value, const void* args) { return (this->output == nullptr) ? I2CIP_ERR_SOFT : this->output->set(value, args); }
+i2cip_errorlevel_t Device::get(const void* args) { return (this->getInput() == nullptr) ? I2CIP_ERR_NONE : this->input->get(args); } // NOP
+i2cip_errorlevel_t Device::set(const void* value, const void* args) { return (this->getOutput() == nullptr) ? I2CIP_ERR_NONE : this->output->set(value, args); } // NOP
 
 const i2cip_fqa_t& Device::getFQA(void) const { return this->fqa; }
 
@@ -521,6 +523,52 @@ DeviceGroup::~DeviceGroup(void) {
 
 }
 
+bool DeviceGroup::add(Device* device) {
+  if(device == nullptr) return false;
+  #ifdef I2CIP_DEBUG_SERIAL
+    DEBUG_DELAY();
+    I2CIP_DEBUG_SERIAL.print(F("DeviceGroup (ID '"));
+    I2CIP_DEBUG_SERIAL.print(this->key);
+    I2CIP_DEBUG_SERIAL.print(F("' @0x"));
+    I2CIP_DEBUG_SERIAL.print((uint16_t)this->key, HEX);
+    I2CIP_DEBUG_SERIAL.print(F(") Add Device @0x"));
+    I2CIP_DEBUG_SERIAL.print((uint16_t)(device), HEX);
+    // I2CIP_DEBUG_SERIAL.print(F("(ID '"));
+    // I2CIP_DEBUG_SERIAL.print(device.getID());
+    // I2CIP_DEBUG_SERIAL.print(F("' @0x"));
+    // I2CIP_DEBUG_SERIAL.print((uint16_t)&device.getID()[0], HEX);
+    // I2CIP_DEBUG_SERIAL.print(")\n");
+    DEBUG_DELAY();
+  #endif
+  // Temporarily Disabled - I GUESS!
+  // if(strcmp(device.getID(), this->key) != 0) {
+  //   #ifdef I2CIP_DEBUG_SERIAL
+  //     DEBUG_DELAY();
+  //     I2CIP_DEBUG_SERIAL.print(F(": Failed; '"));
+  //     I2CIP_DEBUG_SERIAL.print(this->key);
+  //     I2CIP_DEBUG_SERIAL.print(F("' != '"));
+  //     I2CIP_DEBUG_SERIAL.print(device.getID());
+  //     I2CIP_DEBUG_SERIAL.print("'\n");
+  //     DEBUG_DELAY();
+  //   #endif
+  //   return false;
+  // } // else {
+  //   // Todo: What was this for?
+  // }
+
+  // if(this->contains(&device)) return true; // Already added
+  if(this->contains(device->getFQA())) return true; // Already added
+  
+  unsigned int n = 0;
+  while(this->devices[n] != nullptr) { n++; if(n > I2CIP_DEVICES_PER_GROUP) return false;}
+
+  // Append new devices
+  this->devices[n] = device;
+  this->numdevices = (n + 1);
+  return true;
+}
+
+
 bool DeviceGroup::add(Device& device) {
   #ifdef I2CIP_DEBUG_SERIAL
     DEBUG_DELAY();
@@ -619,10 +667,10 @@ Device* DeviceGroup::operator()(const i2cip_fqa_t& fqa) {
   Device* device = this->factory(fqa);
 
   if(device != nullptr) {
-    bool b = this->add(*device);
+    bool b = this->add(device);
     
     if(!b) {
-      Serial.print('?');
+      // Serial.print('DGCALLOP');
       delete device;
       return nullptr;
     }
