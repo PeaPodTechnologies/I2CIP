@@ -21,7 +21,7 @@ template <typename G, typename A> InputInterface<G, A>::InputInterface(Device* d
 
 template <typename G, typename A> InputInterface<G, A>::~InputInterface() { }
 
-template <typename G, typename A> G InputInterface<G, A>::getCache(void) const { return this->cache; }
+template <typename G, typename A> const G& InputInterface<G, A>::getCache(void) const { return this->cache; }
 
 template <typename G, typename A> void InputInterface<G, A>::setCache(G value) { this->cache = value; }
 
@@ -44,7 +44,7 @@ template <typename G, typename A> i2cip_errorlevel_t InputInterface<G, A>::get(c
     if(args == &InputGetter::failptr_get) I2CIP_DEBUG_SERIAL.print(F("fail"));
     else if(args == nullptr) I2CIP_DEBUG_SERIAL.print(F("null"));
     else { 
-      I2CIP_DEBUG_SERIAL.print(*(A* const)args);
+      // I2CIP_DEBUG_SERIAL.print(*(A* const)args); // This line is EXPERIMENTAL
       I2CIP_DEBUG_SERIAL.print(F(" @0x"));
       I2CIP_DEBUG_SERIAL.print((uint16_t)args, HEX);
     }

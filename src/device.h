@@ -218,7 +218,7 @@ namespace I2CIP {
       i2cip_errorlevel_t set(const void* value = nullptr, const void* args = nullptr);
 
       const i2cip_fqa_t& getFQA(void) const;
-      const i2cip_id_t& getID(void) const;
+      i2cip_id_t getID(void) const;
 
       i2cip_errorlevel_t ping(bool resetbus = true);
       i2cip_errorlevel_t pingTimeout(bool setbus = true, bool resetbus = true, unsigned int timeout = 100);
@@ -302,7 +302,7 @@ namespace I2CIP {
       /**
        * Gets the last recieved value.
       */
-      G getCache(void) const;
+      const G& getCache(void) const; // MADE A CHANGE HERE
 
       /**
        * Sets the cache to the default "zero" value.

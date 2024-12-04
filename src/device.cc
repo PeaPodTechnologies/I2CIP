@@ -50,7 +50,7 @@ i2cip_errorlevel_t Device::set(const void* value, const void* args) { return (th
 
 const i2cip_fqa_t& Device::getFQA(void) const { return this->fqa; }
 
-const i2cip_id_t& Device::getID(void) const { return this->id; }
+i2cip_id_t Device::getID(void) const { return this->id; }
 
 // STATIC CLASS-MEMBER FUNCTIONS (PRIVATE INTERNAL API)
 
@@ -88,20 +88,22 @@ i2cip_errorlevel_t Device::ping(const i2cip_fqa_t& fqa, bool resetbus) {
 }
 
 i2cip_errorlevel_t Device::pingTimeout(const i2cip_fqa_t& fqa, bool setbus, bool resetbus, unsigned int timeout) {
+  i2cip_errorlevel_t errlev;
+
   if(setbus) {
-    i2cip_errorlevel_t errlev = MUX::setBus(fqa);
+    errlev = MUX::setBus(fqa);
     I2CIP_ERR_BREAK(errlev);
   }
 
   // Check if it's actually lost
   
-  I2CIP_FQA_TO_WIRE(fqa)->beginTransmission(I2CIP_FQA_SEG_DEVADR(fqa));
-  i2cip_errorlevel_t errlev = (I2CIP_FQA_TO_WIRE(fqa)->endTransmission() == 0 ? I2CIP_ERR_NONE : I2CIP_ERR_HARD);
+  // I2CIP_FQA_TO_WIRE(fqa)->beginTransmission(I2CIP_FQA_SEG_DEVADR(fqa));
+  // errlev = (I2CIP_FQA_TO_WIRE(fqa)->endTransmission() == 0 ? I2CIP_ERR_NONE : I2CIP_ERR_HARD);
 
-  #ifdef I2CIP_DEBUG_SERIAL
-    DEBUG_DELAY();
-    I2CIP_DEBUG_SERIAL.print(F("Ping... "));
-  #endif
+  // #ifdef I2CIP_DEBUG_SERIAL
+  //   DEBUG_DELAY();
+  //   I2CIP_DEBUG_SERIAL.print(F("Ping... "));
+  // #endif
 
   unsigned long start = millis();
 
@@ -149,7 +151,11 @@ i2cip_errorlevel_t Device::pingTimeout(const i2cip_fqa_t& fqa, bool setbus, bool
 
   // Switch MUX bus back
   if (resetbus) {
-    errlev = MUX::resetBus(fqa);
+    if(errlev == I2CIP_ERR_NONE) {
+      return MUX::resetBus(fqa);
+    } else if(MUX::resetBus(fqa) == I2CIP_ERR_NONE) {
+      return errlev;
+    }
   }
   
   return errlev;
@@ -483,10 +489,10 @@ i2cip_errorlevel_t Device::readRegisterByte(const uint16_t& reg, uint8_t& dest, 
 i2cip_errorlevel_t Device::readRegisterWord(const uint8_t& reg, uint16_t& dest, bool resetbus) { return Device::readRegisterWord(this->fqa, reg, dest, resetbus);  }
 i2cip_errorlevel_t Device::readRegisterWord(const uint16_t& reg, uint16_t& dest, bool resetbus) { return Device::readRegisterWord(this->fqa, reg, dest, resetbus); }
 
-DeviceGroup::DeviceGroup(const i2cip_id_t& key, factory_device_t factory) : key(key), factory(factory) { 
-  for(uint8_t i = 0; i < I2CIP_DEVICES_PER_GROUP; i++) { 
-    devices[i] = nullptr; 
-  } 
+DeviceGroup::DeviceGroup(const i2cip_id_t& key, factory_device_t factory) : key(key), factory(factory) {
+  for(uint8_t i = 0; i < I2CIP_DEVICES_PER_GROUP; i++) {
+    devices[i] = nullptr;
+  }
 
   #ifdef I2CIP_DEBUG_SERIAL
     DEBUG_DELAY();
@@ -502,11 +508,11 @@ DeviceGroup::DeviceGroup(const i2cip_id_t& key, factory_device_t factory) : key(
 }
 
 DeviceGroup::~DeviceGroup(void) { 
-  // #ifdef I2CIP_DEBUG_SERIAL
-  //   DEBUG_DELAY();
-  //   I2CIP_DEBUG_SERIAL.print(F("~DeviceGroup"));
-  //   DEBUG_DELAY();
-  // #endif
+  #ifdef I2CIP_DEBUG_SERIAL
+    DEBUG_DELAY();
+    I2CIP_DEBUG_SERIAL.print(F("~DeviceGroup"));
+    DEBUG_DELAY();
+  #endif
   for(uint8_t i = 0; i < I2CIP_DEVICES_PER_GROUP; i++) {
     if(devices[i] != nullptr) {
       delete devices[i];
@@ -522,25 +528,33 @@ bool DeviceGroup::add(Device& device) {
     I2CIP_DEBUG_SERIAL.print(this->key);
     I2CIP_DEBUG_SERIAL.print(F("' @0x"));
     I2CIP_DEBUG_SERIAL.print((uint16_t)this->key, HEX);
-    I2CIP_DEBUG_SERIAL.print(F(") Add Device (ID '"));
-    I2CIP_DEBUG_SERIAL.print(device.getID());
-    I2CIP_DEBUG_SERIAL.print(F("' @0x"));
-    I2CIP_DEBUG_SERIAL.print((uint16_t)device.getID(), HEX);
-    I2CIP_DEBUG_SERIAL.print(")\n");
+    I2CIP_DEBUG_SERIAL.print(F(") Add Device @0x"));
+    I2CIP_DEBUG_SERIAL.print((uint16_t)(&device), HEX);
+    // I2CIP_DEBUG_SERIAL.print(F("(ID '"));
+    // I2CIP_DEBUG_SERIAL.print(device.getID());
+    // I2CIP_DEBUG_SERIAL.print(F("' @0x"));
+    // I2CIP_DEBUG_SERIAL.print((uint16_t)&device.getID()[0], HEX);
+    // I2CIP_DEBUG_SERIAL.print(")\n");
     DEBUG_DELAY();
   #endif
-  if(device.getID() != this->key && strcmp(device.getID(), this->key) != 0) {
-    #ifdef I2CIP_DEBUG_SERIAL
-      DEBUG_DELAY();
-      I2CIP_DEBUG_SERIAL.print(F(": Failed\n"));
-      DEBUG_DELAY();
-    #endif
-    return false;
-  } else {
+  // Temporarily Disabled - I GUESS!
+  // if(strcmp(device.getID(), this->key) != 0) {
+  //   #ifdef I2CIP_DEBUG_SERIAL
+  //     DEBUG_DELAY();
+  //     I2CIP_DEBUG_SERIAL.print(F(": Failed; '"));
+  //     I2CIP_DEBUG_SERIAL.print(this->key);
+  //     I2CIP_DEBUG_SERIAL.print(F("' != '"));
+  //     I2CIP_DEBUG_SERIAL.print(device.getID());
+  //     I2CIP_DEBUG_SERIAL.print("'\n");
+  //     DEBUG_DELAY();
+  //   #endif
+  //   return false;
+  // } // else {
+  //   // Todo: What was this for?
+  // }
 
-  }
-
-  if(this->contains(&device)) return true; // Already added
+  // if(this->contains(&device)) return true; // Already added
+  if(this->contains(device.getFQA())) return true; // Already added
   
   unsigned int n = 0;
   while(this->devices[n] != nullptr) { n++; if(n > I2CIP_DEVICES_PER_GROUP) return false;}
@@ -564,6 +578,7 @@ bool DeviceGroup::addGroup(Device* devices[], uint8_t numdevices) {
 }
 
 void DeviceGroup::remove(Device* device) {
+  if(device == nullptr) return;
   bool swap = false;
   for(int i = 0; i < this->numdevices-1; i++) {
     if(swap) {
@@ -607,6 +622,7 @@ Device* DeviceGroup::operator()(const i2cip_fqa_t& fqa) {
     bool b = this->add(*device);
     
     if(!b) {
+      Serial.print('?');
       delete device;
       return nullptr;
     }

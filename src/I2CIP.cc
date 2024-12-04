@@ -17,12 +17,16 @@ Module::Module(const uint8_t& wire, const uint8_t& mux, const uint8_t& eeprom_ad
     DEBUG_DELAY();
     I2CIP_DEBUG_SERIAL.print(F("Module "));
     I2CIP_DEBUG_SERIAL.print(mux, HEX);
-    I2CIP_DEBUG_SERIAL.print(F(" Constructed\n"));
+    I2CIP_DEBUG_SERIAL.print(F(" Constructed, EEPROM @0x"));
+    I2CIP_DEBUG_SERIAL.println((uint16_t)eeprom, HEX);
     DEBUG_DELAY();
   #endif
 
   eeprom->clearCache(); // ensure cache is nullptr
   eeprom->resetFailsafe(); // ensure default EEPROM buffer is cached for next write
+
+  // !! Super important: prevents EEPROM from being overwritten during call operator update
+  eeprom->setOutput(nullptr);
 
   // NOTE: I MOVED THIS STEP TO DISCOVER, FLAGGED WITH `eeprom_added`, & MADE DEVICEGROUPFACTORY PURE VIRTUAL
   // This potentially useful if I decide to ping in deviceFactory
@@ -32,6 +36,12 @@ Module::Module(const uint8_t& wire, const uint8_t& mux, const uint8_t& eeprom_ad
 Module::Module(const i2cip_fqa_t& eeprom_fqa) : Module(I2CIP_FQA_SEG_I2CBUS(eeprom_fqa), I2CIP_FQA_SEG_MODULE(eeprom_fqa), I2CIP_EEPROM_ADDR) { }
 
 Module::~Module() {
+  #ifdef I2CIP_DEBUG_SERIAL
+    DEBUG_DELAY();
+    I2CIP_DEBUG_SERIAL.println(F("~Module()"));
+    DEBUG_DELAY();
+  #endif
+
   // Delete all DeviceGroups, deleting all Devices (incl. EEPROM)
   for(uint8_t i = 0; i < HASHTABLE_SLOTS; i++) {
     if(this->devices_idgroups.hashtable[i] != nullptr) {
@@ -92,7 +102,8 @@ bool Module::discover(bool recurse) {
   if(!this->eeprom_added) { 
     #ifdef I2CIP_DEBUG_SERIAL
       DEBUG_DELAY();
-      I2CIP_DEBUG_SERIAL.print(F("-> First-Time EEPROM Addition\n"));
+      I2CIP_DEBUG_SERIAL.print(F("-> First-Time EEPROM Addition @0x"));
+      I2CIP_DEBUG_SERIAL.println((uint16_t)eeprom, HEX);
       DEBUG_DELAY();
     #endif
     bool r = add(*eeprom, true);
@@ -106,9 +117,6 @@ bool Module::discover(bool recurse) {
     }
 
     this->eeprom_added = true;
-
-    // !! Super important: prevents EEPROM from being overwritten during call operator update
-    eeprom->setOutput(nullptr);
   }
 
   // Read EEPROM
@@ -225,110 +233,169 @@ bool Module::add(Device& device, bool overwrite) {
     DEBUG_DELAY();
   #endif
 
-  // Search BST for Device
-  Device** dptr = this->devices_fqabst[fqa];
-  if(dptr != nullptr) {
-    #ifdef I2CIP_DEBUG_SERIAL
-      I2CIP_DEBUG_SERIAL.print(F("Device Already Exists (ID '"));
-      I2CIP_DEBUG_SERIAL.print((*dptr)->getID());
-      I2CIP_DEBUG_SERIAL.print("')\n");
-      DEBUG_DELAY();
-    #endif
-
-    // Return false to invoke deletion
-    if (!overwrite) return false;
-  }
-
   // Search HashTable for DeviceGroup
   const char* id = device.getID();
   HashTableEntry<DeviceGroup&>* entry = this->devices_idgroups[id];
-  if(entry == nullptr) entry = addEmptyGroup(id);
   if(entry == nullptr) {
+    #ifdef I2CIP_DEBUG_SERIAL
+      DEBUG_DELAY();
+      I2CIP_DEBUG_SERIAL.print(F("DeviceGroup Not Found in HashTable, Creating\n"));
+      DEBUG_DELAY();
+    #endif
+    entry = addEmptyGroup(id);
+  }
+  if(entry == nullptr) {
+    // STILL?
     #ifdef I2CIP_DEBUG_SERIAL
       DEBUG_DELAY();
       I2CIP_DEBUG_SERIAL.print(F("Failed to Create DeviceGroup! Check Libraries.\n"));
       DEBUG_DELAY();
     #endif
     return false;
+  } else {
+    #ifdef I2CIP_DEBUG_SERIAL
+      DEBUG_DELAY();
+      I2CIP_DEBUG_SERIAL.print(F("DeviceGroup Found in HashTable\n"));
+      DEBUG_DELAY();
+    #endif
   }
-  
-  Device* d = entry->value[device.getFQA()];
 
-  if(d != nullptr) {
-    if(dptr != nullptr && overwrite) {
-      #ifdef I2CIP_DEBUG_SERIAL
-        DEBUG_DELAY();
-        I2CIP_DEBUG_SERIAL.print(F("Overwriting Device.\n"));
-        DEBUG_DELAY();
-      #endif
+  // if(d != nullptr || dptr != nullptr) {
+  //   if(overwrite) {
+  //     #ifdef I2CIP_DEBUG_SERIAL
+  //       DEBUG_DELAY();
+  //       I2CIP_DEBUG_SERIAL.print(F("Overwriting Device.\n"));
+  //       DEBUG_DELAY();
+  //     #endif
 
-      // Delete old device
-      this->remove(d, true);
-    } else {
-      // Was in HashTable but not BST
-      this->devices_fqabst.insert(fqa, d, true);
-      return false; // Invoke deletion
+  //     // Delete old device
+  //     if(d != nullptr) this->remove(d, &device != d);
+  //     else if(dptr != nullptr) this->remove(*dptr, &device != *dptr);
+  //   } else {
+  //     return (dptr == nullptr ? (this->devices_fqabst.insert(fqa, d) != nullptr) : (strcmp((*dptr)->getID(), device.getID()) == 0));
+  //   }
+  // }
+
+  if(entry->value.contains(device.getFQA()) && overwrite) {
+  #ifdef I2CIP_DEBUG_SERIAL
+      DEBUG_DELAY();
+      I2CIP_DEBUG_SERIAL.print(F("Removing Old Device\n"));
+      DEBUG_DELAY();
+    #endif
+
+    // Delete old device
+    this->remove(entry->value[device.getFQA()], strcmp(entry->value.key, device.getID()) != 0);
+  }
+
+  BSTNode<i2cip_fqa_t, Device*>* dptr = this->devices_fqabst.insert(fqa, &device, true);
+  bool r = dptr != nullptr && dptr->value != nullptr;
+  if (r) { r = entry->value.add(*(dptr->value)); }
+  #ifdef I2CIP_DEBUG_SERIAL
+    else {
+      DEBUG_DELAY();
+      I2CIP_DEBUG_SERIAL.print(F("Failed to Save Device!\n"));
+      DEBUG_DELAY();
+  }
+  #endif
+
+  #ifdef I2CIP_DEBUG_SERIAL
+    if(r) {
+        DEBUG_DELAY();
+        I2CIP_DEBUG_SERIAL.print(F("Device Saved!\n"));
+        DEBUG_DELAY();
     }
-  }
-
-  BSTNode<i2cip_fqa_t, Device*>* ptr = this->devices_fqabst.insert(fqa, &device);
-  if(ptr == nullptr) {
-    #ifdef I2CIP_DEBUG_SERIAL
-      DEBUG_DELAY();
-      I2CIP_DEBUG_SERIAL.print(F("-> Failed to Save Device!\n"));
-      DEBUG_DELAY();
-    #endif
-    return false;
-  }
-  if(ptr->value != &device || ptr->key != fqa) {
-    #ifdef I2CIP_DEBUG_SERIAL
-      DEBUG_DELAY();
-      I2CIP_DEBUG_SERIAL.print(F("-> BST Node Mismatch!\n"));
-      DEBUG_DELAY();
-    #endif
-    this->devices_fqabst.remove(fqa);
-    return false;
-  }
-
-  #ifdef I2CIP_DEBUG_SERIAL
-    DEBUG_DELAY();
-    I2CIP_DEBUG_SERIAL.print(F("-> BST Success (FQA "));
-    I2CIP_DEBUG_SERIAL.print(I2CIP_FQA_SEG_I2CBUS(fqa), HEX);
-    I2CIP_DEBUG_SERIAL.print(':');
-    I2CIP_DEBUG_SERIAL.print(I2CIP_FQA_SEG_MODULE(fqa), HEX);
-    I2CIP_DEBUG_SERIAL.print(':');
-    I2CIP_DEBUG_SERIAL.print(I2CIP_FQA_SEG_MUXBUS(fqa), HEX);
-    I2CIP_DEBUG_SERIAL.print(':');
-    I2CIP_DEBUG_SERIAL.print(I2CIP_FQA_SEG_DEVADR(fqa), HEX);
-    I2CIP_DEBUG_SERIAL.print(F(", Device @0x"));
-    I2CIP_DEBUG_SERIAL.print((uint16_t)&device, HEX);
-    I2CIP_DEBUG_SERIAL.print(")\n");
-    DEBUG_DELAY();
   #endif
+  return r;
 
-  // Insert into DeviceGroup (by pointer copy)
-  if(!entry->value.add(device)) {
-    this->devices_fqabst.remove(fqa);
-    return false;
-  }
+  // } else if(dptr != nullptr) {
+  //   // In bst; not device group
+  //   if(overwrite && strcmp((*dptr)->getID(), device.getID()) != 0) {
+  //     #ifdef I2CIP_DEBUG_SERIAL
+  //       DEBUG_DELAY();
+  //       I2CIP_DEBUG_SERIAL.print(F("Overwriting Device\n"));
+  //       DEBUG_DELAY();
+  //     #endif
 
-  #ifdef I2CIP_DEBUG_SERIAL
-    DEBUG_DELAY();
-    I2CIP_DEBUG_SERIAL.print(F("-> HashTable Success (ID '"));
-    I2CIP_DEBUG_SERIAL.print(entry->value.key);
-    I2CIP_DEBUG_SERIAL.print(F("' @0x"));
-    I2CIP_DEBUG_SERIAL.print((uint16_t)&entry->value.key[0], HEX);
-    I2CIP_DEBUG_SERIAL.print(F(", DeviceGroup["));
-    I2CIP_DEBUG_SERIAL.print(entry->value.numdevices);
-    I2CIP_DEBUG_SERIAL.print(F("] @0x"));
-    I2CIP_DEBUG_SERIAL.print((uint16_t)&entry->value, HEX);
-    I2CIP_DEBUG_SERIAL.print(F(", Factory @0x"));
-    I2CIP_DEBUG_SERIAL.print((uint16_t)entry->value.factory, HEX);
-    I2CIP_DEBUG_SERIAL.print(")\n");
-    DEBUG_DELAY();
-  #endif
+  //     // Overwrite old device
+  //     dptr = &((this->devices_fqabst.insert(fqa, &device, true))->value);
+  //   }
+  //   return strcmp((*dptr)->getID(), device.getID()) == 0;
+  // } else {
+  //   if(overwrite) {
+  //     #ifdef I2CIP_DEBUG_SERIAL
+  //       DEBUG_DELAY();
+  //       I2CIP_DEBUG_SERIAL.print(F("Removing Old Devices\n"));
+  //       DEBUG_DELAY();
+  //     #endif
 
-  return true;
+  //     // Delete old device
+  //     this->remove(d, &device != d);
+  //   }
+  //   return strcmp(d->getID(), device.getID()) == 0;
+  // }
+
+  // // Was in HashTable but not BST
+  // BSTNode<i2cip_fqa_t, Device*>* ptr = this->devices_fqabst.insert(fqa, &device, true); // Made a change here
+  // // return false; // Invoke deletion - wait why??
+  // // return strcmp(entry->key, device.getID()) == 0;
+  // return entry->value.add(device);
+
+  // // BSTNode<i2cip_fqa_t, Device*>* ptr = this->devices_fqabst.insert(fqa, &device);
+  // if(ptr == nullptr) {
+  //   #ifdef I2CIP_DEBUG_SERIAL
+  //     DEBUG_DELAY();
+  //     I2CIP_DEBUG_SERIAL.print(F("-> Failed to Save Device!\n"));
+  //     DEBUG_DELAY();
+  //   #endif
+  //   return false;
+  // }
+  // if(ptr->value != &device || ptr->key != fqa) {
+  //   #ifdef I2CIP_DEBUG_SERIAL
+  //     DEBUG_DELAY();
+  //     I2CIP_DEBUG_SERIAL.print(F("-> BST Node Mismatch!\n"));
+  //     DEBUG_DELAY();
+  //   #endif
+  //   this->devices_fqabst.remove(fqa);
+  //   return false;
+  // }
+
+  // #ifdef I2CIP_DEBUG_SERIAL
+  //   DEBUG_DELAY();
+  //   I2CIP_DEBUG_SERIAL.print(F("-> BST Success (FQA "));
+  //   I2CIP_DEBUG_SERIAL.print(I2CIP_FQA_SEG_I2CBUS(fqa), HEX);
+  //   I2CIP_DEBUG_SERIAL.print(':');
+  //   I2CIP_DEBUG_SERIAL.print(I2CIP_FQA_SEG_MODULE(fqa), HEX);
+  //   I2CIP_DEBUG_SERIAL.print(':');
+  //   I2CIP_DEBUG_SERIAL.print(I2CIP_FQA_SEG_MUXBUS(fqa), HEX);
+  //   I2CIP_DEBUG_SERIAL.print(':');
+  //   I2CIP_DEBUG_SERIAL.print(I2CIP_FQA_SEG_DEVADR(fqa), HEX);
+  //   I2CIP_DEBUG_SERIAL.print(F(", Device @0x"));
+  //   I2CIP_DEBUG_SERIAL.print((uint16_t)&device, HEX);
+  //   I2CIP_DEBUG_SERIAL.print(")\n");
+  //   DEBUG_DELAY();
+  // #endif
+
+  // // Insert into DeviceGroup (by pointer copy)
+  // if(!entry->value.add(device)) {
+  //   this->devices_fqabst.remove(fqa);
+  //   return false;
+  // }
+
+  // #ifdef I2CIP_DEBUG_SERIAL
+  //   DEBUG_DELAY();
+  //   I2CIP_DEBUG_SERIAL.print(F("-> HashTable Success (ID '"));
+  //   I2CIP_DEBUG_SERIAL.print(entry->value.key);
+  //   I2CIP_DEBUG_SERIAL.print(F("' @0x"));
+  //   I2CIP_DEBUG_SERIAL.print((uint16_t)&entry->value.key[0], HEX);
+  //   I2CIP_DEBUG_SERIAL.print(F(", DeviceGroup["));
+  //   I2CIP_DEBUG_SERIAL.print(entry->value.numdevices);
+  //   I2CIP_DEBUG_SERIAL.print(F("] @0x"));
+  //   I2CIP_DEBUG_SERIAL.print((uint16_t)&entry->value, HEX);
+  //   I2CIP_DEBUG_SERIAL.print(F(", Factory @0x"));
+  //   I2CIP_DEBUG_SERIAL.print((uint16_t)entry->value.factory, HEX);
+  //   I2CIP_DEBUG_SERIAL.print(")\n");
+  //   DEBUG_DELAY();
+  // #endif
 }
 
 Device* Module::operator[](const i2cip_fqa_t& fqa) const {
@@ -413,19 +480,11 @@ void Module::remove(Device* device, bool del) {
 
   // Lookup in BST
   Device** dptr = this->devices_fqabst[fqa];
-  if(dptr == nullptr) return; // Device not found
-  if(*dptr != device) return; // FQA points to different device
-  if((*dptr)->getFQA() != fqa) return;  // Device doesn't match
-
-  // Remove from BST
-  this->devices_fqabst.remove(fqa);
-
+  if(dptr != nullptr && (*dptr == device || (*dptr)->getFQA() == fqa)) this->devices_fqabst.remove(fqa);  // Device doesn't match
+  
   // Lookup in HashTable
   HashTableEntry<DeviceGroup&>* entry = this->devices_idgroups[device->getID()];
-  if(entry == nullptr) return;
-
-  // Remove from DeviceGroup
-  entry->value.remove(device);
+  if(entry != nullptr) entry->value.remove(entry->value[fqa]);
 
   // Delete device
   if(del) delete device;
@@ -483,7 +542,7 @@ i2cip_errorlevel_t Module::operator()(void) {
   I2CIP_ERR_BREAK(errlev);
 
   // 3. Ping EEPROM
-  return this->eeprom->pingTimeout(true, false);
+  return this->eeprom->pingTimeout(true, false); // We're not going to use I2CIP_EEPROM_TIMEOUT here - we haven't written to it at all yet; it should be alive
 }
 
 i2cip_errorlevel_t Module::operator()(const i2cip_fqa_t& fqa, bool update, bool fail) {

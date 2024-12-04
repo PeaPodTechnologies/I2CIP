@@ -4,7 +4,7 @@
 #include <device.h>
 #include <debug.h>
 
-bool I2CIP::EEPROM::_id_set;
+bool I2CIP::EEPROM::_id_set = false;
 char I2CIP::EEPROM::_id[I2CIP_ID_SIZE];
 bool I2CIP::EEPROM::_failsafe_set;
 char I2CIP::EEPROM::_failsafe[I2CIP_EEPROM_SIZE];
@@ -45,12 +45,12 @@ Device* EEPROM::eepromFactory(const i2cip_fqa_t& fqa, const i2cip_id_t& id) {
     #endif
   }
 
-  return (Device*)(new EEPROM(fqa, id));
+  return (Device*)(new EEPROM(fqa, _id));
 }
 
 Device* EEPROM::eepromFactory(const i2cip_fqa_t& fqa) { return eepromFactory(fqa, EEPROM::_id); }
 
-EEPROM::EEPROM(const i2cip_fqa_t& fqa, const i2cip_id_t& id) : Device(fqa, &(EEPROM::_id[0])), IOInterface<char*, uint16_t, const char*, uint16_t>((Device*)this) {
+EEPROM::EEPROM(const i2cip_fqa_t& fqa, const i2cip_id_t& id) : Device(fqa, id), IOInterface<char*, uint16_t, const char*, uint16_t>((Device*)this) {
   #ifdef I2CIP_DEBUG_SERIAL
     DEBUG_DELAY();
     I2CIP_DEBUG_SERIAL.print(F("EEPROM Constructed (ID '"));
@@ -127,7 +127,7 @@ i2cip_errorlevel_t EEPROM::clearContents(bool setbus, uint16_t numbytes) {
     #endif
 
     // Note: Timeout ping before each byte write to await completion of last write cycle
-    errlev = pingTimeout(false, false);
+    errlev = pingTimeout(false, false, I2CIP_EEPROM_TIMEOUT);
     I2CIP_ERR_BREAK(errlev);
   }
 
@@ -175,7 +175,7 @@ i2cip_errorlevel_t EEPROM::overwriteContents(uint8_t* buffer, size_t len, bool c
     #endif
 
     // Note: Timeout ping before each byte write to await completion of last write cycle
-    errlev = pingTimeout(false, false);
+    errlev = pingTimeout(false, false, I2CIP_EEPROM_TIMEOUT);
     I2CIP_ERR_BREAK(errlev);
 
     #ifdef I2CIP_DEBUG_SERIAL

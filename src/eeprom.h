@@ -6,7 +6,7 @@
 
 #define I2CIP_EEPROM_SIZE     100   // EEPROM size in bytes
 #define I2CIP_EEPROM_ADDR     80    // SPRT EEPROM address (0x50)
-#define I2CIP_EEPROM_TIMEOUT  100   // How long to wait for a write to complete (ms)
+#define I2CIP_EEPROM_TIMEOUT  1000   // If we're going to crash on a module ping fail, we should wait a bit
 
 #define I2CIP_EEPROM_ID       "24LC32"
 #define STR_IMPL_(x) #x      //stringify argument
@@ -88,7 +88,7 @@ namespace I2CIP {
       void resetFailsafe(void) override;
       const uint16_t& getDefaultB(void) const override;
 
-      static const char* getStaticIDBuffer() { return EEPROM::_id_set ? &(EEPROM::_id[0]) : nullptr; }
+      static const char* getStaticIDBuffer() { return EEPROM::_id; }
   };
 }
 
