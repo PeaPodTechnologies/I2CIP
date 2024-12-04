@@ -21,8 +21,8 @@ Device::~Device() {
 void Device::setInput(InputGetter* input) { if(this->input != nullptr) { delete this->input; } this->input = input; }
 void Device::setOutput(OutputSetter* output) { if(this->output != nullptr) { delete this->output; } this->output = output; }
 
-void Device::removeInput(void) { if(this->input != nullptr) { delete this->input; } this->input = nullptr; }
-void Device::removeOutput(void) { if(this->output != nullptr) { delete this->output; } this->output = nullptr; }
+void Device::removeInput(void) { this->input = nullptr; }
+void Device::removeOutput(void) { this->output = nullptr; }
 
 InputGetter* Device::getInput(void) const { return this->input; }
 OutputSetter* Device::getOutput(void) const { return this->output; }
@@ -52,7 +52,8 @@ i2cip_errorlevel_t Device::set(const void* value, const void* args) { return (th
 
 const i2cip_fqa_t& Device::getFQA(void) const { return this->fqa; }
 
-i2cip_id_t Device::getID(void) const { return this->id; }
+// i2cip_id_t Device::getID(void) const { return this->id; }
+const i2cip_id_t& Device::getID(void) const { return this->id; }
 
 // STATIC CLASS-MEMBER FUNCTIONS (PRIVATE INTERNAL API)
 
@@ -110,7 +111,7 @@ i2cip_errorlevel_t Device::pingTimeout(const i2cip_fqa_t& fqa, bool setbus, bool
   unsigned long start = millis();
 
   // Count down until out of time of found
-  while ((millis()-start) < timeout) {
+  while (errlev != I2CIP_ERR_NONE && (millis()-start) < timeout) {
     #ifndef I2CIP_DEBUG_SERIAL
       // Delta 1ms
       delay(1);
@@ -123,6 +124,7 @@ i2cip_errorlevel_t Device::pingTimeout(const i2cip_fqa_t& fqa, bool setbus, bool
     errlev = (I2CIP_FQA_TO_WIRE(fqa)->endTransmission() == 0 ? I2CIP_ERR_NONE : I2CIP_ERR_HARD);
 
     if (errlev == I2CIP_ERR_NONE) {
+      // Default case/quick-break
       break;
     }
 
@@ -133,7 +135,7 @@ i2cip_errorlevel_t Device::pingTimeout(const i2cip_fqa_t& fqa, bool setbus, bool
   }
   
   // Double check MUX before attempting to switch
-  if(errlev == I2CIP_ERR_HARD && !MUX::pingMUX(fqa)) {
+  if(errlev != I2CIP_ERR_NONE && !MUX::pingMUX(fqa)) {
     return I2CIP_ERR_HARD;
   }
 
@@ -142,7 +144,11 @@ i2cip_errorlevel_t Device::pingTimeout(const i2cip_fqa_t& fqa, bool setbus, bool
       DEBUG_DELAY();
       I2CIP_DEBUG_SERIAL.println("Timed Out!");
       DEBUG_DELAY();
-    } else {
+    } else if (errlev == I2CIP_ERR_SOFT) {
+      DEBUG_DELAY();
+      I2CIP_DEBUG_SERIAL.println("Failed!");
+      DEBUG_DELAY();
+    }else {
       DEBUG_DELAY();
       I2CIP_DEBUG_SERIAL.print(F("Pong! Ping Timeout: "));
       I2CIP_DEBUG_SERIAL.print(millis()-start);
@@ -154,9 +160,12 @@ i2cip_errorlevel_t Device::pingTimeout(const i2cip_fqa_t& fqa, bool setbus, bool
   // Switch MUX bus back
   if (resetbus) {
     if(errlev == I2CIP_ERR_NONE) {
+      // Default case
       return MUX::resetBus(fqa);
     } else if(MUX::resetBus(fqa) == I2CIP_ERR_NONE) {
       return errlev;
+    } else {
+      return I2CIP_ERR_HARD;
     }
   }
   
@@ -585,23 +594,22 @@ bool DeviceGroup::add(Device& device) {
     // I2CIP_DEBUG_SERIAL.print(")\n");
     DEBUG_DELAY();
   #endif
-  // Temporarily Disabled - I GUESS!
-  // if(strcmp(device.getID(), this->key) != 0) {
-  //   #ifdef I2CIP_DEBUG_SERIAL
-  //     DEBUG_DELAY();
-  //     I2CIP_DEBUG_SERIAL.print(F(": Failed; '"));
-  //     I2CIP_DEBUG_SERIAL.print(this->key);
-  //     I2CIP_DEBUG_SERIAL.print(F("' != '"));
-  //     I2CIP_DEBUG_SERIAL.print(device.getID());
-  //     I2CIP_DEBUG_SERIAL.print("'\n");
-  //     DEBUG_DELAY();
-  //   #endif
-  //   return false;
-  // } // else {
-  //   // Todo: What was this for?
+  if(strcmp(device.getID(), this->key) != 0) {
+    #ifdef I2CIP_DEBUG_SERIAL
+      DEBUG_DELAY();
+      I2CIP_DEBUG_SERIAL.print(F(": Failed; '"));
+      I2CIP_DEBUG_SERIAL.print((uint16_t)this->key, HEX);
+      I2CIP_DEBUG_SERIAL.print(F("' != '"));
+      I2CIP_DEBUG_SERIAL.print((uint16_t)device.getID(), HEX);
+      I2CIP_DEBUG_SERIAL.print("'\n");
+      DEBUG_DELAY();
+    #endif
+    return false;
+  } // else {
+    // Todo: What was this for?
   // }
 
-  // if(this->contains(&device)) return true; // Already added
+  if(this->contains(&device)) return true; // Already added
   if(this->contains(device.getFQA())) return true; // Already added
   
   unsigned int n = 0;
@@ -670,7 +678,7 @@ Device* DeviceGroup::operator()(const i2cip_fqa_t& fqa) {
     bool b = this->add(device);
     
     if(!b) {
-      // Serial.print('DGCALLOP');
+      Serial.println("MEGAFAIL");
       delete device;
       return nullptr;
     }

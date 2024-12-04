@@ -4,45 +4,54 @@
 #include <device.h>
 #include <debug.h>
 
+#ifndef eeprom_member_guard
 bool I2CIP::EEPROM::_id_set = false;
-char I2CIP::EEPROM::_id[I2CIP_ID_SIZE];
+char I2CIP::EEPROM::_id[I2CIP_ID_SIZE] = { '\0' };
 bool I2CIP::EEPROM::_failsafe_set;
 char I2CIP::EEPROM::_failsafe[I2CIP_EEPROM_SIZE];
 uint16_t I2CIP::EEPROM::_failsafe_b;
+#define eeprom_member_guard
+#endif
 
 using namespace I2CIP;
+
+void EEPROM::loadEEPROMID() {
+  uint8_t idlen = strlen_P(i2cip_eeprom_id_progmem);
+
+  #ifdef I2CIP_DEBUG_SERIAL
+    DEBUG_DELAY();
+    I2CIP_DEBUG_SERIAL.print(F("Loading EEPROM ID PROGMEM to Static Array @0x"));
+    I2CIP_DEBUG_SERIAL.print((uint16_t)(EEPROM::_id), HEX);
+    I2CIP_DEBUG_SERIAL.print(F(" ("));
+    I2CIP_DEBUG_SERIAL.print(idlen+1);
+    I2CIP_DEBUG_SERIAL.print(F(" bytes) '"));
+  #endif
+
+  // Read in PROGMEM
+  for (uint8_t k = 0; k < idlen; k++) {
+    char c = pgm_read_byte_near(i2cip_eeprom_id_progmem + k);
+    #ifdef I2CIP_DEBUG_SERIAL
+      DEBUG_SERIAL.print(c);
+    #endif
+    EEPROM::_id[k] = c;
+  }
+
+  EEPROM::_id[idlen] = '\0';
+  EEPROM::_id_set = true;
+}
 
 // Handles ID pointer assignment too
 // NEVER returns nullptr, unless out of memory
 Device* EEPROM::eepromFactory(const i2cip_fqa_t& fqa, const i2cip_id_t& id) {
-  if(!EEPROM::_id_set) {
-    uint8_t idlen = strlen_P(i2cip_eeprom_id_progmem);
-
-    #ifdef I2CIP_DEBUG_SERIAL
-      DEBUG_DELAY();
-      I2CIP_DEBUG_SERIAL.print(F("Loading EEPROM ID PROGMEM to Static Array @0x"));
-      I2CIP_DEBUG_SERIAL.print((uint16_t)(&(EEPROM::_id[0])), HEX);
-      I2CIP_DEBUG_SERIAL.print(F(" ("));
-      I2CIP_DEBUG_SERIAL.print(idlen+1);
-      I2CIP_DEBUG_SERIAL.print(F(" bytes) '"));
-    #endif
-
-    // Read in PROGMEM
-    for (uint8_t k = 0; k < idlen; k++) {
-      char c = pgm_read_byte_near(i2cip_eeprom_id_progmem + k);
-      #ifdef I2CIP_DEBUG_SERIAL
-        DEBUG_SERIAL.print(c);
-      #endif
-      EEPROM::_id[k] = c;
-    }
-
-    EEPROM::_id[idlen] = '\0';
-    EEPROM::_id_set = true;
+  if(EEPROM::_id_set != true || id == nullptr) {
+    loadEEPROMID();
 
     #ifdef I2CIP_DEBUG_SERIAL
       DEBUG_SERIAL.print("'\n");
       DEBUG_DELAY();
     #endif
+
+    return (Device*)(new EEPROM(fqa, (id == nullptr ? _id : id)));
   }
 
   return (Device*)(new EEPROM(fqa, id));
@@ -50,6 +59,7 @@ Device* EEPROM::eepromFactory(const i2cip_fqa_t& fqa, const i2cip_id_t& id) {
 
 Device* EEPROM::eepromFactory(const i2cip_fqa_t& fqa) { return eepromFactory(fqa, EEPROM::_id); }
 
+EEPROM::EEPROM(const i2cip_fqa_t& fqa) : EEPROM(fqa, _id) { }
 EEPROM::EEPROM(const i2cip_fqa_t& fqa, const i2cip_id_t& id) : Device(fqa, id), IOInterface<char*, uint16_t, const char*, uint16_t>((Device*)this) {
   #ifdef I2CIP_DEBUG_SERIAL
     DEBUG_DELAY();
@@ -249,7 +259,7 @@ i2cip_errorlevel_t EEPROM::get(char*& dest, const uint16_t& args) {
   #endif
 
   if(errlev == I2CIP_ERR_NONE) {
-    dest = this->readBuffer;
+    dest = (char*)this->readBuffer;
   }
   return errlev;
 }

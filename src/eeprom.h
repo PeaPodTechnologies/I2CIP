@@ -21,6 +21,7 @@
 namespace I2CIP {
 
   class Device;
+  class Module;
   template <typename G, typename A, typename S, typename B> class IOInterface;
 
   const char i2cip_eeprom_default[] PROGMEM = {I2CIP_EEPROM_DEFAULT};
@@ -40,11 +41,12 @@ namespace I2CIP {
   */
   class EEPROM : public Device, public IOInterface<char*, uint16_t, const char*, uint16_t> {
       // friend Device* I2CIP::eepromFactory(const i2cip_fqa_t& fqa);
-      // friend class Module;
       // friend class ControlSystemsOS::Linker; // Future-Proofing ;)
 
       EEPROM(const i2cip_fqa_t& fqa, const i2cip_id_t& id);
     private:
+      friend class Module;
+      EEPROM(const i2cip_fqa_t& fqa);
       static bool _id_set;
       static char _id[]; // to be loaded from progmem
 
@@ -53,11 +55,13 @@ namespace I2CIP {
       static uint16_t _failsafe_b;
 
       char readBuffer[I2CIP_EEPROM_SIZE+1] = { '\0' };
+
     public:
+      static void loadEEPROMID(void);
       static Device* eepromFactory(const i2cip_fqa_t& fqa, const i2cip_id_t& id);
       static Device* eepromFactory(const i2cip_fqa_t& fqa);
 
-      // ~EEPROM();
+      ~EEPROM();
 
       i2cip_errorlevel_t readContents(uint8_t* dest, size_t& num_read, size_t max_read = I2CIP_EEPROM_SIZE);
 
@@ -88,7 +92,9 @@ namespace I2CIP {
       void resetFailsafe(void) override;
       const uint16_t& getDefaultB(void) const override;
 
-      static const char* getStaticIDBuffer() { return EEPROM::_id; }
+      static const char* getStaticIDBuffer() { return EEPROM::_id_set ? EEPROM::_id : nullptr; }
+
+      // static const char* getStaticIDBuffer() { return EEPROM::_id; }
   };
 }
 
