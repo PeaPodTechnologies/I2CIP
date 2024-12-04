@@ -306,7 +306,7 @@ namespace I2CIP {
       /**
        * Gets the last recieved value.
       */
-      G getCache(void) const;
+      const G& getCache(void) const;
 
       /**
        * Sets the cache to the default "zero" value.
