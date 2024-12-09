@@ -18,23 +18,28 @@ using namespace I2CIP;
 void EEPROM::loadEEPROMID() {
   uint8_t idlen = strlen_P(i2cip_eeprom_id_progmem);
 
-  #ifdef I2CIP_DEBUG_SERIAL
-    DEBUG_DELAY();
-    I2CIP_DEBUG_SERIAL.print(F("Loading EEPROM ID PROGMEM to Static Array @0x"));
-    I2CIP_DEBUG_SERIAL.print((uint16_t)(EEPROM::_id), HEX);
-    I2CIP_DEBUG_SERIAL.print(F(" ("));
-    I2CIP_DEBUG_SERIAL.print(idlen+1);
-    I2CIP_DEBUG_SERIAL.print(F(" bytes) '"));
-  #endif
+  // #ifdef I2CIP_DEBUG_SERIAL
+  //   DEBUG_DELAY();
+  //   I2CIP_DEBUG_SERIAL.print(F("Loading EEPROM ID PROGMEM to Static Array @0x"));
+  //   I2CIP_DEBUG_SERIAL.print((uint16_t)(EEPROM::_id), HEX);
+  //   I2CIP_DEBUG_SERIAL.print(F(" ("));
+  //   I2CIP_DEBUG_SERIAL.print(idlen+1);
+  //   I2CIP_DEBUG_SERIAL.print(F(" bytes) '"));
+  // #endif
 
   // Read in PROGMEM
   for (uint8_t k = 0; k < idlen; k++) {
     char c = pgm_read_byte_near(i2cip_eeprom_id_progmem + k);
-    #ifdef I2CIP_DEBUG_SERIAL
-      DEBUG_SERIAL.print(c);
-    #endif
+    // #ifdef I2CIP_DEBUG_SERIAL
+    //   DEBUG_SERIAL.print(c);
+    // #endif
     EEPROM::_id[k] = c;
   }
+
+  // #ifdef I2CIP_DEBUG_SERIAL
+  //   DEBUG_SERIAL.print("'\n");
+  //   DEBUG_DELAY();
+  // #endif
 
   EEPROM::_id[idlen] = '\0';
   EEPROM::_id_set = true;
@@ -46,11 +51,6 @@ Device* EEPROM::eepromFactory(const i2cip_fqa_t& fqa, const i2cip_id_t& id) {
   if(EEPROM::_id_set != true || id == nullptr) {
     loadEEPROMID();
 
-    #ifdef I2CIP_DEBUG_SERIAL
-      DEBUG_SERIAL.print("'\n");
-      DEBUG_DELAY();
-    #endif
-
     return (Device*)(new EEPROM(fqa, (id == nullptr ? _id : id)));
   }
 
@@ -61,29 +61,29 @@ Device* EEPROM::eepromFactory(const i2cip_fqa_t& fqa) { return eepromFactory(fqa
 
 EEPROM::EEPROM(const i2cip_fqa_t& fqa) : EEPROM(fqa, _id) { }
 EEPROM::EEPROM(const i2cip_fqa_t& fqa, const i2cip_id_t& id) : Device(fqa, id), IOInterface<char*, uint16_t, const char*, uint16_t>((Device*)this) {
-  #ifdef I2CIP_DEBUG_SERIAL
-    DEBUG_DELAY();
-    I2CIP_DEBUG_SERIAL.print(F("EEPROM Constructed (ID '"));
-    I2CIP_DEBUG_SERIAL.print(this->id);
-    I2CIP_DEBUG_SERIAL.print(F("' @0x"));
-    I2CIP_DEBUG_SERIAL.print((uint16_t)&(this->id[0]), HEX);
-    I2CIP_DEBUG_SERIAL.print(F("; FQA "));
-    I2CIP_DEBUG_SERIAL.print(I2CIP_FQA_SEG_I2CBUS(fqa), HEX);
-    I2CIP_DEBUG_SERIAL.print(F(":"));
-    I2CIP_DEBUG_SERIAL.print(I2CIP_FQA_SEG_MODULE(fqa), HEX);
-    I2CIP_DEBUG_SERIAL.print(F(":"));
-    I2CIP_DEBUG_SERIAL.print(I2CIP_FQA_SEG_MUXBUS(fqa), HEX);
-    I2CIP_DEBUG_SERIAL.print(F(":"));
-    I2CIP_DEBUG_SERIAL.print(I2CIP_FQA_SEG_DEVADR(fqa), HEX);
-    I2CIP_DEBUG_SERIAL.print(F(")\n"));
-    DEBUG_DELAY();
-  #endif
+  // #ifdef I2CIP_DEBUG_SERIAL
+  //   DEBUG_DELAY();
+  //   I2CIP_DEBUG_SERIAL.print(F("EEPROM Constructed (ID '"));
+  //   I2CIP_DEBUG_SERIAL.print(this->id);
+  //   I2CIP_DEBUG_SERIAL.print(F("' @0x"));
+  //   I2CIP_DEBUG_SERIAL.print((uint16_t)&(this->id[0]), HEX);
+  //   I2CIP_DEBUG_SERIAL.print(F("; FQA "));
+  //   I2CIP_DEBUG_SERIAL.print(I2CIP_FQA_SEG_I2CBUS(fqa), HEX);
+  //   I2CIP_DEBUG_SERIAL.print(F(":"));
+  //   I2CIP_DEBUG_SERIAL.print(I2CIP_FQA_SEG_MODULE(fqa), HEX);
+  //   I2CIP_DEBUG_SERIAL.print(F(":"));
+  //   I2CIP_DEBUG_SERIAL.print(I2CIP_FQA_SEG_MUXBUS(fqa), HEX);
+  //   I2CIP_DEBUG_SERIAL.print(F(":"));
+  //   I2CIP_DEBUG_SERIAL.print(I2CIP_FQA_SEG_DEVADR(fqa), HEX);
+  //   I2CIP_DEBUG_SERIAL.print(F(")\n"));
+  //   DEBUG_DELAY();
+  // #endif
 }
 
 EEPROM::~EEPROM() {
   #ifdef I2CIP_DEBUG_SERIAL
     DEBUG_DELAY();
-    I2CIP_DEBUG_SERIAL.print(F("EEPROM Destructed (ID '"));
+    I2CIP_DEBUG_SERIAL.print(F("~EEPROM (ID '"));
     I2CIP_DEBUG_SERIAL.print(this->id);
     I2CIP_DEBUG_SERIAL.print(F("' @0x"));
     I2CIP_DEBUG_SERIAL.print((uint16_t)&(this->id[0]), HEX);
@@ -217,13 +217,13 @@ i2cip_errorlevel_t EEPROM::get(char*& dest, const uint16_t& args) {
   size_t len = args == 0 ? I2CIP_EEPROM_SIZE-1 : args;
   uint8_t buffer[len];
 
-  #ifdef I2CIP_DEBUG_SERIAL
-    DEBUG_DELAY();
-    I2CIP_DEBUG_SERIAL.print(F("EEPROM Get (up to "));
-    I2CIP_DEBUG_SERIAL.print(len);
-    I2CIP_DEBUG_SERIAL.print(F(" bytes)\n"));
-    DEBUG_DELAY();
-  #endif
+  // #ifdef I2CIP_DEBUG_SERIAL
+  //   DEBUG_DELAY();
+  //   I2CIP_DEBUG_SERIAL.print(F("EEPROM Get (up to "));
+  //   I2CIP_DEBUG_SERIAL.print(len);
+  //   I2CIP_DEBUG_SERIAL.print(F(" bytes)\n"));
+  //   DEBUG_DELAY();
+  // #endif
 
   i2cip_errorlevel_t errlev = readRegister((uint16_t)0, buffer, len);
   I2CIP_ERR_BREAK(errlev);

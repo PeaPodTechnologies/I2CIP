@@ -65,7 +65,9 @@ i2cip_errorlevel_t Device::ping(const i2cip_fqa_t& fqa, bool resetbus) {
   // Begin transmission
   #ifdef I2CIP_DEBUG_SERIAL
     DEBUG_DELAY();
-    I2CIP_DEBUG_SERIAL.print(F("Ping... "));
+    I2CIP_DEBUG_SERIAL.print(F("Ping 0x"));
+    I2CIP_DEBUG_SERIAL.print(I2CIP_FQA_SEG_DEVADR(fqa), HEX);
+    I2CIP_DEBUG_SERIAL.print(F("... "));
   #endif
 
   I2CIP_FQA_TO_WIRE(fqa)->beginTransmission(I2CIP_FQA_SEG_DEVADR(fqa));
@@ -507,27 +509,46 @@ DeviceGroup::DeviceGroup(const i2cip_id_t& key, factory_device_t factory) : key(
     devices[i] = nullptr;
   }
 
-  #ifdef I2CIP_DEBUG_SERIAL
-    DEBUG_DELAY();
-    I2CIP_DEBUG_SERIAL.print(F("Constructed DeviceGroup('"));
-    I2CIP_DEBUG_SERIAL.print(key);
-    I2CIP_DEBUG_SERIAL.print(F("' @0x"));
-    I2CIP_DEBUG_SERIAL.print((uint16_t)key, HEX);
-    I2CIP_DEBUG_SERIAL.print(F(", Device* (*)(fqa) @0x"));
-    I2CIP_DEBUG_SERIAL.print((uint16_t)factory, HEX);
-    I2CIP_DEBUG_SERIAL.print(F(")\n"));
-    DEBUG_DELAY();
-  #endif
+  // #ifdef I2CIP_DEBUG_SERIAL
+  //   DEBUG_DELAY();
+  //   I2CIP_DEBUG_SERIAL.print(F("Constructed DeviceGroup('"));
+  //   I2CIP_DEBUG_SERIAL.print(key);
+  //   I2CIP_DEBUG_SERIAL.print(F("' @0x"));
+  //   I2CIP_DEBUG_SERIAL.print((uint16_t)key, HEX);
+  //   I2CIP_DEBUG_SERIAL.print(F(", Device* (*)(fqa) @0x"));
+  //   I2CIP_DEBUG_SERIAL.print((uint16_t)factory, HEX);
+  //   I2CIP_DEBUG_SERIAL.print(F(")\n"));
+  //   DEBUG_DELAY();
+  // #endif
 }
 
 DeviceGroup::~DeviceGroup(void) { 
   #ifdef I2CIP_DEBUG_SERIAL
     DEBUG_DELAY();
-    I2CIP_DEBUG_SERIAL.print(F("~DeviceGroup"));
+    I2CIP_DEBUG_SERIAL.print(F("~DeviceGroup (ID '"));
+    I2CIP_DEBUG_SERIAL.print(this->key);
+    I2CIP_DEBUG_SERIAL.print(F("' @0x"));
+    I2CIP_DEBUG_SERIAL.print((uint16_t)this->key, HEX);
+    I2CIP_DEBUG_SERIAL.print(F(" ["));
     DEBUG_DELAY();
   #endif
   for(uint8_t i = 0; i < I2CIP_DEVICES_PER_GROUP; i++) {
     if(devices[i] != nullptr) {
+      #ifdef I2CIP_DEBUG_SERIAL
+        i2cip_fqa_t fqa = devices[i]->getFQA();
+        DEBUG_DELAY();
+        I2CIP_DEBUG_SERIAL.print(I2CIP_FQA_SEG_I2CBUS(fqa), HEX);
+        I2CIP_DEBUG_SERIAL.print(':');
+        I2CIP_DEBUG_SERIAL.print(I2CIP_FQA_SEG_DEVADR(fqa), HEX);
+        I2CIP_DEBUG_SERIAL.print(':');
+        I2CIP_DEBUG_SERIAL.print(I2CIP_FQA_SEG_MODULE(fqa), HEX);
+        I2CIP_DEBUG_SERIAL.print(':');
+        I2CIP_DEBUG_SERIAL.print(I2CIP_FQA_SEG_DEVADR(fqa), HEX);
+        I2CIP_DEBUG_SERIAL.print(F(" @0x"));
+        I2CIP_DEBUG_SERIAL.print((uint16_t)devices[i], HEX);
+        if ((I2CIP_DEVICES_PER_GROUP - i) > 0x1) I2CIP_DEBUG_SERIAL.print(F(", "));
+        DEBUG_DELAY();
+      #endif
       delete devices[i];
     }
   }

@@ -15,10 +15,16 @@ namespace I2CIP {
         I2CIP_DEBUG_SERIAL.print(m, HEX);
         I2CIP_DEBUG_SERIAL.print(F(" PING WRITE {"));
         I2CIP_DEBUG_SERIAL.print(I2CIP_MODULE_TO_MUXADDR(m), HEX);
-        I2CIP_DEBUG_SERIAL.println(F("}... "));
+        I2CIP_DEBUG_SERIAL.print(F("}... "));
       #endif
       wires[wire]->beginTransmission(I2CIP_MODULE_TO_MUXADDR(m));
-      return (wires[wire]->endTransmission() == 0);
+      // return (wires[wire]->endTransmission() == 0);
+      bool r = (wires[wire]->endTransmission() == 0);
+      #ifdef I2CIP_DEBUG_SERIAL
+        if(r) { I2CIP_DEBUG_SERIAL.println(F("PONG")); }
+        else { I2CIP_DEBUG_SERIAL.println(F("FAIL")); }
+      #endif
+      return r;
     }
 
     bool pingMUX(const i2cip_fqa_t& fqa) {
