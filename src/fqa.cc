@@ -22,9 +22,9 @@ void I2CIP::beginWire(const uint8_t& wire) {
     wiresBegun[wire] = true;
     #ifdef I2CIP_DEBUG_SERIAL
       DEBUG_DELAY();
-      I2CIP_DEBUG_SERIAL.print(F("-> Wire "));
+      I2CIP_DEBUG_SERIAL.print(F("-> I2C WIRE "));
       I2CIP_DEBUG_SERIAL.print(wire);
-      I2CIP_DEBUG_SERIAL.println(F(" Begin"));
+      I2CIP_DEBUG_SERIAL.println(F(" BEGIN"));
       DEBUG_DELAY();
     #endif
   }

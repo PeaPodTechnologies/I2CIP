@@ -141,7 +141,7 @@ namespace I2CIP {
        * @param len Number of bytes to read (Default: `1`)
        * @param setbus Should the MUX be reset? (Default: `true`)
        */
-      static i2cip_errorlevel_t read(const i2cip_fqa_t& fqa, uint8_t* dest, size_t& len, bool nullterminate = true, bool resetbus = true, bool setbus = true);
+      static i2cip_errorlevel_t read(const i2cip_fqa_t& fqa, uint8_t* dest, size_t& len, bool nullterminate = false, bool resetbus = true, bool setbus = true);
 
       /**
        * Read one byte of data from the device.
@@ -163,9 +163,9 @@ namespace I2CIP {
        */
       static i2cip_errorlevel_t readWord(const i2cip_fqa_t& fqa, uint16_t& dest, bool resetbus = true, bool setbus = true);
 
-      static i2cip_errorlevel_t readRegister(const i2cip_fqa_t& fqa, const uint8_t& reg, uint8_t* dest, size_t& len, bool nullterminate = true, bool resetbus = true, bool setbus = true);
+      static i2cip_errorlevel_t readRegister(const i2cip_fqa_t& fqa, const uint8_t& reg, uint8_t* dest, size_t& len, bool nullterminate = false, bool resetbus = true, bool setbus = true);
 
-      static i2cip_errorlevel_t readRegister(const i2cip_fqa_t& fqa, const uint16_t& reg, uint8_t* dest, size_t& len, bool nullterminate = true, bool resetbus = true, bool setbus = true);
+      static i2cip_errorlevel_t readRegister(const i2cip_fqa_t& fqa, const uint16_t& reg, uint8_t* dest, size_t& len, bool nullterminate = false, bool resetbus = true, bool setbus = true);
       
 
       /**
@@ -231,11 +231,11 @@ namespace I2CIP {
       i2cip_errorlevel_t writeRegister(const uint16_t& reg, const uint8_t& value, bool setbus = true);
       i2cip_errorlevel_t writeRegister(const uint8_t& reg, uint8_t* buffer, size_t len = 1, bool setbus = true);
       i2cip_errorlevel_t writeRegister(const uint16_t& reg, uint8_t* buffer, size_t len = 1, bool setbus = true);
-      i2cip_errorlevel_t read(uint8_t* dest, size_t& len, bool nullterminate = true, bool resetbus = true, bool setbus = true);
+      i2cip_errorlevel_t read(uint8_t* dest, size_t& len, bool nullterminate = false, bool resetbus = true, bool setbus = true);
       i2cip_errorlevel_t readByte(uint8_t& dest, bool resetbus = true, bool setbus = true);
       i2cip_errorlevel_t readWord(uint16_t& dest, bool resetbus = true, bool setbus = true);
-      i2cip_errorlevel_t readRegister(const uint8_t& reg, uint8_t* dest, size_t& len, bool nullterminate = true, bool resetbus = true, bool setbus = true);
-      i2cip_errorlevel_t readRegister(const uint16_t& reg, uint8_t* dest, size_t& len, bool nullterminate = true, bool resetbus = true, bool setbus = true);
+      i2cip_errorlevel_t readRegister(const uint8_t& reg, uint8_t* dest, size_t& len, bool nullterminate = false, bool resetbus = true, bool setbus = true);
+      i2cip_errorlevel_t readRegister(const uint16_t& reg, uint8_t* dest, size_t& len, bool nullterminate = false, bool resetbus = true, bool setbus = true);
       i2cip_errorlevel_t readRegisterByte(const uint8_t& reg, uint8_t& dest, bool resetbus = true, bool setbus = true);
       i2cip_errorlevel_t readRegisterByte(const uint16_t& reg, uint8_t& dest, bool resetbus = true, bool setbus = true);
       i2cip_errorlevel_t readRegisterWord(const uint8_t& reg, uint16_t& dest, bool resetbus = true, bool setbus = true);

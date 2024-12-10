@@ -160,7 +160,7 @@ i2cip_errorlevel_t Module::discoverEEPROM(bool recurse) {
   // I2CIP_ERR_BREAK(MUX::resetBus(this->eeprom->getFQA()));
 
   if(errlev != I2CIP_ERR_NONE || eeprom->getCache() == nullptr) {
-    if (recurse) {
+    if (errlev == I2CIP_ERR_SOFT && recurse) {
       // BAD EEPROM CONTENT - OVERWRITE WITH FAILSAFE
       #ifdef I2CIP_DEBUG_SERIAL
         DEBUG_DELAY();
@@ -973,16 +973,16 @@ i2cip_errorlevel_t Module::operator()(const i2cip_fqa_t& fqa, bool update, bool 
     I2CIP_DEBUG_SERIAL.print(I2CIP_FQA_SEG_MUXBUS(fqa), HEX);
     I2CIP_DEBUG_SERIAL.print(':');
     I2CIP_DEBUG_SERIAL.print(I2CIP_FQA_SEG_DEVADR(fqa), HEX);
-    I2CIP_DEBUG_SERIAL.print(") ");
+    I2CIP_DEBUG_SERIAL.println(")");
     DEBUG_DELAY();
   #endif
 
   // 2. Device check
   Device* device = this->operator[](fqa);
-  if(device == nullptr) { 
+  if(device == nullptr) {
     #ifdef I2CIP_DEBUG_SERIAL
       DEBUG_DELAY();
-      I2CIP_DEBUG_SERIAL.print(F("-> Device Not Found!\n"));
+      I2CIP_DEBUG_SERIAL.println(F("-> Device Not Found!\n"));
       DEBUG_DELAY();
     #endif
     return I2CIP_ERR_SOFT;
