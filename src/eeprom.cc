@@ -222,7 +222,8 @@ i2cip_errorlevel_t EEPROM::get(char*& dest, const uint16_t& args) {
     DEBUG_DELAY();
   #endif
 
-  i2cip_errorlevel_t errlev = readRegister((uint16_t)0, buffer, len);
+  i2cip_errorlevel_t errlev = readRegister((uint16_t)0, buffer, len, true);
+  I2CIP_ERR_BREAK(errlev);
 
   #ifdef I2CIP_DEBUG_SERIAL
     DEBUG_DELAY();
@@ -230,8 +231,6 @@ i2cip_errorlevel_t EEPROM::get(char*& dest, const uint16_t& args) {
     I2CIP_DEBUG_SERIAL.print(F("+'\\0' bytes read from EEPROM\n"));
     DEBUG_DELAY();
   #endif
-
-  I2CIP_ERR_BREAK(errlev);
 
   if(len == 0) return I2CIP_ERR_SOFT;
 
