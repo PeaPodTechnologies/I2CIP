@@ -38,19 +38,19 @@ template <typename G, typename A> void InputInterface<G, A>::setArgsA(A args) { 
 template <typename G, typename A> A InputInterface<G, A>::getArgsA(void) const { return this->argsA; }
 
 template <typename G, typename A> i2cip_errorlevel_t InputInterface<G, A>::get(const void* args) { 
-  #ifdef I2CIP_DEBUG_SERIAL
-    DEBUG_DELAY();
-    I2CIP_DEBUG_SERIAL.print(F("InputInterface::get("));
-    if(args == &InputGetter::failptr_get) I2CIP_DEBUG_SERIAL.print(F("fail"));
-    else if(args == nullptr) I2CIP_DEBUG_SERIAL.print(F("null"));
-    else { 
-      // I2CIP_DEBUG_SERIAL.print(*(A* const)args); // This line is EXPERIMENTAL
-      I2CIP_DEBUG_SERIAL.print(F(" @0x"));
-      I2CIP_DEBUG_SERIAL.print((uint16_t)args, HEX);
-    }
-    I2CIP_DEBUG_SERIAL.print(F(")\n"));
-    DEBUG_DELAY();
-  #endif
+  // #ifdef I2CIP_DEBUG_SERIAL
+  //   DEBUG_DELAY();
+  //   I2CIP_DEBUG_SERIAL.print(F("-> InputInterface::get("));
+  //   if(args == &InputGetter::failptr_get) I2CIP_DEBUG_SERIAL.print(F("fail"));
+  //   else if(args == nullptr) I2CIP_DEBUG_SERIAL.print(F("null"));
+  //   else { 
+  //     // I2CIP_DEBUG_SERIAL.print(*(A* const)args); // This line is EXPERIMENTAL
+  //     I2CIP_DEBUG_SERIAL.print(F(" @0x"));
+  //     I2CIP_DEBUG_SERIAL.print((ptrdiff_t)args, HEX);
+  //   }
+  //   I2CIP_DEBUG_SERIAL.print(F(")\n"));
+  //   DEBUG_DELAY();
+  // #endif
 
   if (args == &InputGetter::failptr_get) this->clearCache();
   G temp = this->cache;
@@ -94,27 +94,27 @@ template <typename S, typename B> void OutputInterface<S, B>::setArgsB(B args) {
 template <typename S, typename B> B OutputInterface<S, B>::getArgsB(void) const { return this->argsB; }
 
 template <typename S, typename B> i2cip_errorlevel_t OutputInterface<S, B>::set(const void* value, const void* args) {
-  #ifdef I2CIP_DEBUG_SERIAL
-    DEBUG_DELAY();
-    I2CIP_DEBUG_SERIAL.print(F("OutputInterface::set("));
-    if(value == &OutputSetter::failptr_set) I2CIP_DEBUG_SERIAL.print(F("fail"));
-    else if(value == nullptr) I2CIP_DEBUG_SERIAL.print(F("null"));
-    else { 
-      I2CIP_DEBUG_SERIAL.print(*(S* const)value);
-      I2CIP_DEBUG_SERIAL.print(F(" @0x"));
-      I2CIP_DEBUG_SERIAL.print((uint16_t)value, HEX);
-    }
-    I2CIP_DEBUG_SERIAL.print(F(", "));
-    if(args == &OutputSetter::failptr_set) I2CIP_DEBUG_SERIAL.print(F("fail"));
-    else if(args == nullptr) I2CIP_DEBUG_SERIAL.print(F("null"));
-    else { 
-      I2CIP_DEBUG_SERIAL.print(*(B* const)args);
-      I2CIP_DEBUG_SERIAL.print(F(" @0x"));
-      I2CIP_DEBUG_SERIAL.print((uint16_t)args, HEX);
-    }
-    I2CIP_DEBUG_SERIAL.print(F(")\n"));
-    DEBUG_DELAY();
-  #endif
+  // #ifdef I2CIP_DEBUG_SERIAL
+  //   DEBUG_DELAY();
+  //   I2CIP_DEBUG_SERIAL.print(F("OutputInterface::set("));
+  //   if(value == &OutputSetter::failptr_set) I2CIP_DEBUG_SERIAL.print(F("fail"));
+  //   else if(value == nullptr) I2CIP_DEBUG_SERIAL.print(F("null"));
+  //   else { 
+  //     I2CIP_DEBUG_SERIAL.print(*(S* const)value);
+  //     I2CIP_DEBUG_SERIAL.print(F(" @0x"));
+  //     I2CIP_DEBUG_SERIAL.print((uintptr_t)value, HEX);
+  //   }
+  //   I2CIP_DEBUG_SERIAL.print(F(", "));
+  //   if(args == &OutputSetter::failptr_set) I2CIP_DEBUG_SERIAL.print(F("fail"));
+  //   else if(args == nullptr) I2CIP_DEBUG_SERIAL.print(F("null"));
+  //   else { 
+  //     I2CIP_DEBUG_SERIAL.print(*(B* const)args);
+  //     I2CIP_DEBUG_SERIAL.print(F(" @0x"));
+  //     I2CIP_DEBUG_SERIAL.print((uintptr_t)args, HEX);
+  //   }
+  //   I2CIP_DEBUG_SERIAL.print(F(")\n"));
+  //   DEBUG_DELAY();
+  // #endif
 
   // If fail, reset to failsafe value
   if (value == &OutputSetter::failptr_set) this->resetFailsafe();

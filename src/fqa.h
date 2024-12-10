@@ -46,17 +46,16 @@ typedef const char* i2cip_id_t;
 #define I2CIP_MAXBUFFER 32  // I2C buffer size
 #define I2CIP_NUM_WIRES 1   // Number of I2C wires - TODO: autodetect and populate `wires[]` based on hardware spec macros
 
+extern TwoWire Wire;
+extern bool wiresBegun[];
+
+static TwoWire* const wires[I2CIP_NUM_WIRES] = { &Wire };
+
 #define I2CIP_FQA_TO_WIRE(fqa) (wires[I2CIP_FQA_SEG_I2CBUS(fqa)])
 
 #define I2CIP_ERR_BREAK(errlev) if((errlev) != I2CIP::I2CIP_ERR_NONE) { return (errlev); }
 
-extern TwoWire Wire;
-
 namespace I2CIP {
-
-  extern TwoWire* const wires[];
-  extern bool wiresBegun[];
-
   /**
    * Errorlevels for I2CIP communication.
    */

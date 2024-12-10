@@ -19,10 +19,17 @@ namespace I2CIP {
       #endif
       wires[wire]->beginTransmission(I2CIP_MODULE_TO_MUXADDR(m));
       // return (wires[wire]->endTransmission() == 0);
-      bool r = (wires[wire]->endTransmission() == 0);
+      bool r = (wires[wire]->endTransmission(true) == 0);
       #ifdef I2CIP_DEBUG_SERIAL
-        if(r) { I2CIP_DEBUG_SERIAL.println(F("PONG")); }
-        else { I2CIP_DEBUG_SERIAL.println(F("FAIL")); }
+        if(r) {
+          DEBUG_DELAY();
+          I2CIP_DEBUG_SERIAL.println(F("PONG!"));
+          DEBUG_DELAY();
+        } else {
+          DEBUG_DELAY();
+          I2CIP_DEBUG_SERIAL.println(F("FAIL!"));
+          DEBUG_DELAY();
+        }
       #endif
       return r;
     }
@@ -44,7 +51,7 @@ namespace I2CIP {
         I2CIP_DEBUG_SERIAL.print(I2CIP_MODULE_TO_MUXADDR(I2CIP_FQA_SEG_MODULE(fqa)), HEX);
         I2CIP_DEBUG_SERIAL.print(F(", "));
         I2CIP_DEBUG_SERIAL.print(I2CIP_MUX_BUS_TO_INSTR(I2CIP_FQA_SEG_MUXBUS(fqa)), HEX);
-        I2CIP_DEBUG_SERIAL.println(F("}... "));
+        I2CIP_DEBUG_SERIAL.print(F("}... "));
       #endif
 
       // Was the bus switched successfully?
@@ -65,7 +72,7 @@ namespace I2CIP {
       }
 
       // End transmission
-      if (I2CIP_FQA_TO_WIRE(fqa)->endTransmission() != 0) {
+      if (I2CIP_FQA_TO_WIRE(fqa)->endTransmission(true) != 0) {
         #ifdef I2CIP_DEBUG_SERIAL
           I2CIP_DEBUG_SERIAL.print(F("MUX Transmission Failed\n"));
           DEBUG_DELAY();
@@ -95,7 +102,7 @@ namespace I2CIP {
       }
 
       // End transmission
-      if (I2CIP_FQA_TO_WIRE(fqa)->endTransmission() != 0) {
+      if (I2CIP_FQA_TO_WIRE(fqa)->endTransmission(true) != 0) {
         return I2CIP_ERR_HARD;
       }
 

@@ -50,7 +50,7 @@ namespace I2CIP {
       Module(const uint8_t& wire, const uint8_t& module, const uint8_t& eeprom_addr = I2CIP_EEPROM_ADDR);
       Module(const i2cip_fqa_t& eeprom_fqa);
       
-      virtual ~Module();
+      ~Module();
 
       uint8_t getWireNum(void) const;
       uint8_t getModuleNum(void) const;
@@ -81,7 +81,7 @@ namespace I2CIP {
        * @param recurse {bool} - Whether to recursively parse EEPROM or not
        * @returns `false` IFF fail to add EEPROM | failed to ping EEPROM | failed to parse EEPROM; `true` otherwise
       */
-      bool discover(bool recurse = true);
+      i2cip_errorlevel_t discoverEEPROM(bool recurse = true);
       virtual bool parseEEPROMContents(const char* contents);
       bool add(Device& device, bool overwrite = false);
       bool add(Device* device, bool overwrite = false);
@@ -109,6 +109,10 @@ namespace I2CIP {
       void remove(Device* device, bool del = true);
 
       inline operator const EEPROM&() const { return *this->eeprom; }
+    
+    protected:
+      i2cip_errorlevel_t operator()(Device& d, bool update = false, bool fail = false);
+      i2cip_errorlevel_t operator()(Device* d, bool update = false, bool fail = false);
   };
 };
 
