@@ -17,7 +17,7 @@ using I2CIP::InputInterface;
 using I2CIP::OutputInterface;
 using I2CIP::IOInterface;
 
-template <typename G, typename A> InputInterface<G, A>::InputInterface(Device* device) { if(device == nullptr) device->setInput(this); }
+template <typename G, typename A> InputInterface<G, A>::InputInterface(Device* device) { if(device != nullptr) device->setInput(this); }
 
 template <typename G, typename A> InputInterface<G, A>::~InputInterface() { }
 
@@ -73,7 +73,7 @@ template <typename G, typename A> i2cip_errorlevel_t InputInterface<G, A>::get(c
   return errlev;
 }
 
-template <typename S, typename B> OutputInterface<S, B>::OutputInterface(Device* device) { if(device == nullptr) device->setOutput(this); }
+template <typename S, typename B> OutputInterface<S, B>::OutputInterface(Device* device) { if(device != nullptr) device->setOutput(this); }
 
 template <typename S, typename B> OutputInterface<S, B>::~OutputInterface() { }
 

@@ -92,9 +92,9 @@ namespace I2CIP {
       void resetFailsafe(void) override;
       const uint16_t& getDefaultB(void) const override;
 
-      static const char* getStaticIDBuffer() { return EEPROM::_id_set ? EEPROM::_id : nullptr; }
+      // static const char* getStaticIDBuffer() { return EEPROM::_id_set ? EEPROM::_id : nullptr; }
 
-      // static const char* getStaticIDBuffer() { return EEPROM::_id; }
+      static const char* getStaticIDBuffer() { return EEPROM::_id; }
   };
 }
 

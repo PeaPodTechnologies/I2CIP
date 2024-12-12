@@ -27,6 +27,8 @@
 namespace I2CIP {
 
   class Module;
+  template <typename G, typename A> class InputInterface;
+  template <typename S, typename B> class OutputInterface;
 
   // typedef enum { I2CIP_ITYPE_NULL = 0b00, I2CIP_ITYPE_INPUT = 0b01, I2CIP_ITYPE_OUTPUT = 0b10, I2CIP_ITYPE_IO = 0b11 } i2cip_itype_t;
 
@@ -62,6 +64,11 @@ namespace I2CIP {
       // // Set by public API, deleted on deconstruction
       InputGetter* input = nullptr;
       OutputSetter* output = nullptr;
+
+      void setInput(InputGetter* input);
+      void setOutput(OutputSetter* output);
+      template <typename G, typename A> friend class InputInterface;
+      template <typename S, typename B> friend class OutputInterface;
 
       Device(const i2cip_fqa_t& fqa, i2cip_id_t id);
 
@@ -206,9 +213,6 @@ namespace I2CIP {
 
     public:
       virtual ~Device() = 0;
-
-      void setInput(InputGetter* input);
-      void setOutput(OutputSetter* output);
 
       void removeInput(void);
       void removeOutput(void);

@@ -104,6 +104,8 @@ i2cip_errorlevel_t Module::discoverEEPROM(bool recurse) {
     DEBUG_DELAY();
   #endif
 
+  // 1. EEPROM MODULE OOP
+
   if(!this->eeprom_added) { 
     EEPROM::loadEEPROMID(); // THIS IS COCONUT.PNG DO NOT ALTER
     #ifdef I2CIP_DEBUG_SERIAL
@@ -131,7 +133,7 @@ i2cip_errorlevel_t Module::discoverEEPROM(bool recurse) {
 
     Device** temp = this->devices_fqabst[this->eeprom->getFQA()];
     // r = (temp != nullptr && *temp == this->eeprom);
-    r = (temp != nullptr && strcmp((*temp)->getID(), EEPROM::getStaticIDBuffer()) == 0);
+    r = (temp != nullptr && *temp != nullptr && EEPROM::getStaticIDBuffer() != nullptr && EEPROM::getStaticIDBuffer()[0] != '\0' && strcmp((*temp)->getID(), EEPROM::getStaticIDBuffer()) == 0);
 
     if(!r) {
       #ifdef I2CIP_DEBUG_SERIAL
@@ -148,18 +150,20 @@ i2cip_errorlevel_t Module::discoverEEPROM(bool recurse) {
     this->eeprom_added = true;
   }
 
-  // Set Bus
-  // i2cip_errorlevel_t errlev = MUX::setBus(this->eeprom->getFQA());
-  // I2CIP_ERR_BREAK(errlev);
+  // 2. SELF CHECK MUX & EEPROM
 
-  // Read EEPROM
+  i2cip_errorlevel_t errlev = this->operator()();
+  I2CIP_ERR_BREAK(errlev);
+
+  // 3. READ EEPROM CONTENTS
+  if(eeprom == nullptr || eeprom->getInput() == nullptr) return I2CIP_ERR_HARD; // REBUILD PLZ
   const uint16_t len = I2CIP_EEPROM_SIZE;
-  i2cip_errorlevel_t errlev = eeprom->getInput()->get(&len);
+  errlev = eeprom->getInput()->get(&len);
   // i2cip_errorlevel_t errlev = eeprom->getInput()->failGet();
   // eeprom->readContents(buf, len, I2CIP_EEPROM_SIZE);
   // I2CIP_ERR_BREAK(MUX::resetBus(this->eeprom->getFQA()));
 
-  if(errlev != I2CIP_ERR_NONE || eeprom->getCache() == nullptr) {
+  if(errlev != I2CIP_ERR_NONE || eeprom->getCache() == nullptr || eeprom->getCache()[0] == '\0') {
     if (errlev == I2CIP_ERR_SOFT && recurse) {
       // BAD EEPROM CONTENT - OVERWRITE WITH FAILSAFE
       #ifdef I2CIP_DEBUG_SERIAL
@@ -815,7 +819,7 @@ i2cip_errorlevel_t Module::operator()(void) {
   }
 
   // 3. Ping EEPROM until ready
-  return this->eeprom->pingTimeout(true, false);
+  return this->eeprom->pingTimeout(true, true, I2CIP_EEPROM_TIMEOUT);
 }
 
 i2cip_errorlevel_t Module::operator()(Device& d, bool update, bool fail) { return this->operator()(&d, update, fail); }
@@ -911,6 +915,18 @@ i2cip_errorlevel_t Module::operator()(Device* d, bool update, bool fail) { // et
   //   return I2CIP_ERR_SOFT;
   // }
   i2cip_errorlevel_t errlev;
+  // errlev = d->pingTimeout(true, false);
+  // #ifdef I2CIP_DEBUG_SERIAL
+  //   DEBUG_DELAY();
+  //   if (errlev == I2CIP_ERR_NONE) { 
+  //     I2CIP_DEBUG_SERIAL.print(F("Alive!"));
+  //   } else {
+  //     I2CIP_DEBUG_SERIAL.print(F("Dead!"));
+  //   }
+  //   DEBUG_DELAY();
+  // #endif
+  // I2CIP_ERR_BREAK(errlev);
+
   if(update) {
     errlev = MUX::setBus(fqa);
     I2CIP_ERR_BREAK(errlev);
@@ -940,7 +956,8 @@ i2cip_errorlevel_t Module::operator()(Device* d, bool update, bool fail) { // et
       errlev = fail ? d->getInput()->failGet() : d->getInput()->get();
       I2CIP_ERR_BREAK(errlev);
     }
-  } else {
+  } 
+  else {
     // Just Ping
     errlev = d->pingTimeout(true);
 

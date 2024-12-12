@@ -14,6 +14,8 @@
 #define I2CIP_FQA_MODULE_MATCH(fqa, wire, module) (bool)(I2CIP_FQA_SEG_I2CBUS(fqa) == (wire) && I2CIP_FQA_SEG_MODULE(fqa) == (module))
 #define I2CIP_FQA_BUSADR_MATCH(fqa, bus, addr) (bool)(I2CIP_FQA_SEG_MUXBUS(fqa) == (bus) && I2CIP_FQA_SEG_DEVADR(fqa) == (addr))
 
+#define I2CIP_DELAY() delayMicroseconds(10)
+
 namespace I2CIP {
 
   // BST of device IDs by FQA
