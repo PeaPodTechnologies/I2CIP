@@ -8,7 +8,7 @@
 
 using namespace I2CIP;
 
-uint8_t requestFromRegister(i2cip_fqa_t fqa, uint8_t len, uint8_t reg, uint8_t sendStop = true) {
+uint8_t requestFromRegister(i2cip_fqa_t fqa, uint8_t len, uint8_t reg, bool sendStop = true) {
   // send internal address; this mode allows sending a repeated start to access
   // some devices' internal registers. This function is executed by the hardware
   // TWI module on other processors (for example Due's TWI_IADR and TWI_MMR registers)
@@ -19,7 +19,7 @@ uint8_t requestFromRegister(i2cip_fqa_t fqa, uint8_t len, uint8_t reg, uint8_t s
     I2CIP_DEBUG_SERIAL.print(len);
     I2CIP_DEBUG_SERIAL.print(F(" BYTES FROM 0x"));
     I2CIP_DEBUG_SERIAL.print(I2CIP_FQA_SEG_DEVADR(fqa), HEX);
-    I2CIP_DEBUG_SERIAL.print(F(" @0x"));
+    I2CIP_DEBUG_SERIAL.print(F(" REG(1) 0x"));
     I2CIP_DEBUG_SERIAL.println(reg, HEX);
     DEBUG_DELAY();
   #endif
@@ -29,12 +29,14 @@ uint8_t requestFromRegister(i2cip_fqa_t fqa, uint8_t len, uint8_t reg, uint8_t s
   // write internal register address - most significant byte first
   if(I2CIP_FQA_TO_WIRE(fqa)->write(reg) != 1) return 0;
   
-  if(I2CIP_FQA_TO_WIRE(fqa)->endTransmission(false) != 0) return 0;
+  if(I2CIP_FQA_TO_WIRE(fqa)->endTransmission(sendStop) != 0) return 0;
 
-  return I2CIP_FQA_TO_WIRE(fqa)->requestFrom(I2CIP_FQA_SEG_DEVADR(fqa), (uint8_t)len, sendStop);
+  if(sendStop) delayMicroseconds(10); // delay for some devices (one frame at standard 100kHz)
+
+  return I2CIP_FQA_TO_WIRE(fqa)->requestFrom(I2CIP_FQA_SEG_DEVADR(fqa), (uint8_t)len, sendStop ? (uint8_t)1 : (uint8_t)0);
 }
 
-uint8_t requestFromRegister(i2cip_fqa_t fqa, uint8_t len, uint16_t reg, uint8_t sendStop = true) {
+uint8_t requestFromRegister(i2cip_fqa_t fqa, uint8_t len, uint16_t reg, bool sendStop = true) {
   // send internal address; this mode allows sending a repeated start to access
   // some devices' internal registers. This function is executed by the hardware
   // TWI module on other processors (for example Due's TWI_IADR and TWI_MMR registers)
@@ -45,7 +47,7 @@ uint8_t requestFromRegister(i2cip_fqa_t fqa, uint8_t len, uint16_t reg, uint8_t 
     I2CIP_DEBUG_SERIAL.print(len);
     I2CIP_DEBUG_SERIAL.print(F(" BYTES FROM 0x"));
     I2CIP_DEBUG_SERIAL.print(I2CIP_FQA_SEG_DEVADR(fqa), HEX);
-    I2CIP_DEBUG_SERIAL.print(F(" @0x"));
+    I2CIP_DEBUG_SERIAL.print(F(" REG(2) @0x"));
     I2CIP_DEBUG_SERIAL.println(reg, HEX);
     DEBUG_DELAY();
   #endif
@@ -56,9 +58,11 @@ uint8_t requestFromRegister(i2cip_fqa_t fqa, uint8_t len, uint16_t reg, uint8_t 
   if(I2CIP_FQA_TO_WIRE(fqa)->write((uint8_t)((reg >> 8) & 0xFF)) != 1) return 0;
   if(I2CIP_FQA_TO_WIRE(fqa)->write((uint8_t)(reg & 0xFF)) != 1) return 0;
   
-  if(I2CIP_FQA_TO_WIRE(fqa)->endTransmission(false) != 0) return 0;
+  if(I2CIP_FQA_TO_WIRE(fqa)->endTransmission(sendStop) != 0) return 0;
 
-  return I2CIP_FQA_TO_WIRE(fqa)->requestFrom(I2CIP_FQA_SEG_DEVADR(fqa), (uint8_t)len, sendStop);
+  if(sendStop) delayMicroseconds(10); // delay for some devices (one frame at standard 100kHz)
+
+  return I2CIP_FQA_TO_WIRE(fqa)->requestFrom(I2CIP_FQA_SEG_DEVADR(fqa), (uint8_t)len, sendStop ? (uint8_t)1 : (uint8_t)0);
 }
 
 // CONSTRUCTORs AND PROPERTY GETTERS/SETTERS
@@ -73,8 +77,8 @@ Device::~Device() {
   // #endif
 }
 
-void Device::setInput(InputGetter* input) { if(this->input != nullptr) { delete this->input; } this->input = input; }
-void Device::setOutput(OutputSetter* output) { if(this->output != nullptr) { delete this->output; } this->output = output; }
+void Device::setInput(InputGetter* input) { this->input = input; }
+void Device::setOutput(OutputSetter* output) { this->output = output; }
 
 void Device::removeInput(void) { this->input = nullptr; }
 void Device::removeOutput(void) { this->output = nullptr; }
@@ -102,8 +106,8 @@ OutputSetter::~OutputSetter() {
 
 // i2cip_errorlevel_t Device::get(const void* args) { return (this->getInput() == nullptr) ? I2CIP_ERR_SOFT : this->input->get(args); }
 // i2cip_errorlevel_t Device::set(const void* value, const void* args) { return (this->output == nullptr) ? I2CIP_ERR_SOFT : this->output->set(value, args); }
-i2cip_errorlevel_t Device::get(const void* args) { return (this->getInput() == nullptr) ? I2CIP_ERR_NONE : this->input->get(args); } // NOP
-i2cip_errorlevel_t Device::set(const void* value, const void* args) { return (this->getOutput() == nullptr) ? I2CIP_ERR_NONE : this->output->set(value, args); } // NOP
+i2cip_errorlevel_t Device::get(const void* args) { return (this->getInput() == nullptr) ? I2CIP_ERR_HARD : this->input->get(args); } // TODO: Should this be NOP/NONE? or are you clearly doing something wrong
+i2cip_errorlevel_t Device::set(const void* value, const void* args) { return (this->getOutput() == nullptr) ? I2CIP_ERR_HARD : this->output->set(value, args); } // TODO: Should this be NOP/NONE? or are you clearly doing something wrong
 
 const i2cip_fqa_t& Device::getFQA(void) const { return this->fqa; }
 
@@ -123,7 +127,9 @@ i2cip_errorlevel_t Device::ping(const i2cip_fqa_t& fqa, bool resetbus, bool setb
   // Begin transmission
   #ifdef I2CIP_DEBUG_SERIAL
     DEBUG_DELAY();
-    I2CIP_DEBUG_SERIAL.print(F("Ping... "));
+    I2CIP_DEBUG_SERIAL.print(F("-> Device 0x"));
+    I2CIP_DEBUG_SERIAL.print(I2CIP_FQA_SEG_DEVADR(fqa), HEX);
+    I2CIP_DEBUG_SERIAL.print(F(" Ping... "));
   #endif
 
   I2CIP_FQA_TO_WIRE(fqa)->beginTransmission(I2CIP_FQA_SEG_DEVADR(fqa));
@@ -137,15 +143,9 @@ i2cip_errorlevel_t Device::ping(const i2cip_fqa_t& fqa, bool resetbus, bool setb
     I2CIP_DEBUG_SERIAL.println("Pong!");
     DEBUG_DELAY();
   #endif
-
-  // Switch MUX bus back
-  if (resetbus) {
-    errlev = MUX::resetBus(fqa);
-    I2CIP_ERR_BREAK(errlev);
-  }
   
   // If we made it this far, no errors occurred.
-  return I2CIP_ERR_NONE;
+  return resetbus ? I2CIP_ERR_NONE : MUX::resetBus(fqa);
 }
 
 i2cip_errorlevel_t Device::pingTimeout(const i2cip_fqa_t& fqa, bool setbus, bool resetbus, unsigned int timeout) {;
@@ -154,27 +154,39 @@ i2cip_errorlevel_t Device::pingTimeout(const i2cip_fqa_t& fqa, bool setbus, bool
   I2CIP_ERR_BREAK(errlev);
 
   // Check if it's actually lost
+
+  #ifdef I2CIP_DEBUG_SERIAL
+    DEBUG_DELAY();
+    I2CIP_DEBUG_SERIAL.print(F("-> Device 0x"));
+    I2CIP_DEBUG_SERIAL.print(I2CIP_FQA_SEG_DEVADR(fqa), HEX);
+    I2CIP_DEBUG_SERIAL.print(F(" Ping... "));
+  #endif
   
   I2CIP_FQA_TO_WIRE(fqa)->beginTransmission(I2CIP_FQA_SEG_DEVADR(fqa));
   errlev = (I2CIP_FQA_TO_WIRE(fqa)->endTransmission(true) == 0 ? I2CIP_ERR_NONE : I2CIP_ERR_HARD);
   if(errlev == I2CIP_ERR_NONE) {
     #ifdef I2CIP_DEBUG_SERIAL
       DEBUG_DELAY();
-      I2CIP_DEBUG_SERIAL.println(F("Ping!"));
+      I2CIP_DEBUG_SERIAL.println(F("Pong!"));
     #endif
+    return resetbus ? MUX::resetBus(fqa) : I2CIP_ERR_NONE;
   }
   #ifdef I2CIP_DEBUG_SERIAL
     DEBUG_DELAY();
-    I2CIP_DEBUG_SERIAL.print(F("Ping... "));
+    I2CIP_DEBUG_SERIAL.print(F("LOST; Interval -> Ping... "));
   #endif
 
   unsigned long start = millis();
 
   // Count down until out of time of found
-  while (errlev != I2CIP_ERR_NONE && (millis()-start) < timeout) {
+  while (errlev != I2CIP_ERR_NONE) {
+    if (millis() - start > timeout) {
+      errlev = I2CIP_ERR_HARD;
+      break;
+    }
     #ifndef I2CIP_DEBUG_SERIAL
-      // Delta 1ms
-      delay(1);
+      // Delta 0.1ms
+      delayMicroseconds(100);
     #endif
 
     // Begin transmission
@@ -393,6 +405,8 @@ i2cip_errorlevel_t Device::read(const i2cip_fqa_t& fqa, uint8_t* dest, size_t& l
       goto endloop0;
     }
 
+    delayMicroseconds(100);
+
     // Read in all the bytes
     for (uint16_t i = 0; i < read_len; i++) {
       dest[pos + i] = I2CIP_FQA_TO_WIRE(fqa)->read();
@@ -403,7 +417,7 @@ i2cip_errorlevel_t Device::read(const i2cip_fqa_t& fqa, uint8_t* dest, size_t& l
     }
     
     // Advance the index by the amount of bytes read
-    pos += read_len;
+    pos += recv;
   }
 endloop0:
 
@@ -434,7 +448,8 @@ endloop0:
 
 i2cip_errorlevel_t Device::readByte(const i2cip_fqa_t& fqa, uint8_t& dest, bool resetbus, bool setbus) {
   size_t len = 1;
-  return read(fqa, &dest, len, resetbus, setbus);
+  i2cip_errorlevel_t errlev = read(fqa, &dest, len, resetbus, setbus);
+  return errlev == I2CIP_ERR_NONE ? (len == 2 ? I2CIP_ERR_NONE : I2CIP_ERR_SOFT) : errlev;
 }
 
 i2cip_errorlevel_t Device::readWord(const i2cip_fqa_t& fqa, uint16_t& dest, bool resetbus, bool setbus) {
@@ -443,17 +458,19 @@ i2cip_errorlevel_t Device::readWord(const i2cip_fqa_t& fqa, uint16_t& dest, bool
   i2cip_errorlevel_t errlev = read(fqa, buff, len, resetbus, setbus);
   I2CIP_ERR_BREAK(errlev);
   dest = ((uint16_t)buff[1] << 8) | (uint16_t)buff[0];
-  return errlev;
+  return errlev == I2CIP_ERR_NONE ? (len == 2 ? I2CIP_ERR_NONE : I2CIP_ERR_SOFT) : errlev;
 }
 
 i2cip_errorlevel_t Device::readRegisterByte(const i2cip_fqa_t& fqa, const uint8_t& reg, uint8_t& dest, bool resetbus, bool setbus) {
   size_t len = 1;
-  return readRegister(fqa, reg, &dest, len, false, resetbus, setbus);
+  i2cip_errorlevel_t errlev = readRegister(fqa, reg, &dest, len, false, resetbus, setbus);
+  return errlev == I2CIP_ERR_NONE ? (len == 1 ? I2CIP_ERR_NONE : I2CIP_ERR_SOFT) : errlev;
 }
 
 i2cip_errorlevel_t Device::readRegisterByte(const i2cip_fqa_t& fqa, const uint16_t& reg, uint8_t& dest, bool resetbus, bool setbus) {
   size_t len = 1;
-  return readRegister(fqa, reg, &dest, len, false, resetbus, setbus);
+  i2cip_errorlevel_t errlev = readRegister(fqa, reg, &dest, len, false, resetbus, setbus);
+  return errlev == I2CIP_ERR_NONE ? (len == 1 ? I2CIP_ERR_NONE : I2CIP_ERR_SOFT) : errlev;
 }
 
 i2cip_errorlevel_t Device::readRegisterWord(const i2cip_fqa_t& fqa, const uint8_t& reg, uint16_t& dest, bool resetbus, bool setbus) {
@@ -462,7 +479,7 @@ i2cip_errorlevel_t Device::readRegisterWord(const i2cip_fqa_t& fqa, const uint8_
   i2cip_errorlevel_t errlev = readRegister(fqa, reg, buff, len, false, resetbus, setbus);
   I2CIP_ERR_BREAK(errlev);
   dest = ((uint16_t)buff[1] << 8) | (uint16_t)buff[0];
-  return errlev;
+  return errlev == I2CIP_ERR_NONE ? (len == 2 ? I2CIP_ERR_NONE : I2CIP_ERR_SOFT) : errlev;
 }
 
 i2cip_errorlevel_t Device::readRegisterWord(const i2cip_fqa_t& fqa, const uint16_t& reg, uint16_t& dest, bool resetbus, bool setbus) {
@@ -471,7 +488,7 @@ i2cip_errorlevel_t Device::readRegisterWord(const i2cip_fqa_t& fqa, const uint16
   i2cip_errorlevel_t errlev = readRegister(fqa, reg, buff, len, false, resetbus, setbus);
   I2CIP_ERR_BREAK(errlev);
   dest = ((uint16_t)buff[1] << 8) | (uint16_t)buff[0];
-  return errlev;
+  return errlev == I2CIP_ERR_NONE ? (len == 2 ? I2CIP_ERR_NONE : I2CIP_ERR_SOFT) : errlev;
 }
 
 i2cip_errorlevel_t Device::readRegister(const i2cip_fqa_t& fqa, const uint8_t& reg, uint8_t* dest, size_t& len, bool nullterminate, bool resetbus, bool setbus) {
@@ -493,7 +510,7 @@ i2cip_errorlevel_t Device::readRegister(const i2cip_fqa_t& fqa, const uint8_t& r
     bool read_stop = (pos + read_len >= len);
 
     // Request bytes; How many have we received?
-    size_t recv = requestFromRegister(fqa, read_len, reg, (uint8_t)read_stop);
+    size_t recv = requestFromRegister(fqa, read_len, reg, read_stop);
     // size_t recv = I2CIP_FQA_TO_WIRE(fqa)->requestFrom(I2CIP_FQA_SEG_DEVADR(fqa), read_len));
     
     // We didn't get all the bytes we expected
@@ -511,6 +528,8 @@ i2cip_errorlevel_t Device::readRegister(const i2cip_fqa_t& fqa, const uint8_t& r
       goto endloop1;
     }
 
+    delayMicroseconds(100);
+
     // Read in all the bytes
     for (uint16_t i = 0; i < read_len; i++) {
       dest[pos + i] = I2CIP_FQA_TO_WIRE(fqa)->read();
@@ -521,7 +540,7 @@ i2cip_errorlevel_t Device::readRegister(const i2cip_fqa_t& fqa, const uint8_t& r
     }
     
     // Advance the index by the amount of bytes read
-    pos += read_len;
+    pos += recv;
   }
 endloop1:
 
@@ -579,7 +598,7 @@ i2cip_errorlevel_t Device::readRegister(const i2cip_fqa_t& fqa, const uint16_t& 
     // #endif
 
     // Request bytes; How many have we received?
-    size_t recv = requestFromRegister(fqa, read_len, reg, (uint8_t)read_stop);
+    size_t recv = requestFromRegister(fqa, read_len, reg, read_stop);
     // size_t recv = I2CIP_FQA_TO_WIRE(fqa)->requestFrom(I2CIP_FQA_SEG_DEVADR(fqa), read_len, reg, 2, (uint8_t)read_stop);
     
     // We didn't get all the bytes we expected
@@ -591,6 +610,8 @@ i2cip_errorlevel_t Device::readRegister(const i2cip_fqa_t& fqa, const uint16_t& 
     if(recv == 0) {
       goto endloop2;
     }
+
+    delayMicroseconds(100);
 
     // Read in all the bytes received
     for (uint16_t i = 0; i < recv; i++) {
@@ -690,11 +711,11 @@ bool DeviceGroup::add(Device* device) {
     I2CIP_DEBUG_SERIAL.print((uintptr_t)this->key, HEX);
     I2CIP_DEBUG_SERIAL.print(F(") Add Device @0x"));
     I2CIP_DEBUG_SERIAL.print((uintptr_t)(device), HEX);
-    // I2CIP_DEBUG_SERIAL.print(F("(ID '"));
-    // I2CIP_DEBUG_SERIAL.print(device.getID());
-    // I2CIP_DEBUG_SERIAL.print(F("' @0x"));
-    // I2CIP_DEBUG_SERIAL.print((uintptr_t)&device.getID()[0], HEX);
-    // I2CIP_DEBUG_SERIAL.print(")\n");
+    I2CIP_DEBUG_SERIAL.print(F(" (ID '"));
+    I2CIP_DEBUG_SERIAL.print(device->getID());
+    I2CIP_DEBUG_SERIAL.print(F("' @0x"));
+    I2CIP_DEBUG_SERIAL.print((uintptr_t)(device->getID()), HEX);
+    I2CIP_DEBUG_SERIAL.print(")\n");
     DEBUG_DELAY();
   #endif
   // Temporarily Disabled - I GUESS!
@@ -735,11 +756,11 @@ bool DeviceGroup::add(Device& device) {
     I2CIP_DEBUG_SERIAL.print((uintptr_t)this->key, HEX);
     I2CIP_DEBUG_SERIAL.print(F(") Add Device @0x"));
     I2CIP_DEBUG_SERIAL.print((uintptr_t)(&device), HEX);
-    // I2CIP_DEBUG_SERIAL.print(F("(ID '"));
-    // I2CIP_DEBUG_SERIAL.print(device.getID());
-    // I2CIP_DEBUG_SERIAL.print(F("' @0x"));
-    // I2CIP_DEBUG_SERIAL.print((uintptr_t)&device.getID()[0], HEX);
-    // I2CIP_DEBUG_SERIAL.print(")\n");
+    I2CIP_DEBUG_SERIAL.print(F("(ID '"));
+    I2CIP_DEBUG_SERIAL.print(device.getID());
+    I2CIP_DEBUG_SERIAL.print(F("' @0x"));
+    I2CIP_DEBUG_SERIAL.print((uintptr_t)(device.getID()), HEX);
+    I2CIP_DEBUG_SERIAL.print(")\n");
     DEBUG_DELAY();
   #endif
   if(strcmp(device.getID(), this->key) != 0) {
