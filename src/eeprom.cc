@@ -4,45 +4,54 @@
 #include <device.h>
 #include <debug.h>
 
-bool I2CIP::EEPROM::_id_set;
-char I2CIP::EEPROM::_id[I2CIP_ID_SIZE];
+#ifndef eeprom_member_guard
+bool I2CIP::EEPROM::_id_set = false;
+char I2CIP::EEPROM::_id[I2CIP_ID_SIZE] = { '\0' };
 bool I2CIP::EEPROM::_failsafe_set;
 char I2CIP::EEPROM::_failsafe[I2CIP_EEPROM_SIZE];
 uint16_t I2CIP::EEPROM::_failsafe_b;
+#define eeprom_member_guard
+#endif
 
 using namespace I2CIP;
+
+void EEPROM::loadEEPROMID() {
+  uint8_t idlen = strlen_P(i2cip_eeprom_id_progmem);
+
+  #ifdef I2CIP_DEBUG_SERIAL
+    DEBUG_DELAY();
+    I2CIP_DEBUG_SERIAL.print(F("Loading EEPROM ID PROGMEM to Static Array @0x"));
+    I2CIP_DEBUG_SERIAL.print((uintptr_t)(EEPROM::_id), HEX);
+    I2CIP_DEBUG_SERIAL.print(F(" ("));
+    I2CIP_DEBUG_SERIAL.print(idlen+1);
+    I2CIP_DEBUG_SERIAL.print(F(" bytes) '"));
+  #endif
+
+  // Read in PROGMEM
+  for (uint8_t k = 0; k < idlen; k++) {
+    char c = pgm_read_byte_near(i2cip_eeprom_id_progmem + k);
+    #ifdef I2CIP_DEBUG_SERIAL
+      DEBUG_SERIAL.print(c);
+    #endif
+    EEPROM::_id[k] = c;
+  }
+
+  #ifdef I2CIP_DEBUG_SERIAL
+    DEBUG_SERIAL.print(F("'\n"));
+    DEBUG_DELAY();
+  #endif
+
+  EEPROM::_id[idlen] = '\0';
+  EEPROM::_id_set = true;
+}
 
 // Handles ID pointer assignment too
 // NEVER returns nullptr, unless out of memory
 Device* EEPROM::eepromFactory(const i2cip_fqa_t& fqa, const i2cip_id_t& id) {
-  if(!EEPROM::_id_set) {
-    uint8_t idlen = strlen_P(i2cip_eeprom_id_progmem);
+  if(EEPROM::_id_set != true || id == nullptr) {
+    loadEEPROMID();
 
-    #ifdef I2CIP_DEBUG_SERIAL
-      DEBUG_DELAY();
-      I2CIP_DEBUG_SERIAL.print(F("Loading EEPROM ID PROGMEM to Static Array @0x"));
-      I2CIP_DEBUG_SERIAL.print((uint16_t)(&(EEPROM::_id[0])), HEX);
-      I2CIP_DEBUG_SERIAL.print(F(" ("));
-      I2CIP_DEBUG_SERIAL.print(idlen+1);
-      I2CIP_DEBUG_SERIAL.print(F(" bytes) '"));
-    #endif
-
-    // Read in PROGMEM
-    for (uint8_t k = 0; k < idlen; k++) {
-      char c = pgm_read_byte_near(i2cip_eeprom_id_progmem + k);
-      #ifdef I2CIP_DEBUG_SERIAL
-        DEBUG_SERIAL.print(c);
-      #endif
-      EEPROM::_id[k] = c;
-    }
-
-    EEPROM::_id[idlen] = '\0';
-    EEPROM::_id_set = true;
-
-    #ifdef I2CIP_DEBUG_SERIAL
-      DEBUG_SERIAL.print("'\n");
-      DEBUG_DELAY();
-    #endif
+    return (Device*)(new EEPROM(fqa, (id == nullptr ? _id : id)));
   }
 
   return (Device*)(new EEPROM(fqa, id));
@@ -50,13 +59,14 @@ Device* EEPROM::eepromFactory(const i2cip_fqa_t& fqa, const i2cip_id_t& id) {
 
 Device* EEPROM::eepromFactory(const i2cip_fqa_t& fqa) { return eepromFactory(fqa, EEPROM::_id); }
 
-EEPROM::EEPROM(const i2cip_fqa_t& fqa, const i2cip_id_t& id) : Device(fqa, &(EEPROM::_id[0])), IOInterface<char*, uint16_t, const char*, uint16_t>((Device*)this) {
+EEPROM::EEPROM(const i2cip_fqa_t& fqa) : EEPROM(fqa, _id) { loadEEPROMID(); }
+EEPROM::EEPROM(const i2cip_fqa_t& fqa, const i2cip_id_t& id) : Device(fqa, id), IOInterface<char*, uint16_t, const char*, uint16_t>((Device*)this) {
   #ifdef I2CIP_DEBUG_SERIAL
     DEBUG_DELAY();
     I2CIP_DEBUG_SERIAL.print(F("EEPROM Constructed (ID '"));
     I2CIP_DEBUG_SERIAL.print(this->id);
     I2CIP_DEBUG_SERIAL.print(F("' @0x"));
-    I2CIP_DEBUG_SERIAL.print((uint16_t)&(this->id[0]), HEX);
+    I2CIP_DEBUG_SERIAL.print((uintptr_t)&(this->id[0]), HEX);
     I2CIP_DEBUG_SERIAL.print(F("; FQA "));
     I2CIP_DEBUG_SERIAL.print(I2CIP_FQA_SEG_I2CBUS(fqa), HEX);
     I2CIP_DEBUG_SERIAL.print(F(":"));
@@ -73,11 +83,7 @@ EEPROM::EEPROM(const i2cip_fqa_t& fqa, const i2cip_id_t& id) : Device(fqa, &(EEP
 EEPROM::~EEPROM() {
   #ifdef I2CIP_DEBUG_SERIAL
     DEBUG_DELAY();
-    I2CIP_DEBUG_SERIAL.print(F("EEPROM Destructed (ID '"));
-    I2CIP_DEBUG_SERIAL.print(this->id);
-    I2CIP_DEBUG_SERIAL.print(F("' @0x"));
-    I2CIP_DEBUG_SERIAL.print((uint16_t)&(this->id[0]), HEX);
-    I2CIP_DEBUG_SERIAL.print(F("; FQA "));
+    I2CIP_DEBUG_SERIAL.print(F("EEPROM Destructed "));
     I2CIP_DEBUG_SERIAL.print(I2CIP_FQA_SEG_I2CBUS(this->fqa), HEX);
     I2CIP_DEBUG_SERIAL.print(F(":"));
     I2CIP_DEBUG_SERIAL.print(I2CIP_FQA_SEG_MODULE(this->fqa), HEX);
@@ -85,12 +91,13 @@ EEPROM::~EEPROM() {
     I2CIP_DEBUG_SERIAL.print(I2CIP_FQA_SEG_MUXBUS(this->fqa), HEX);
     I2CIP_DEBUG_SERIAL.print(F(":"));
     I2CIP_DEBUG_SERIAL.print(I2CIP_FQA_SEG_DEVADR(this->fqa), HEX);
-    I2CIP_DEBUG_SERIAL.print(F(")\n"));
+    I2CIP_DEBUG_SERIAL.print(F(" @0x"));
+    I2CIP_DEBUG_SERIAL.println((uintptr_t)this, HEX);
     DEBUG_DELAY();
   #endif
 
   // Cleanup
-  if(this->getValue() != nullptr && this->getValue() != _failsafe) delete this->getValue();
+  // if(this->getValue() != nullptr && this->getValue() != _failsafe) delete this->getValue();
 }
 
 // EEPROM::EEPROM(const uint8_t& wire, const uint8_t& module, const uint8_t& addr) : EEPROM(I2CIP_FQA_CREATE(wire, module, I2CIP_MUX_BUS_DEFAULT, addr)) { }
@@ -127,7 +134,7 @@ i2cip_errorlevel_t EEPROM::clearContents(bool setbus, uint16_t numbytes) {
     #endif
 
     // Note: Timeout ping before each byte write to await completion of last write cycle
-    errlev = pingTimeout(false, false);
+    errlev = pingTimeout(false, false, I2CIP_EEPROM_TIMEOUT);
     I2CIP_ERR_BREAK(errlev);
   }
 
@@ -153,7 +160,7 @@ i2cip_errorlevel_t EEPROM::overwriteContents(uint8_t* buffer, size_t len, bool c
   I2CIP_ERR_BREAK(errlev);
 
   for (uint16_t bytes_written = 0; bytes_written < len; bytes_written+=8) {
-    const uint8_t pagelen = min(len - bytes_written, 8);
+    const uint8_t pagelen = min((int)(len - bytes_written), 8);
     errlev = writeRegister(bytes_written, buffer+bytes_written, pagelen, false);
     if(errlev == I2CIP_ERR_SOFT) {
       // Actual failed write
@@ -175,7 +182,7 @@ i2cip_errorlevel_t EEPROM::overwriteContents(uint8_t* buffer, size_t len, bool c
     #endif
 
     // Note: Timeout ping before each byte write to await completion of last write cycle
-    errlev = pingTimeout(false, false);
+    errlev = pingTimeout(false, false, I2CIP_EEPROM_TIMEOUT);
     I2CIP_ERR_BREAK(errlev);
 
     #ifdef I2CIP_DEBUG_SERIAL
@@ -215,7 +222,7 @@ i2cip_errorlevel_t EEPROM::get(char*& dest, const uint16_t& args) {
     DEBUG_DELAY();
   #endif
 
-  i2cip_errorlevel_t errlev = readRegister((uint16_t)0, buffer, len);
+  i2cip_errorlevel_t errlev = readRegister((uint16_t)0, buffer, len, true);
   I2CIP_ERR_BREAK(errlev);
 
   #ifdef I2CIP_DEBUG_SERIAL
@@ -225,13 +232,13 @@ i2cip_errorlevel_t EEPROM::get(char*& dest, const uint16_t& args) {
     DEBUG_DELAY();
   #endif
 
-  // if((uint16_t)len != args) return I2CIP_ERR_SOFT;
+  if(len == 0) return I2CIP_ERR_SOFT;
 
   // 2. Copy local buffer to heap buffer (null-terminated)  
   #ifdef I2CIP_DEBUG_SERIAL
     DEBUG_DELAY();
     I2CIP_DEBUG_SERIAL.print(F("Reading to static heap buffer @0x"));
-    I2CIP_DEBUG_SERIAL.print((uint16_t)(&this->readBuffer[0]), HEX);
+    I2CIP_DEBUG_SERIAL.print((uintptr_t)(&this->readBuffer[0]), HEX);
     I2CIP_DEBUG_SERIAL.print(F(" ("));
     I2CIP_DEBUG_SERIAL.print(len+1);
     I2CIP_DEBUG_SERIAL.print(F(" bytes) '"));
@@ -249,7 +256,7 @@ i2cip_errorlevel_t EEPROM::get(char*& dest, const uint16_t& args) {
   #endif
 
   if(errlev == I2CIP_ERR_NONE) {
-    dest = &this->readBuffer[0];
+    dest = (char*)this->readBuffer;
   }
   return errlev;
 }
@@ -264,7 +271,7 @@ i2cip_errorlevel_t EEPROM::set(const char * const& value, const uint16_t& args) 
     I2CIP_DEBUG_SERIAL.print(F("EEPROM Set ("));
     I2CIP_DEBUG_SERIAL.print(args);
     I2CIP_DEBUG_SERIAL.print(F(" bytes @0x"));
-    I2CIP_DEBUG_SERIAL.print((uint16_t)value, HEX);
+    I2CIP_DEBUG_SERIAL.print((uintptr_t)value, HEX);
     I2CIP_DEBUG_SERIAL.print(F(") '"));
     I2CIP_DEBUG_SERIAL.print(value);
     I2CIP_DEBUG_SERIAL.print("'...\n");
@@ -303,7 +310,7 @@ void EEPROM::clearCache(void) {
 
   #ifdef I2CIP_DEBUG_SERIAL
     DEBUG_DELAY();
-    I2CIP_DEBUG_SERIAL.print(F("EEPROM Cache Cleared\n"));
+    I2CIP_DEBUG_SERIAL.print(F("EEPROM Cache Cleared (Repointed to Null)\n"));
     DEBUG_DELAY();
   #endif
 }
@@ -315,8 +322,8 @@ const uint16_t& EEPROM::getDefaultA(void) const {
 
 // S - Setter type: const char* (null-terminated; immutable)
 void EEPROM::resetFailsafe(void) {
-  if(_failsafe_set && this->getValue() == _failsafe) return; // Already set
-  if(this->getValue() != nullptr && this->getValue() != _failsafe) delete this->getValue();
+  // if(_failsafe_set && this->getValue() == _failsafe) return; // Already set
+  // if(this->getValue() != nullptr && this->getValue() != _failsafe) delete this->getValue();
 
   // Load from PROGMEM
   if(!_failsafe_set) {
@@ -325,7 +332,7 @@ void EEPROM::resetFailsafe(void) {
     #ifdef I2CIP_DEBUG_SERIAL
       DEBUG_DELAY();
       I2CIP_DEBUG_SERIAL.print(F("Loading Failsafe PROGMEM Static Heap @0x"));
-      I2CIP_DEBUG_SERIAL.print((uint16_t)(&_failsafe[0]), HEX);
+      I2CIP_DEBUG_SERIAL.print((uintptr_t)(&_failsafe[0]), HEX);
       I2CIP_DEBUG_SERIAL.print(F(" ("));
       I2CIP_DEBUG_SERIAL.print(len+1);
       I2CIP_DEBUG_SERIAL.print(F(" bytes) '"));
@@ -352,7 +359,7 @@ void EEPROM::resetFailsafe(void) {
   }
 
 
-  this->setValue(_failsafe);
+  this->setValue((const char*)_failsafe);
   this->setArgsB(_failsafe_b);
 
   #ifdef I2CIP_DEBUG_SERIAL

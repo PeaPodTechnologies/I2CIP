@@ -17,14 +17,15 @@ i2cip_fqa_t I2CIP::createFQA(const uint8_t& wire, const uint8_t& mux, const uint
 }
 
 void I2CIP::beginWire(const uint8_t& wire) {
+  wires[wire]->begin();
   if(!wiresBegun[wire]) {
+    wiresBegun[wire] = true;
     #ifdef I2CIP_DEBUG_SERIAL
       DEBUG_DELAY();
-      I2CIP_DEBUG_SERIAL.print(F("Initializing I2C wire "));
-      I2CIP_DEBUG_SERIAL.println(wire);
+      I2CIP_DEBUG_SERIAL.print(F("-> I2C WIRE "));
+      I2CIP_DEBUG_SERIAL.print(wire);
+      I2CIP_DEBUG_SERIAL.println(F(" BEGIN"));
       DEBUG_DELAY();
     #endif
-    wires[wire]->begin();
-    wiresBegun[wire] = true;
   }
 }
