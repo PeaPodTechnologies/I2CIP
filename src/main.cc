@@ -1,4 +1,5 @@
 #ifndef UNIT_TEST
+#define UNIT_TEST 1
 #define IS_MAIN 1
 
 #include <Arduino.h>
@@ -6,12 +7,13 @@
 #include "../test/config.h"
 
 // Uncomment to enable debug
-#define DEBUG_SERIAL Serial
 #include <debug.h>
 
 #include <I2CIP.h>
 
 using namespace I2CIP;
+
+#define DEBUG_SERIAL Serial
 
 // Module* m;  // to be initialized in setup()
 Module* modules[I2CIP_MUX_COUNT] = { nullptr };

@@ -24,6 +24,8 @@
 #define I2CIP_DEVICES_PER_GROUP ((size_t)8)
 #define I2CIP_ID_SIZE ((size_t)10)
 
+typedef enum { PIN_OFF = LOW, PIN_ON = HIGH, PIN_UNDEF } i2cip_state_pin_t;
+
 namespace I2CIP {
 
   class Module;

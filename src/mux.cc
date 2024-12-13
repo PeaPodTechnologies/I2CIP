@@ -3,6 +3,9 @@
 #include <fqa.h>
 #include <debug.h>
 
+// #define I2CIP_DEBUG_SERIAL Serial // just this once
+#define DEBUG_DELAY() {delayMicroseconds(2);}
+
 #ifdef I2CIP_DEBUG_SERIAL
 #define FAKEBUS_BREAK(bus) {\
   if(bus == I2CIP_MUX_BUS_MAX) {\
