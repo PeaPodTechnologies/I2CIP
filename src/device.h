@@ -28,6 +28,14 @@ typedef enum { PIN_OFF = LOW, PIN_ON = HIGH, PIN_UNDEF } i2cip_state_pin_t;
 
 namespace I2CIP {
 
+  extern struct i2cip_args_io_s {
+    const void* a;
+    const void* s;
+    const void* b;
+  } _i2cip_args_io_default;
+
+  typedef struct i2cip_args_io_s i2cip_args_io_t;
+
   class Module;
   template <typename G, typename A> class InputInterface;
   template <typename S, typename B> class OutputInterface;

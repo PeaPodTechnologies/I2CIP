@@ -12,6 +12,10 @@ using namespace I2CIP;
 //   }
 // }
 
+i2cip_args_io_t I2CIP::_i2cip_args_io_default = { nullptr, nullptr, nullptr };
+
+typedef struct i2cip_args_io_s i2cip_args_io_t;
+
 Module::Module(const i2cip_fqa_t& eeprom_fqa) : wire(I2CIP_FQA_SEG_I2CBUS(eeprom_fqa)), mux(I2CIP_FQA_SEG_MODULE(eeprom_fqa)), eeprom(new EEPROM(eeprom_fqa)) {
   #ifdef I2CIP_DEBUG_SERIAL
     DEBUG_DELAY();
@@ -822,7 +826,7 @@ i2cip_errorlevel_t Module::operator()(void) {
   return this->eeprom->pingTimeout(true, true, I2CIP_EEPROM_TIMEOUT);
 }
 
-i2cip_errorlevel_t Module::operator()(Device& d, bool update, bool fail) { return this->operator()(&d, update, fail); }
+i2cip_errorlevel_t Module::operator()(Device& d, bool update, i2cip_args_io_t args) { return this->operator()(&d, update, args); }
   // i2cip_fqa_t fqa = d.getFQA();
   // #ifdef I2CIP_DEBUG_SERIAL
   //   DEBUG_DELAY();
@@ -899,7 +903,7 @@ i2cip_errorlevel_t Module::operator()(Device& d, bool update, bool fail) { retur
   // return errlev;
 // }
 
-i2cip_errorlevel_t Module::operator()(Device* d, bool update, bool fail) { // eturn d == nullptr ? I2CIP_ERR_SOFT : this->operator()(*d, update, fail); }
+i2cip_errorlevel_t Module::operator()(Device* d, bool update, i2cip_args_io_t args) { // eturn d == nullptr ? I2CIP_ERR_SOFT : this->operator()(*d, update, fail); }
   if(d == nullptr) return I2CIP_ERR_SOFT;
   i2cip_fqa_t fqa = d->getFQA();
 
@@ -944,7 +948,7 @@ i2cip_errorlevel_t Module::operator()(Device* d, bool update, bool fail) { // et
       //   I2CIP_DEBUG_SERIAL.print(F("Output Set:\n"));
       //   DEBUG_DELAY();
       // #endif
-      errlev = fail ? d->getOutput()->failSet() : d->getOutput()->set();
+      errlev = (args.s == nullptr) ? d->getOutput()->failSet() : d->getOutput()->set(args.s, args.b);
       I2CIP_ERR_BREAK(errlev);
     }
     if(d->getInput()) {
@@ -953,7 +957,8 @@ i2cip_errorlevel_t Module::operator()(Device* d, bool update, bool fail) { // et
       //   I2CIP_DEBUG_SERIAL.print(F("Input Get:\n"));
       //   DEBUG_DELAY();
       // #endif
-      errlev = fail ? d->getInput()->failGet() : d->getInput()->get();
+      // errlev = fail ? d->getInput()->failGet() : d->getInput()->get();
+      errlev = d->getInput()->get(args.a);
       I2CIP_ERR_BREAK(errlev);
     }
   } 
@@ -975,7 +980,7 @@ i2cip_errorlevel_t Module::operator()(Device* d, bool update, bool fail) { // et
   return errlev;
 }
 
-i2cip_errorlevel_t Module::operator()(const i2cip_fqa_t& fqa, bool update, bool fail) {
+i2cip_errorlevel_t Module::operator()(const i2cip_fqa_t& fqa, bool update, i2cip_args_io_t args) {
   // 1. Self-check
   // i2cip_errorlevel_t errlev = this->operator()();
   // I2CIP_ERR_BREAK(errlev);
@@ -1005,7 +1010,7 @@ i2cip_errorlevel_t Module::operator()(const i2cip_fqa_t& fqa, bool update, bool 
     return I2CIP_ERR_SOFT;
   }
 
-  return this->operator()(device, update, fail);
+  return this->operator()(device, update, args);
 }
 
 // Device* Module::operator[](const i2cip_fqa_t& fqa) {

@@ -384,6 +384,7 @@ i2cip_errorlevel_t Device::writeRegister(const i2cip_fqa_t& fqa, const uint16_t&
 }
 
 i2cip_errorlevel_t Device::writeRegister(const i2cip_fqa_t& fqa, const uint8_t& reg, uint8_t* buffer, size_t len, bool setbus) {
+  if(len < 0) return I2CIP_ERR_SOFT;
   uint8_t buff[len + 1] = { reg };
   for(size_t i = 0; i < len; i++) {
     buff[i + 1] = buffer[i];
@@ -392,6 +393,7 @@ i2cip_errorlevel_t Device::writeRegister(const i2cip_fqa_t& fqa, const uint8_t& 
 }
 
 i2cip_errorlevel_t Device::writeRegister(const i2cip_fqa_t& fqa, const uint16_t& reg, uint8_t* buffer, size_t len, bool setbus) {
+  if(len < 0) return I2CIP_ERR_SOFT;
   uint8_t buff[len + 2] = { (uint8_t)(reg >> 8), (uint8_t)(reg & 0xFF) };
   for(size_t i = 0; i < len; i++) {
     buff[i + 2] = buffer[i];

@@ -106,15 +106,15 @@ namespace I2CIP {
       /**
        * 4. Device Check
       */
-      i2cip_errorlevel_t operator()(const i2cip_fqa_t& fqa, bool update = false, bool fail = false);
+      i2cip_errorlevel_t operator()(const i2cip_fqa_t& fqa, bool update = false, i2cip_args_io_t args = _i2cip_args_io_default);
 
       void remove(Device* device, bool del = true);
 
       inline operator const EEPROM&() const { return *this->eeprom; }
     
     protected:
-      i2cip_errorlevel_t operator()(Device& d, bool update = false, bool fail = false);
-      i2cip_errorlevel_t operator()(Device* d, bool update = false, bool fail = false);
+      i2cip_errorlevel_t operator()(Device& d, bool update = false, i2cip_args_io_t args = _i2cip_args_io_default);
+      i2cip_errorlevel_t operator()(Device* d, bool update = false, i2cip_args_io_t args = _i2cip_args_io_default);
   };
 };
 
