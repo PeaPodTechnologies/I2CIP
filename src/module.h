@@ -53,6 +53,8 @@ namespace I2CIP {
       void remove(Device* device);
 
       void destruct(void); // TODO: Private?
+
+      template <class C, typename std::enable_if<std::is_base_of<Device, C>::value, int>::type = 0> static DeviceGroup* create(i2cip_id_t id);
     public:
       i2cip_id_t key;
       uint8_t numdevices = 0;
@@ -62,8 +64,6 @@ namespace I2CIP {
 
       DeviceGroup(const i2cip_id_t& key, factory_device_t factory = nullptr);
 
-      template <class C, typename std::enable_if<std::is_base_of<Device, C>::value, int>::type = 0> static DeviceGroup* create(i2cip_id_t id);
-      
       bool contains(Device* device) const;
       bool contains(const i2cip_fqa_t& fqa) const;
 
