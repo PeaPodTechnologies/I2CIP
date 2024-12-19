@@ -16,10 +16,6 @@
 
 namespace I2CIP {
 
-  // template <class C> class Subnet : public Module, public DeviceGroup {
-
-  // };
-
 };
 
 #endif

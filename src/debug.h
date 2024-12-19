@@ -21,7 +21,8 @@
 #define I2CIP_DEBUG_SERIAL DEBUG_SERIAL
 
 #ifndef DEBUG_DELAY
-#define DEBUG_DELAY() {delayMicroseconds(2);}
+// #define DEBUG_DELAY() {delayMicroseconds(10);}
+#define DEBUG_DELAY() {delay(1);}
 #endif
 #endif
 

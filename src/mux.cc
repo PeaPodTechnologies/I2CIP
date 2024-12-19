@@ -4,8 +4,11 @@
 #include <debug.h>
 
 // #define I2CIP_DEBUG_SERIAL Serial // just this once
+#ifndef DEBUG_DELAY
 #define DEBUG_DELAY() {delayMicroseconds(2);}
+#endif
 
+#ifdef I2CIP_MUX_BUS_FAKE
 #ifdef I2CIP_DEBUG_SERIAL
 #define FAKEBUS_BREAK(bus) {\
   if(bus == I2CIP_MUX_BUS_FAKE) {\
@@ -17,6 +20,7 @@
 }
 #else
 #define FAKEBUS_BREAK(bus) { if(bus == I2CIP_MUX_BUS_FAKE) { return I2CIP_ERR_NONE; } }
+#endif
 #endif
 
 namespace I2CIP {
@@ -51,7 +55,9 @@ namespace I2CIP {
     }
 
     bool pingMUX(const i2cip_fqa_t& fqa) {
-      FAKEBUS_BREAK(I2CIP_FQA_SEG_MUXBUS(fqa));
+      #ifdef I2CIP_MUX_BUS_FAKE
+        FAKEBUS_BREAK(I2CIP_FQA_SEG_MUXBUS(fqa));
+      #endif
       return pingMUX(I2CIP_FQA_SEG_I2CBUS(fqa), I2CIP_FQA_SEG_MODULE(fqa));
     }
     
@@ -59,7 +65,9 @@ namespace I2CIP {
       // Note: no need to ping MUX, we'll see in real time what the result is
       beginWire(I2CIP_FQA_SEG_I2CBUS(fqa));
 
-      FAKEBUS_BREAK(I2CIP_FQA_SEG_MUXBUS(fqa));
+      #ifdef I2CIP_MUX_BUS_FAKE
+        FAKEBUS_BREAK(I2CIP_FQA_SEG_MUXBUS(fqa));
+      #endif
 
       #ifdef I2CIP_DEBUG_SERIAL
         I2CIP_DEBUG_SERIAL.print(F("-> MUX "));
@@ -121,7 +129,9 @@ namespace I2CIP {
       //   return I2CIP_ERR_NONE;
       // }
 
-      FAKEBUS_BREAK(I2CIP_FQA_SEG_MUXBUS(fqa));
+      #ifdef I2CIP_MUX_BUS_FAKE
+        FAKEBUS_BREAK(I2CIP_FQA_SEG_MUXBUS(fqa));
+      #endif
 
       #ifdef I2CIP_DEBUG_SERIAL
         I2CIP_DEBUG_SERIAL.print(F("-> MUX "));
