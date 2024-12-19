@@ -39,7 +39,7 @@ void test_module_discovery(void) {
     DEBUG_DELAY();
   #endif
 
-  bool r = m->discover();
+  i2cip_errorlevel_t errlev = m->discoverEEPROM();
   // if(!r) {
   //   while (true) { // Blink
   //     digitalWrite(LED_BUILTIN, HIGH);
@@ -49,13 +49,7 @@ void test_module_discovery(void) {
   //   }
   // }
 
-  TEST_ASSERT_TRUE_MESSAGE(r, "Module Discovery Fail");
-  if(r) {
-    #ifdef DEBUG_SERIAL
-      DEBUG_SERIAL.print(F("Module Discovered\n"));
-      DEBUG_DELAY();
-    #endif
-  }
+  TEST_ASSERT_EQUAL_UINT8_MESSAGE(I2CIP_ERR_NONE, errlev, "Module Discovery Fail");
 }
 
 void setup(void) {
@@ -102,14 +96,14 @@ void test_module_self_check(void) {
 }
 
 void test_module_eeprom_check(void) {
-  i2cip_errorlevel_t errlev = m->operator()(m->operator const I2CIP::EEPROM &());
+  i2cip_errorlevel_t errlev = m->operator()<EEPROM>(m->operator const I2CIP::EEPROM &());
   TEST_ASSERT_EQUAL_UINT8_MESSAGE(I2CIP_ERR_NONE, errlev, "EEPROM check failed! Check EEPROM wiring.");
   if(errlev > I2CIP_ERR_NONE) fail = true;
 }
 
 void test_module_eeprom_update(void) {
   // i2cip_errorlevel_t errlev = (*m)((m->operator const I2CIP::EEPROM &()), true);
-  i2cip_errorlevel_t errlev = m->operator()(m->operator const I2CIP::EEPROM &(), true);
+  i2cip_errorlevel_t errlev = m->operator()<EEPROM>(m->operator const I2CIP::EEPROM &(), true);
   TEST_ASSERT_EQUAL_UINT8_MESSAGE(I2CIP_ERR_NONE, errlev, "EEPROM read/write failed! Check EEPROM wiring.");
   if(errlev > I2CIP_ERR_NONE) fail = true;
   
@@ -149,8 +143,9 @@ void test_module_delete(void) {
 }
 
 i2cip_errorlevel_t errlev;
-uint8_t count = 2;
+uint8_t count = 2; bool end = false;
 void loop(void) {
+  if(end) return;
 
   if (!fail) RUN_TEST(test_module_self_check);
 
@@ -168,7 +163,10 @@ void loop(void) {
     delay(1000);
 
     UNITY_END();
-    while(true);
+
+    delay(2000);
+
+    end = true;
   }
 
   delay(1000);

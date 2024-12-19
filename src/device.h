@@ -3,6 +3,7 @@
 
 #include <fqa.h>
 #include <mux.h>
+// #include <guarantee.h>
 
 /**
  * Shifts and masks a number's bits.
@@ -21,8 +22,113 @@
  **/
 #define OVERWRITE_BITS(existing, data, lsb, bits) (((existing) & ~(((1 << (bits)) - 1) << (lsb))) | (((data) & ((1 << (bits)) - 1)) << (lsb)))
 
+namespace I2CIP { class Device; }
+
 #define I2CIP_DEVICES_PER_GROUP ((size_t)8)
 #define I2CIP_ID_SIZE ((size_t)10)
+#define I2CIP_INPUT_CACHEBUFFER_SIZE 32
+#define I2CIP_INPUT_PRINTBUFFER_SIZE 64
+
+#define I2CIP_DEVICE_USE_FACTORY(CLASS, ...) \
+  public:\
+    static Device* factory(i2cip_fqa_t fqa, const i2cip_id_t& id) { return (Device*)(new CLASS(fqa, id)); }
+
+#define VALUE_IFNOT_TEST(...) __VA_ARGS__
+#define VALUE_IFNOT_TEST0(...) __VA_ARGS__
+#define VALUE_IFNOT_TEST1(...)
+#define VALUE_IFNOT(COND, ...) VALUE_IFNOT_TEST ## COND ( __VA_ARGS__ )
+#define HANDLE_CLASS_ID_VARGS(CLASS, ...) __VA_OPT__(__VA_ARGS__)VALUE_IFNOT(__VA_OPT__(1), #CLASS)
+
+// #define I2CIP_DEVICES_USE_PROGMEM_STATIC_IDS true // uncomment to disable static ID buffers and functions
+
+// PROGMEM IDs are flat-out necessary for embedded systems because of poor memory management and volatility - ON AVR, NOT ON ESP32
+#ifdef I2CIP_DEVICES_USE_PROGMEM_STATIC_IDS
+#define I2CIP_DEVICE_USE_STATIC_ID() \
+  private:\
+    static char _id[];\
+    static bool _id_set;\
+    static const char _id_progmem[] PROGMEM;\
+  protected:\
+    const char* getStaticID() override { return _id_set ? _id : loadProgmemToStaticID(_id_progmem); }\
+    void setStaticID(const char* id) override {\
+      strncpy(_id, id, I2CIP_ID_SIZE);\
+      _id_set = true;\
+    }\
+    static const char* getID() { return _id_set ? _id : loadProgmemToStaticID(_id_progmem); }
+
+#define I2CIP_DEVICE_INIT_STATIC_ID(CLASS, ...) \
+  char CLASS::_id[I2CIP_ID_SIZE] = { '\0' };\
+  bool CLASS::_id_set = false;\
+  const char CLASS::_id_progmem[] PROGMEM = {HANDLE_CLASS_ID_VARGS(CLASS __VA_OPT__(,) __VA_ARGS__)};\
+
+// #define I2CIP_DEVICES_INIT_PROGMEM_ID(CLASS, ID) \
+//   const char PROGMEM CLASS::_id_progmem[] = {#ID};
+
+// #define I2CIP_DEVICES_INIT_PROGMEM_ID(CLASS) \
+//   const char PROGMEM CLASS::_id_progmem[] = {#CLASS};
+
+#define I2CIP_DEVICE_USE_SFACTORY(CLASS, ...) \
+  public:\
+    CLASS(i2cip_fqa_t fqa) : CLASS(fqa, getStaticID()) { }\
+    static Device* factory(i2cip_fqa_t fqa) { return (Device*)(new CLASS(fqa)); }
+
+#else
+
+#define I2CIP_DEVICE_USE_STATIC_ID(...) \
+  protected:\
+    const char* getStaticID() override;\
+  public:\
+    static const char* getID();\
+    // void setStaticID(const char* id) override { }
+
+#define I2CIP_DEVICE_INIT_STATIC_ID(CLASS, ...) \
+  const char* CLASS::getID() { return HANDLE_CLASS_ID_VARGS(CLASS __VA_OPT__(,) __VA_ARGS__); }\
+  const char* CLASS::getStaticID() { return CLASS::getID(); }
+
+#define I2CIP_DEVICE_USE_SFACTORY(CLASS, ...) \
+  public:\
+    CLASS(i2cip_fqa_t fqa) : CLASS(fqa, HANDLE_CLASS_ID_VARGS(CLASS __VA_OPT__(,) __VA_ARGS__)) { }\
+    static Device* factory(i2cip_fqa_t fqa) { return (Device*)(new CLASS(fqa)); }
+
+#endif
+
+// #define I2CIP_DEVICE_INIT_STATIC_ID(CLASS) I2CIP_DEVICE_INIT_STATIC_ID(CLASS, CLASS)
+
+// Bundle and Present the API
+// #define I2CIP_DEVICE_CLASS_BUNDLE(CLASS) \
+//   I2CIP_DEVICE_USE_STATIC_ID(CLASS);\
+//   I2CIP_DEVICE_USE_FACTORY(CLASS);\
+//   I2CIP_DEVICE_USE_SFACTORY(CLASS, CLASS);
+
+#define I2CIP_DEVICE_CLASS_BUNDLE(CLASS, ...) \
+  I2CIP_DEVICE_USE_STATIC_ID();\
+  I2CIP_DEVICE_USE_FACTORY(CLASS  __VA_OPT__(,) __VA_ARGS__);\
+  I2CIP_DEVICE_USE_SFACTORY(CLASS  __VA_OPT__(,) __VA_ARGS__);
+
+// ARGS is implied to be JSON-friendly
+#define I2CIP_INPUTS_USE_TOSTRING true // uncomment to disable input cache toString/print macros
+#define I2CIP_INPUT_USE_TOSTRING(TYPE, ARGS)\
+private:\
+  char cache_buffer[I2CIP_INPUT_CACHEBUFFER_SIZE];\
+public:\
+  const char* cacheToString(void) override {\
+    memset(this->cache_buffer, 0, I2CIP_INPUT_CACHEBUFFER_SIZE);\
+    TYPE value = this->getCache();\
+    snprintf(this->cache_buffer, I2CIP_INPUT_CACHEBUFFER_SIZE, ARGS, value);\
+    return this->cache_buffer;\
+  }
+
+// ARGS is whatever you want; overrides default (printCache = cacheToString)
+#define I2CIP_INPUT_ADD_PRINTCACHE(TYPE, ARGS)\
+private:\
+    char print_buffer[I2CIP_INPUT_PRINTBUFFER_SIZE];\
+public:\
+  const char* printCache(void) override {\
+    memset(this->print_buffer, 0, I2CIP_INPUT_PRINTBUFFER_SIZE);\
+    TYPE value = this->getCache();\
+    snprintf(this->print_buffer, I2CIP_INPUT_PRINTBUFFER_SIZE, ARGS, value);\
+    return this->print_buffer;\
+  }
 
 typedef enum { PIN_OFF = LOW, PIN_ON = HIGH, PIN_UNDEF } i2cip_state_pin_t;
 
@@ -44,7 +150,14 @@ namespace I2CIP {
 
   // Barebones template-less abstract classes expose voidptr hooks for the device to be used as an input or output
 
-  class InputGetter {
+  class InputGetter
+    #ifdef I2CIP_USE_GUARANTEES
+    : public Guarantee<InputGetter>
+    #endif
+    {
+    #ifdef I2CIP_USE_GUARANTEES
+    I2CIP_CLASS_USE_GUARANTEE(InputGetter, I2CIP_GUARANTEE_INPUT);
+    #endif
     protected:
       static const char failptr_get = '\a';
     public:
@@ -52,9 +165,21 @@ namespace I2CIP {
       // virtual i2cip_errorlevel_t get(const void* args = nullptr) { return I2CIP_ERR_HARD; } // Unimplemented; delete this device
       virtual i2cip_errorlevel_t get(const void* args = nullptr) = 0; // Unimplemented; delete this device
       i2cip_errorlevel_t failGet(void) { return this->get(&failptr_get); }
+
+      #ifdef I2CIP_INPUTS_USE_TOSTRING
+        virtual const char* cacheToString(void) = 0; // To be implemented by the child class (i.e. for debugging, sensors)
+        virtual const char* printCache(void) { return this->cacheToString(); } // Default to cacheToString
+      #endif
   };
 
-  class OutputSetter {
+  class OutputSetter
+    #ifdef I2CIP_USE_GUARANTEES
+    : public Guarantee<OutputSetter>
+    #endif
+    {
+    #ifdef I2CIP_USE_GUARANTEES
+    I2CIP_CLASS_USE_GUARANTEE(OutputSetter, I2CIP_GUARANTEE_OUTPUT);
+    #endif
     protected:
       static const char failptr_set = '\a';
     public:
@@ -66,7 +191,14 @@ namespace I2CIP {
       i2cip_errorlevel_t failSet(void) { return this->set(&failptr_set, &failptr_set); }
   };
 
-  class Device {
+  class Device
+    #ifdef I2CIP_USE_GUARANTEES
+    : public Guarantee<Device>
+    #endif
+    {
+    #ifdef I2CIP_USE_GUARANTEES
+    I2CIP_CLASS_USE_GUARANTEE(Device, I2CIP_GUARANTEE_DEVICE);
+    #endif
     protected:
       const i2cip_fqa_t fqa;
       i2cip_id_t id;
@@ -80,7 +212,9 @@ namespace I2CIP {
       template <typename G, typename A> friend class InputInterface;
       template <typename S, typename B> friend class OutputInterface;
 
-      Device(const i2cip_fqa_t& fqa, i2cip_id_t id);
+      Device(i2cip_fqa_t fqa, i2cip_id_t id);
+      // Device(i2cip_fqa_t fqa) : Device(fqa, getStaticID()) { }
+      // Device(i2cip_fqa_t fqa, const char id_progmem[] PROGMEM, char* staticBuffer); // Replaced by ADD_STATIC_ID(PROGMEM_ID)
 
       /**
        * Attempt to communicate with a device. Always sets the bus.
@@ -237,6 +371,24 @@ namespace I2CIP {
       const i2cip_id_t& getID(void) const;
       // i2cip_id_t getID(void) const;
 
+      #ifdef I2CIP_DEVICES_USE_PROGMEM_STATIC_IDS
+    protected:
+      const char* loadProgmemToStaticID(const char load[] PROGMEM) {
+        char _id[I2CIP_ID_SIZE] = { '\0' };
+        uint8_t len = strlen_P(load);
+        for (uint8_t k = 0; k < len; k++) {
+          char c = pgm_read_byte_near(load + k);
+          _id[k] = c;
+        }
+        _id[len] = '\0';
+        setStaticID(_id);
+        return getStaticID();
+      }
+      virtual void setStaticID(const char* id) = 0;
+      #endif
+    public:
+      virtual const char* getStaticID() = 0; // Pretty much just a formality to make sure you implement the macro, which has the WAY MORE useful static function variant getID()
+
       i2cip_errorlevel_t ping(bool resetbus = true, bool setbus = true);
       i2cip_errorlevel_t pingTimeout(bool setbus = true, bool resetbus = true, unsigned int timeout = 100);
       i2cip_errorlevel_t writeByte(const uint8_t& value, bool setbus = true);
@@ -257,150 +409,6 @@ namespace I2CIP {
 
       inline operator i2cip_fqa_t() const { return this->fqa; }
   };
-
-  typedef Device* (* factory_device_t)(const i2cip_fqa_t& fqa);
-
-  class DeviceGroup {
-    friend class Module;
-
-    protected:
-      bool add(Device& device);
-      bool add(Device* device);
-      bool addGroup(Device* devices[], uint8_t numdevices);
-      void remove(Device* device);
-
-      void destruct(void); // TODO: Private?
-    public:
-      i2cip_id_t key;
-      uint8_t numdevices = 0;
-      Device* devices[I2CIP_DEVICES_PER_GROUP] = { nullptr };
-
-      factory_device_t factory;
-
-      DeviceGroup(const i2cip_id_t& key, factory_device_t factory = nullptr);
-      
-      bool contains(Device* device) const;
-      bool contains(const i2cip_fqa_t& fqa) const;
-
-      Device* operator[](const i2cip_fqa_t& fqa) const;
-
-      // DeviceGroup& operator=(const DeviceGroup& rhs);
-
-      Device* operator()(const i2cip_fqa_t& fqa);
-  };
-
-  /**
-   * An I2CIP peripheral used for input/state "getting".
-   * @param G type used for "get" variable
-   * @param A type used for "get" arguments
-   **/
-  template <typename G, typename A> class InputInterface : public InputGetter {
-    private:
-      G cache;  // Last RECIEVED value
-      A argsA;  // Last passed arguments
-
-      bool argsAset = false;
-    protected:
-      void setCache(G value);
-      void setArgsA(A args);
-      
-      /**
-       * Gets the default arguments used for the "get" operation.
-       * A constant reference.
-       * To be implemented by the child class.
-      */
-      virtual const A& getDefaultA(void) const = 0;
-    public:
-      InputInterface(Device* device);
-      virtual ~InputInterface() = 0;
-
-      i2cip_errorlevel_t get(const void* args = nullptr) override;
-
-      /**
-       * Gets the last recieved value.
-      */
-      const G& getCache(void) const;
-
-      /**
-       * Sets the cache to the default "zero" value.
-       * To be implemented by the child class.
-      */
-      virtual void clearCache(void);
-
-      /**
-       * Gets the arguments used for the last "get" operation.
-      */
-      A getArgsA(void) const;
-
-      /**
-       * Gets the input device's state.
-       **/
-      virtual i2cip_errorlevel_t get(G& dest, const A& args) { return I2CIP_ERR_HARD; } // Unimplemented; Disable this device
-  };
-
-  /**
-   * An I2CIP peripheral used for output/state "setting".
-   * @param S type used for "set" value
-   * @param B type used for "set" arguments
-   **/
-  template <typename S, typename B> class OutputInterface : public OutputSetter {
-    private:
-      S value;  // Last SET value (not PASSED value)
-      B argsB;  // Last passed arguments
-
-      bool argsBset = false;
-    protected:
-      void setValue(S value);
-      void setArgsB(B args);
-
-      /**
-       * Gets the default arguments used for the "set" operation.
-       * To be implemented by the child class.
-      */
-      virtual const B& getDefaultB(void) const = 0;
-    public:
-      OutputInterface(Device* device);
-      
-      virtual ~OutputInterface() = 0;
-
-      i2cip_errorlevel_t set(const void* value = nullptr, const void* args = nullptr) override;
-
-      /**
-       * Gets the arguments used for the last "set" operation.
-      */
-      B getArgsB(void) const;
-
-      /**
-       * Gets the last set value.
-      */
-      S getValue(void) const;
-
-      /**
-       * Gets the default "zero"/off-state value.
-       * To be implemented by the child class.
-      */
-      virtual void resetFailsafe(void);
-
-      /**
-       * Sets the output device's state.
-       **/
-      virtual i2cip_errorlevel_t set(const S& value, const B& args) { return I2CIP_ERR_HARD; } // Unimplemented; Disable this device
-  };
-
-  /**
-   * An I2CIP peripheral used for input/state "getting" as well as output/state "setting".
-   * @param G type used for "get" variable
-   * @param A type used for "get" arguments
-   * @param S type used for "set" value
-   * @param B type used for "set" arguments
-   **/
-  template <typename G, typename A, typename S, typename B> class IOInterface : public InputInterface<G, A>, public OutputInterface<S, B> {
-    public:
-      IOInterface(Device* device);
-      virtual ~IOInterface() = 0;
-  };
 };
-
-#include <device.tpp>
 
 #endif

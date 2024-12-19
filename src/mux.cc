@@ -8,7 +8,7 @@
 
 #ifdef I2CIP_DEBUG_SERIAL
 #define FAKEBUS_BREAK(bus) {\
-  if(bus == I2CIP_MUX_BUS_MAX) {\
+  if(bus == I2CIP_MUX_BUS_FAKE) {\
     DEBUG_DELAY();\
     I2CIP_DEBUG_SERIAL.print(F("--> FAKE BUS; MUX NOP"));\
     DEBUG_DELAY();\
@@ -16,7 +16,7 @@
   }\
 }
 #else
-#define FAKEBUS_BREAK(bus) { if(bus == I2CIP_MUX_BUS_MAX) { return I2CIP_ERR_NONE; } }
+#define FAKEBUS_BREAK(bus) { if(bus == I2CIP_MUX_BUS_FAKE) { return I2CIP_ERR_NONE; } }
 #endif
 
 namespace I2CIP {

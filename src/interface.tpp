@@ -1,16 +1,17 @@
-#ifndef I2CIP_DEVICE_H_
-#error __FILE__ should only be included AFTER <device.h>
+#ifndef I2CIP_INTERFACE_H_
+#error __FILE__ should only be included AFTER <interface.h>
 // #include <comparators.h>
 #endif
 
-#ifdef I2CIP_DEVICE_H_
+#ifdef I2CIP_INTERFACE_H_
 
-#ifndef I2CIP_DEVICE_T_
-#define I2CIP_DEVICE_T_
+#ifndef I2CIP_INTERFACE_T_
+#define I2CIP_INTERFACE_T_
 
 #include <debug.h>
 
 using I2CIP::i2cip_errorlevel_t;
+using I2CIP::Device;
 using I2CIP::InputGetter;
 using I2CIP::OutputSetter;
 using I2CIP::InputInterface;
@@ -63,12 +64,12 @@ template <typename G, typename A> i2cip_errorlevel_t InputInterface<G, A>::get(c
   // If successful, update last cache
   if(errlev == I2CIP::i2cip_errorlevel_t::I2CIP_ERR_NONE) { 
     this->clearCache(); this->cache = temp; this->argsA = arg; 
-    #ifdef I2CIP_DEBUG_SERIAL
-      DEBUG_DELAY();
-      I2CIP_DEBUG_SERIAL.println(F("Cache Set"));
-      // I2CIP_DEBUG_SERIAL.println(temp); // This line is EXPERIMENTAL
-      DEBUG_DELAY();
-    #endif
+    // #ifdef I2CIP_DEBUG_SERIAL
+    //   DEBUG_DELAY();
+    //   I2CIP_DEBUG_SERIAL.println(F("Cache Set"));
+    //   // I2CIP_DEBUG_SERIAL.println(temp); // This line is EXPERIMENTAL
+    //   DEBUG_DELAY();
+    // #endif
   }
   return errlev;
 }

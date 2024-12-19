@@ -15,16 +15,16 @@ typedef const char* i2cip_id_t;
 // Address segments: Least Significant Bit positions, lengths, and maximum values
 #define I2CIP_FQA_I2CBUS_LSB  13
 #define I2CIP_FQA_I2CBUS_LEN  3
-#define I2CIP_FQA_I2CBUS_MAX  ((1 << I2CIP_FQA_I2CBUS_LEN) - 1)
+#define I2CIP_FQA_I2CBUS_MAX  0b111
 #define I2CIP_FQA_MODULE_LSB  10
 #define I2CIP_FQA_MODULE_LEN  3
-#define I2CIP_FQA_MODULE_MAX  ((1 << I2CIP_FQA_MODULE_LEN) - 1)
+#define I2CIP_FQA_MODULE_MAX  0b111
 #define I2CIP_FQA_MUXBUS_LSB  7
 #define I2CIP_FQA_MUXBUS_LEN  3
-#define I2CIP_FQA_MUXBUS_MAX  ((1 << I2CIP_FQA_MUXBUS_LEN) - 1)
+#define I2CIP_FQA_MUXBUS_MAX  0b111
 #define I2CIP_FQA_DEVADR_LSB  0
 #define I2CIP_FQA_DEVADR_LEN  7
-#define I2CIP_FQA_DEVADR_MAX  ((1 << I2CIP_FQA_DEVADR_LEN) - 1)
+#define I2CIP_FQA_DEVADR_MAX  0b1111111 // 7-bit address
 
 #define I2CIP_FQA_CREATE(wire, module, bus, addr) (i2cip_fqa_t)((wire << (16 - I2CIP_FQA_I2CBUS_LEN)) | (module << (16 - I2CIP_FQA_I2CBUS_LEN - I2CIP_FQA_MODULE_LEN)) | (bus << (16 - I2CIP_FQA_I2CBUS_LEN - I2CIP_FQA_MODULE_LEN - I2CIP_FQA_MUXBUS_LEN)) | addr)
 
@@ -41,6 +41,8 @@ typedef const char* i2cip_id_t;
 #define I2CIP_FQA_SEG_MUXBUS(fqa) I2CIP_FQA_SEG(fqa, I2CIP_FQA_MUXBUS_LSB, I2CIP_FQA_MUXBUS_LEN) // Extracts the MUX bus number segment from an FQA
 #define I2CIP_FQA_SEG_MODULE(fqa) I2CIP_FQA_SEG(fqa, I2CIP_FQA_MODULE_LSB, I2CIP_FQA_MODULE_LEN) // Extracts the MUX number segment from an FQA
 #define I2CIP_FQA_SEG_I2CBUS(fqa) I2CIP_FQA_SEG(fqa, I2CIP_FQA_I2CBUS_LSB, I2CIP_FQA_I2CBUS_LEN) // Extracts the I2C bus number segment from an FQA
+
+#define I2CIP_MUX_BUS_FAKE 0x07 // Fake bus number for devices that are not on a MUX - Easter Egg
 
 // I2C Wire Implementation
 #define I2CIP_MAXBUFFER 32  // I2C buffer size
@@ -73,13 +75,19 @@ namespace I2CIP {
    * @param addr Device address
    * @return A valid FQA, or 0 if any segment has an invalid value.
    */
-  i2cip_fqa_t createFQA(const uint8_t& wire, const uint8_t& mux, const uint8_t& bus, const uint8_t& addr);
+  i2cip_fqa_t createFQA(uint8_t wire, uint8_t mux, uint8_t bus, uint8_t addr);
 
   /**
    * Initialize an I2C interface (if it has not already been initialized)
    * @param wire
    */
-  void beginWire(const uint8_t& wire);
+  void beginWire(uint8_t wire);
+
+  #ifdef DEBUG_SERIAL
+  void printFQA(const i2cip_fqa_t& fqa, Stream& out = DEBUG_SERIAL);
+  #else
+  void printFQA(const i2cip_fqa_t& fqa, Stream& out);
+  #endif
 };
 
 #endif

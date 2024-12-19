@@ -200,7 +200,7 @@ i2cip_errorlevel_t updateModule(uint8_t wirenum, uint8_t modulenum) {
   DEBUG_SERIAL.print(" ");
 
   unsigned long now = millis();
-  i2cip_errorlevel_t errlev = modules[modulenum]->operator()(eeprom.getFQA(), true);
+  i2cip_errorlevel_t errlev = modules[modulenum]->operator<EEPROM>()(eeprom.getFQA(), true);
   unsigned long delta = millis() - now;
 
   switch(errlev) {
