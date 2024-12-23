@@ -52,6 +52,8 @@ namespace I2CIP {
     #endif
     {
     I2CIP_DEVICE_CLASS_BUNDLE(EEPROM, I2CIP_EEPROM_ID);
+
+    I2CIP_INPUT_USE_RESET(char*, uint16_t);
     
     #ifdef I2CIP_USE_GUARANTEES
     I2CIP_CLASS_USE_GUARANTEE(EEPROM, I2CIP_GUARANTEE_EEPROM);
@@ -96,8 +98,6 @@ namespace I2CIP {
        **/
       i2cip_errorlevel_t set(const char * const& value, const uint16_t& args) override;
 
-      void clearCache(void) override;
-      const uint16_t& getDefaultA(void) const override;
       void resetFailsafe(void) override;
       const uint16_t& getDefaultB(void) const override;
 

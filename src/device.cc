@@ -353,7 +353,8 @@ i2cip_errorlevel_t Device::write(const i2cip_fqa_t& fqa, const uint8_t* buffer, 
   #ifdef I2CIP_DEBUG_SERIAL
     // else if(success) {
       DEBUG_DELAY();
-      I2CIP_DEBUG_SERIAL.print(F("TX ["));
+      printFQA(fqa, I2CIP_DEBUG_SERIAL);
+      I2CIP_DEBUG_SERIAL.print(F(" TX ["));
       I2CIP_DEBUG_SERIAL.print(len);
       I2CIP_DEBUG_SERIAL.print(F("] "));
       for (size_t i = 0; i < len; i++) {

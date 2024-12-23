@@ -10,8 +10,8 @@ bool EEPROM::_failsafe_set = false;
 char EEPROM::_failsafe[I2CIP_EEPROM_SIZE] = {'\0'};
 uint16_t EEPROM::_failsafe_b = I2CIP_EEPROM_SIZE;
 
-I2CIP_DEVICE_INIT_STATIC_ID(EEPROM, I2CIP_EEPROM_ID)
-// I2CIP_DEVICES_INIT_PROGMEM_ID(EEPROM, "24LC32")
+I2CIP_DEVICE_INIT_STATIC_ID(EEPROM, I2CIP_EEPROM_ID);
+I2CIP_INPUT_INIT_RESET(EEPROM, char*, nullptr, uint16_t, I2CIP_EEPROM_SIZE);
 
 EEPROM::EEPROM(i2cip_fqa_t fqa, const i2cip_id_t& id) : Device(fqa, id), IOInterface<char*, uint16_t, const char*, uint16_t>((Device*)this) {
   #ifdef I2CIP_DEBUG_SERIAL
@@ -256,22 +256,6 @@ i2cip_errorlevel_t EEPROM::set(const char * const& value, const uint16_t& args) 
 
 //   return (len > 0 ? 0 : 1);
 // }
-
-// G - Getter type: char* (null-terminated; writable heap)
-void EEPROM::clearCache(void) {
-  this->setCache(nullptr);
-
-  #ifdef I2CIP_DEBUG_SERIAL
-    DEBUG_DELAY();
-    I2CIP_DEBUG_SERIAL.print(F("EEPROM Cache Cleared (Repointed to Null)\n"));
-    DEBUG_DELAY();
-  #endif
-}
-
-// A - Getter argument type: uint16_t (max bytes to read)
-const uint16_t& EEPROM::getDefaultA(void) const {
-  return i2cip_eeprom_capacity;
-}
 
 // S - Setter type: const char* (null-terminated; immutable)
 void EEPROM::resetFailsafe(void) {

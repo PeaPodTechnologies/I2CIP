@@ -95,7 +95,8 @@ namespace I2CIP {
        * Gets the default "zero"/off-state value.
        * To be implemented by the child class.
       */
-      virtual void resetFailsafe(void);
+      virtual void resetFailsafe(void) = 0;
+      // virtual void resetFailsafe(void);
 
       /**
        * Sets the output device's state.

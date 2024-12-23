@@ -44,9 +44,9 @@ namespace I2CIP {
   typedef Device* (* factory_device_t)(i2cip_fqa_t fqa);
 
   class DeviceGroup {
-    friend class Module;
-
     protected:
+      friend class Module;
+
       bool add(Device& device);
       bool add(Device* device);
       bool addGroup(Device* devices[], uint8_t numdevices);
@@ -56,6 +56,8 @@ namespace I2CIP {
 
       template <class C, typename std::enable_if<std::is_base_of<Device, C>::value, int>::type = 0> static DeviceGroup* create(i2cip_id_t id);
     public:
+      template <class C, typename std::enable_if<std::is_base_of<Device, C>::value, int>::type = 0> static DeviceGroup* create(i2cip_id_t id);
+
       i2cip_id_t key;
       uint8_t numdevices = 0;
       Device* devices[I2CIP_DEVICES_PER_GROUP] = { nullptr };
@@ -163,14 +165,14 @@ namespace I2CIP {
       #ifdef DEBUG_SERIAL
     public:
       template <class C, typename std::enable_if<std::is_base_of<Device, C>::value, int>::type = 0> i2cip_errorlevel_t operator()(i2cip_fqa_t fqa, bool update = false, i2cip_args_io_t args = _i2cip_args_io_default, Stream& out = DEBUG_SERIAL);
-    protected:
+    // protected:
       template <class C, typename std::enable_if<std::is_base_of<Device, C>::value, int>::type = 0> i2cip_errorlevel_t operator()(C& d, bool update = false, i2cip_args_io_t args = _i2cip_args_io_default, Stream& out = DEBUG_SERIAL);
       template <class C, typename std::enable_if<std::is_base_of<Device, C>::value, int>::type = 0> i2cip_errorlevel_t operator()(C* d, bool update = false, i2cip_args_io_t args = _i2cip_args_io_default, Stream& out = DEBUG_SERIAL);
       #else
       // is there a "null" stream in Arduino? I don't think so. Would it be easy to implement? Probably.
     public:
       template <class C, typename std::enable_if<std::is_base_of<Device, C>::value, int>::type = 0> i2cip_errorlevel_t operator()(i2cip_fqa_t fqa, bool update = false, i2cip_args_io_t args = _i2cip_args_io_default, Stream& out = NullStream);
-    protected:
+    // protected:
       template <class C, typename std::enable_if<std::is_base_of<Device, C>::value, int>::type = 0> i2cip_errorlevel_t operator()(C& d, bool update = false, i2cip_args_io_t args = _i2cip_args_io_default, Stream& out = NullStream); // Mostly for Module::eeprom
       template <class C, typename std::enable_if<std::is_base_of<Device, C>::value, int>::type = 0> i2cip_errorlevel_t operator()(C* d, bool update = false, i2cip_args_io_t args = _i2cip_args_io_default, Stream& out = NullStream);
       #endif

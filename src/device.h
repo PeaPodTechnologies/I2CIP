@@ -130,6 +130,40 @@ public:\
     return this->print_buffer;\
   }
 
+#define I2CIP_OUTPUTS_USE_FAILSAFE true // uncomment to disable ouput set-value failsafe defaulting
+#ifdef I2CIP_OUTPUTS_USE_FAILSAFE
+#define I2CIP_OUTPUT_USE_FAILSAFE(TYPE, TYPEB, ...)\
+private:\
+  static TYPE _default_s;\
+  static TYPEB _default_b;\
+public:\
+  void resetFailsafe(void) override {\
+    this->setValue(_default_s);\
+  }\
+  __VA_OPT__(__VA_ARGS__)VALUE_IFNOT(__VA_OPT__(1), const TYPEB)& getDefaultB(void) const override { return _default_b; }
+
+#define I2CIP_OUTPUT_INIT_FAILSAFE(CLASS, TYPE, ARGS, TYPEB, ARGSB) \
+  TYPE CLASS::_default_s = ARGS;\
+  TYPEB CLASS::_default_b = ARGSB;
+
+#endif
+
+#define I2CIP_INPUTS_USE_RESET true // uncomment to disable input set-value reset defaulting
+#ifdef I2CIP_INPUTS_USE_RESET
+#define I2CIP_INPUT_USE_RESET(TYPE, TYPEA, ...)\
+  private:\
+    static TYPE _default_g;\
+    static TYPEA _default_a;\
+  public:\
+    void clearCache(void) override { this->setCache(_default_g); }\
+    __VA_OPT__(__VA_ARGS__)VALUE_IFNOT(__VA_OPT__(1), const TYPEA)& getDefaultA(void) const override { return _default_a; }
+
+#define I2CIP_INPUT_INIT_RESET(CLASS, TYPE, ARGS, TYPEA, ARGSA) \
+  TYPE CLASS::_default_g = ARGS;\
+  TYPEA CLASS::_default_a = ARGSA;
+#endif
+
+
 typedef enum { PIN_OFF = LOW, PIN_ON = HIGH, PIN_UNDEF } i2cip_state_pin_t;
 
 namespace I2CIP {

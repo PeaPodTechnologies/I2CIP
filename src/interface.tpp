@@ -80,13 +80,13 @@ template <typename S, typename B> OutputInterface<S, B>::~OutputInterface() { }
 
 template <typename S, typename B> void OutputInterface<S, B>::setValue(S value) { this->value = value; }
 
-template <typename S, typename B> void OutputInterface<S, B>::resetFailsafe(void) {
+// template <typename S, typename B> void OutputInterface<S, B>::resetFailsafe(void) {
   // #ifdef I2CIP_DEBUG_SERIAL
   //   DEBUG_DELAY();
   //   I2CIP_DEBUG_SERIAL.print(F("OutputInterface::resetFailsafe() Not Implemented; Nothing Done\n"));
   //   DEBUG_DELAY();
   // #endif
-}
+// }
 
 template <typename S, typename B> S OutputInterface<S, B>::getValue(void) const { return this->value; }
 
