@@ -54,7 +54,7 @@ namespace I2CIP {
 
       void destruct(void); // TODO: Private?
 
-      template <class C, typename std::enable_if<std::is_base_of<Device, C>::value, int>::type = 0> static DeviceGroup* create(i2cip_id_t id);
+      // template <class C, typename std::enable_if<std::is_base_of<Device, C>::value, int>::type = 0> static DeviceGroup* create(i2cip_id_t id);
     public:
       template <class C, typename std::enable_if<std::is_base_of<Device, C>::value, int>::type = 0> static DeviceGroup* create(i2cip_id_t id);
 
