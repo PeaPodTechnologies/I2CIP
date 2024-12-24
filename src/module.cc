@@ -969,11 +969,11 @@ bool Module::isFQAinSubnet(const i2cip_fqa_t& fqa) {
   bool match = I2CIP_FQA_SUBNET_MATCH(fqa, this->eeprom->getFQA());
   #ifdef I2CIP_DEBUG_SERIAL
     DEBUG_DELAY();
-    printFQA(fqa, I2CIP_DEBUG_SERIAL);
+    String m = fqaToString(fqa);
     if(match) {
-      I2CIP_DEBUG_SERIAL.print(F(" Subnet Match!\n"));
+      I2CIP_DEBUG_SERIAL.print(m + F(" Subnet Match!\n"));
     } else {
-      I2CIP_DEBUG_SERIAL.print(F(" Subnet Mismatch!\n"));
+      I2CIP_DEBUG_SERIAL.print(m + F(" Subnet Mismatch!\n"));
     }
     DEBUG_DELAY();
   #endif
@@ -1003,7 +1003,7 @@ i2cip_errorlevel_t Module::operator()(void) {
 
   if(this->eeprom == nullptr) { return I2CIP_ERR_HARD; }
   if(!this->eeprom_added) {
-    return this->discoverEEPROM() ? I2CIP_ERR_NONE : I2CIP_ERR_HARD;
+    return this->discoverEEPROM();
     // Serial.print("EEPROM 0x");
     // Serial.println(I2CIP_FQA_SEG_DEVADR(this->eeprom->getFQA()), HEX);
   } else {

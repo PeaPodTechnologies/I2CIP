@@ -1,0 +1,3 @@
+[submodule "lib/DebugJson"]
+	path = lib/DebugJson
+	url = https://github.com/PeaPodTechnologies/DebugJson

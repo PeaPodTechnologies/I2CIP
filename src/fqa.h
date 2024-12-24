@@ -83,11 +83,13 @@ namespace I2CIP {
    */
   void beginWire(uint8_t wire);
 
-  #ifdef DEBUG_SERIAL
-  void printFQA(const i2cip_fqa_t& fqa, Stream& out = DEBUG_SERIAL);
-  #else
-  void printFQA(const i2cip_fqa_t& fqa, Stream& out);
-  #endif
+  // #ifdef DEBUG_SERIAL
+  // void printFQA(const i2cip_fqa_t& fqa, Stream& out = DEBUG_SERIAL);
+  // #else
+  // void printFQA(const i2cip_fqa_t& fqa, Stream& out);
+  // #endif
+
+  String fqaToString(const i2cip_fqa_t& fqa);
 };
 
 #endif

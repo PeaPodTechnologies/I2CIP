@@ -34,9 +34,9 @@ namespace I2CIP {
     public:
       int available(void) { return 0; }
       int read(void) { return -1; }
-      int peek(void) { return 37; }
+      int peek(void) { return '\0'; } // EOS always
       void flush(void) { }
-      size_t write(uint8_t c) { return 1; }
+      size_t write(uint8_t c) { return 1; } // NOP always
   };
 
   extern _NullStream NullStream;
@@ -164,19 +164,19 @@ namespace I2CIP {
       // This function is like operator(Device) except it's cast to the specific Device type and prints FQA, Input cache, etc.
       #ifdef DEBUG_SERIAL
     public:
-      template <class C, typename std::enable_if<std::is_base_of<Device, C>::value, int>::type = 0> i2cip_errorlevel_t operator()(i2cip_fqa_t fqa, bool update = false, i2cip_args_io_t args = _i2cip_args_io_default, Stream& out = DEBUG_SERIAL);
+      template <class C, typename std::enable_if<std::is_base_of<Device, C>::value, int>::type = 0> i2cip_errorlevel_t operator()(i2cip_fqa_t fqa, bool update = false, i2cip_args_io_t args = _i2cip_args_io_default, Print& out = DEBUG_SERIAL);
     // protected:
-      template <class C, typename std::enable_if<std::is_base_of<Device, C>::value, int>::type = 0> i2cip_errorlevel_t operator()(C& d, bool update = false, i2cip_args_io_t args = _i2cip_args_io_default, Stream& out = DEBUG_SERIAL);
-      template <class C, typename std::enable_if<std::is_base_of<Device, C>::value, int>::type = 0> i2cip_errorlevel_t operator()(C* d, bool update = false, i2cip_args_io_t args = _i2cip_args_io_default, Stream& out = DEBUG_SERIAL);
+      template <class C, typename std::enable_if<std::is_base_of<Device, C>::value, int>::type = 0> i2cip_errorlevel_t operator()(C& d, bool update = false, i2cip_args_io_t args = _i2cip_args_io_default, Print& out = DEBUG_SERIAL);
+      template <class C, typename std::enable_if<std::is_base_of<Device, C>::value, int>::type = 0> i2cip_errorlevel_t operator()(C* d, bool update = false, i2cip_args_io_t args = _i2cip_args_io_default, Print& out = DEBUG_SERIAL);
       #else
       // is there a "null" stream in Arduino? I don't think so. Would it be easy to implement? Probably.
     public:
-      template <class C, typename std::enable_if<std::is_base_of<Device, C>::value, int>::type = 0> i2cip_errorlevel_t operator()(i2cip_fqa_t fqa, bool update = false, i2cip_args_io_t args = _i2cip_args_io_default, Stream& out = NullStream);
+      template <class C, typename std::enable_if<std::is_base_of<Device, C>::value, int>::type = 0> i2cip_errorlevel_t operator()(i2cip_fqa_t fqa, bool update = false, i2cip_args_io_t args = _i2cip_args_io_default, Print& out = NullStream);
     // protected:
-      template <class C, typename std::enable_if<std::is_base_of<Device, C>::value, int>::type = 0> i2cip_errorlevel_t operator()(C& d, bool update = false, i2cip_args_io_t args = _i2cip_args_io_default, Stream& out = NullStream); // Mostly for Module::eeprom
-      template <class C, typename std::enable_if<std::is_base_of<Device, C>::value, int>::type = 0> i2cip_errorlevel_t operator()(C* d, bool update = false, i2cip_args_io_t args = _i2cip_args_io_default, Stream& out = NullStream);
+      template <class C, typename std::enable_if<std::is_base_of<Device, C>::value, int>::type = 0> i2cip_errorlevel_t operator()(C& d, bool update = false, i2cip_args_io_t args = _i2cip_args_io_default, Print& out = NullStream); // Mostly for Module::eeprom
+      template <class C, typename std::enable_if<std::is_base_of<Device, C>::value, int>::type = 0> i2cip_errorlevel_t operator()(C* d, bool update = false, i2cip_args_io_t args = _i2cip_args_io_default, Print& out = NullStream);
       #endif
-      // template <> i2cip_errorlevel_t I2CIP::Module::operator()(i2cip_fqa_t* ptr, bool update, i2cip_args_io_t args, Stream& out) { return I2CIP_ERR_HARD; } // This is the new COCONUT.PNG
+      // template <> i2cip_errorlevel_t I2CIP::Module::operator()(i2cip_fqa_t* ptr, bool update, i2cip_args_io_t args, Print& out) { return I2CIP_ERR_HARD; } // This is the new COCONUT.PNG
       // These are good for background searcheb  s, but unless you're debugging this library I wouldn't personally recommend using them
       // i2cip_errorlevel_t operator()(Device& d, bool update = false, i2cip_args_io_t args = _i2cip_args_io_default);
       // i2cip_errorlevel_t operator()(Device* d, bool update = false, i2cip_args_io_t args = _i2cip_args_io_default);
@@ -191,25 +191,26 @@ namespace I2CIP {
       // }
       #ifdef I2CIP_INPUTS_USE_TOSTRING
       #ifdef DEBUG_SERIAL
-      template <class C, typename std::enable_if<std::is_base_of<InputGetter, C>::value, int>::type = 0> static void printCache(C* that, Stream& out = DEBUG_SERIAL);
+      template <class C, typename std::enable_if<std::is_base_of<InputGetter, C>::value, int>::type = 0> static void printDevice(C* that, Print& out = DEBUG_SERIAL);
       #else
       template <class C
       // , typename std::enable_if<!std::is_same<C, unsigned short>::value, int>::type = 0
       , typename std::enable_if<std::is_base_of<InputGetter, C>::value, int>::type = 0
-      > static void printCache(C* that, Stream& out);
+      > static void printDevice(C* that, Print& out);
       #endif
-      // template <> void printCache(i2cip_fqa_t* that, Stream& out) { return; }
-      #endif
+      // template <> void printCache(i2cip_fqa_t* that, Print& out) { return; }
 
-      #ifdef DEBUG_SERIAL
-      template <class C, typename std::enable_if<std::is_base_of<Device, C>::value, int>::type = 0> static void toString(C* that, Stream& out = DEBUG_SERIAL, bool printCache = true);
-      #else
-      template <class C
-        // , typename std::enable_if<!std::is_same<C, unsigned short>::value, int>::type = 0
-        , typename std::enable_if<std::is_base_of<Device, C>::value, int>::type = 0
-      > static void toString(C* that, Stream& out, bool printCache = true);
+      template <class C, typename std::enable_if<std::is_base_of<Device, C>::value, int>::type = 0> static String deviceCacheToString(C* that);
+      // #ifdef DEBUG_SERIAL
+      // template <class C, typename std::enable_if<std::is_base_of<Device, C>::value, int>::type = 0> static void toString(C* that, Print& out = DEBUG_SERIAL, bool printCache = true);
+      // #else
+      // template <class C
+      //   // , typename std::enable_if<!std::is_same<C, unsigned short>::value, int>::type = 0
+      //   , typename std::enable_if<std::is_base_of<Device, C>::value, int>::type = 0
+      // > static void toString(C* that, Print& out, bool printCache = true);
+      // #endif
       #endif
-      // template <> void toString(i2cip_fqa_t* that, Stream& out) { return; }
+      // template <> void toString(i2cip_fqa_t* that, Print& out) { return; }
   };
 }
 

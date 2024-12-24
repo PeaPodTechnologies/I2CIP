@@ -4,7 +4,7 @@
 
 #ifndef DEBUG
 // Uncomment to enable debug
-// #define DEBUG 1
+#define DEBUG 1
 #endif
 
 // CROSS-LIBRARY DEBUG COMPATIBILITY
@@ -16,9 +16,11 @@
 #endif
 #endif
 
+#include <DebugJson.h>
+
 #ifdef DEBUG_SERIAL
 // Just once
-#define I2CIP_DEBUG_SERIAL DEBUG_SERIAL
+#define I2CIP_DEBUG_SERIAL DebugJsonBreakpoints
 
 #ifndef DEBUG_DELAY
 // #define DEBUG_DELAY() {delayMicroseconds(10);}

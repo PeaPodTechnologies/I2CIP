@@ -30,20 +30,20 @@ void I2CIP::beginWire(uint8_t wire) {
   }
 }
 
-void I2CIP::printFQA(const i2cip_fqa_t& fqa, Stream& out) {
-  out.print(F("I2C[")); // Header
-  out.print(I2CIP_FQA_SEG_I2CBUS(fqa), DEC); // Wire Index (Dec)
-  out.print("]:");
-  // out.print(']');
-  if(I2CIP_FQA_SEG_MUXBUS(fqa) == I2CIP_MUX_BUS_FAKE) { // FAKE BUS INDEX - All MUX operations are NOP
-    // out.print(F(" NOMUX "));
+String I2CIP::fqaToString(const i2cip_fqa_t& fqa) {
+  String s = F("I2C[");
+  s += I2CIP_FQA_SEG_I2CBUS(fqa);
+  s += F("]:");
+  if(I2CIP_FQA_SEG_MUXBUS(fqa) == I2CIP_MUX_BUS_FAKE) {
+    // s += F(" NOMUX ");
   } else {
-    // out.print(F(" Subnet "));
-    out.print(I2CIP_FQA_SEG_MODULE(fqa), DEC); // Module Number; MUX Address Increment (Dec)
-    out.print(':'); 
-    out.print(I2CIP_FQA_SEG_MUXBUS(fqa), DEC); // Bus Instruction Shift (Dec)
-    out.print(':'); 
+    // s += F(" Subnet ");
+    s += I2CIP_FQA_SEG_MODULE(fqa);
+    s += ':';
+    s += I2CIP_FQA_SEG_MUXBUS(fqa);
+    s += ':';
   }
-  out.print(F("0x"));
-  out.print(I2CIP_FQA_SEG_DEVADR(fqa) & 0x7F, HEX); // 7-Bit Device Address (Hex)
+  s += F("0x");
+  s += I2CIP_FQA_SEG_DEVADR(fqa) & 0x7F;
+  return s;
 }

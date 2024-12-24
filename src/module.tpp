@@ -40,7 +40,7 @@ template <class C, typename std::enable_if<std::is_base_of<Device, C>::value, in
 
 // typename std::enable_if<std::is_base_of<Device, C>::value, int>::type = 0
 
-template <class C, typename std::enable_if<std::is_base_of<Device, C>::value, int>::type> i2cip_errorlevel_t I2CIP::Module::operator()(i2cip_fqa_t fqa, bool update, i2cip_args_io_t args, Stream& out) {
+template <class C, typename std::enable_if<std::is_base_of<Device, C>::value, int>::type> i2cip_errorlevel_t I2CIP::Module::operator()(i2cip_fqa_t fqa, bool update, i2cip_args_io_t args, Print& out) {
   if(!this->isFQAinSubnet(fqa)) return I2CIP_ERR_SOFT;
   // if(out.peek() == 37) return this->operator()(fqa, update, args); // Probabaly NullStream; Refer
 
@@ -55,9 +55,9 @@ template <class C, typename std::enable_if<std::is_base_of<Device, C>::value, in
   return this->operator()<C>((C*)d, update, args, out); // We can assume that d is a C*
 }
 
-template <class C, typename std::enable_if<std::is_base_of<Device, C>::value, int>::type> i2cip_errorlevel_t I2CIP::Module::operator()(C& d, bool update, i2cip_args_io_t args, Stream& out) { return this->operator()(&d, update, args, out); }
+template <class C, typename std::enable_if<std::is_base_of<Device, C>::value, int>::type> i2cip_errorlevel_t I2CIP::Module::operator()(C& d, bool update, i2cip_args_io_t args, Print& out) { return this->operator()(&d, update, args, out); }
 
-template <class C, typename std::enable_if<std::is_base_of<Device, C>::value, int>::type> i2cip_errorlevel_t I2CIP::Module::operator()(C* ptr, bool update, i2cip_args_io_t args, Stream& out) {
+template <class C, typename std::enable_if<std::is_base_of<Device, C>::value, int>::type> i2cip_errorlevel_t I2CIP::Module::operator()(C* ptr, bool update, i2cip_args_io_t args, Print& out) {
   if(ptr == nullptr) { return I2CIP_ERR_SOFT; }
   if(sizeof(C) < sizeof(Device)) return I2CIP_ERR_SOFT; // Definitely not a Device
 
@@ -66,7 +66,8 @@ template <class C, typename std::enable_if<std::is_base_of<Device, C>::value, in
   i2cip_fqa_t fqa = d->getFQA();
   if(!this->isFQAinSubnet(fqa)) return I2CIP_ERR_SOFT;
 
-  Module::toString<C>(ptr, out, false);
+  String m = fqaToString(fqa);
+  m += " '"; m += d->getID(); m += "' ";
 
   unsigned long now = millis();
   i2cip_errorlevel_t errlev = I2CIP_ERR_NONE;
@@ -99,25 +100,25 @@ template <class C, typename std::enable_if<std::is_base_of<Device, C>::value, in
 
   unsigned long delta = millis() - now;
 
-  if(out.peek() == 37) return errlev; // Probabaly NullStream; Refer
+  // if(out.peek() == 37) return errlev; // Probabaly NullStream; Refer
 
-  out.print(' ');
+  m += (' ');
   switch(errlev){
-    case I2CIP_ERR_NONE: out.print("PASS"); break;
-    case I2CIP_ERR_SOFT: out.print("EINVAL"); break;
-    case I2CIP_ERR_HARD: out.print("ENOENT"); break;
+    case I2CIP_ERR_NONE: m += "PASS"; break;
+    case I2CIP_ERR_SOFT: m += "EINVAL"; break;
+    case I2CIP_ERR_HARD: m += "EIO"; break;
     default: out.print("ERR???"); break;
   }
-  out.print(' ');
-  out.print(delta / 1000.0, 3);
-  out.print('s');
+  m += (' ');
+  m += String(delta / 1000.0, 3);
+  m += ('s');
 
   if(update && errlev == I2CIP_ERR_NONE) {
-    if(d->getInput() != nullptr) { out.print(' '); out.print(d->getInput()->printCache()); }
-    if(d->getOutput() != nullptr) { out.print(F(" OUT SET")); }
-    if(d->getInput() == nullptr && d->getOutput() == nullptr) { out.print(F(" NOP")); }
+    if(d->getInput() != nullptr) { m += (F(" INPGET ")); m += (d->getInput()->printCache()); }
+    if(d->getOutput() != nullptr) { m += (F(" OUTSET")); }
+    // if(d->getInput() == nullptr && d->getOutput() == nullptr) { m += (F(" NOP")); }
   }
-  out.println();
+  out.println(m);
 
   return errlev;
 }
@@ -127,37 +128,33 @@ template <class C, typename std::enable_if<std::is_base_of<Device, C>::value, in
 // }
 
 #ifdef I2CIP_INPUTS_USE_TOSTRING
-template <class C
-// , typename std::enable_if<!std::is_same<C, unsigned short>::value, int>::type = 0
-, typename std::enable_if<std::is_base_of<InputGetter, C>::value, int>::type
-> void I2CIP::Module::printCache(C* that, Stream& out) {
+template <class C, typename std::enable_if<std::is_base_of<InputGetter, C>::value, int>::type = 0> void I2CIP::Module::printDevice(C* that, Print& out) {
   // Remember: this is implied to be Json-like
-  if(that == nullptr) return;
-  out.print('\"');
-  out.print(that->getID());
-  out.print('\"');
-  out.print(':');
-  out.print(that->cacheToString());
+  if(that == nullptr || sizeof(C) < sizeof(Device)) return;
+
+  String m = fqaToString(that->getFQA());
+  m += F(" @0x");
+  m += String((uintptr_t)that->getFQA(), HEX);
+  m += F(" '");
+  m += that->getID();
+  m += F("' @0x");
+  m += String((uintptr_t)that->getID(), HEX);
+  #ifdef I2CIP_INPUTS_USE_TOSTRING
+  if(that->getInput() != nullptr) { m += ' '; m += (that->getInput()->printCache()); }
+  #endif
+  out.println(m);
 }
 #endif
 
 
 
-template <class C
-// , typename std::enable_if<!std::is_same<C, unsigned short>::value, int>::type = 0
-, typename std::enable_if<std::is_base_of<Device, C>::value, int>::type
-> void I2CIP::Module::toString(C* that, Stream& out, bool printCache) {
-  if(that == nullptr || sizeof(C) < sizeof(Device)) return;
-  printFQA(that->getFQA(), out);
-  out.print(F(" @0x"));
-  out.print((uintptr_t)that, HEX);
-  out.print(F(" '"));
-  out.print(that->getID());
-  out.print(F("' @0x"));
-  out.print((uintptr_t)that->getID(), HEX);
-  #ifdef I2CIP_INPUTS_USE_TOSTRING
-  if(printCache && that->getInput() != nullptr) { out.print(' '); out.print(that->getInput()->printCache()); }
-  #endif
+template <class C, typename std::enable_if<std::is_base_of<Device, C>::value, int>::type = 0> String I2CIP::Module::deviceCacheToString(C* that) {
+  if(that == nullptr || sizeof(C) < sizeof(Device)) return String();
+  String m = "\"";
+  m += that->getID();
+  m += "\":";
+  m += that->cacheToString();
+  return m;
 }
 
 #endif
