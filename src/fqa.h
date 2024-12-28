@@ -42,7 +42,8 @@ typedef const char* i2cip_id_t;
 #define I2CIP_FQA_SEG_MODULE(fqa) I2CIP_FQA_SEG(fqa, I2CIP_FQA_MODULE_LSB, I2CIP_FQA_MODULE_LEN) // Extracts the MUX number segment from an FQA
 #define I2CIP_FQA_SEG_I2CBUS(fqa) I2CIP_FQA_SEG(fqa, I2CIP_FQA_I2CBUS_LSB, I2CIP_FQA_I2CBUS_LEN) // Extracts the I2C bus number segment from an FQA
 
-#define I2CIP_MUX_BUS_FAKE 0x07 // Fake bus number for devices that are not on a MUX - Easter Egg
+#define I2CIP_MUX_BUS_FAKE 0x07 // Bus 7 fakeout for devices that are not on a MUX - Easter Egg
+#define I2CIP_MUX_NUM_FAKE 0x07 // Module MUX 0x77 fakeout-mask for HT16K33 - Easter Egg
 
 // I2C Wire Implementation
 #define I2CIP_MAXBUFFER 32  // I2C buffer size

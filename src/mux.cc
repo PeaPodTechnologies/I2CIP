@@ -23,6 +23,20 @@
 #endif
 #endif
 
+#ifdef I2CIP_MUX_NUM_FAKE
+#ifdef I2CIP_DEBUG_SERIAL
+#define FAKEMUX_BREAK(mux) {\
+  if(mux == I2CIP_MUX_NUM_FAKE) {\
+    DEBUG_DELAY();\
+    I2CIP_DEBUG_SERIAL.print(F("--> FAKE MUX; NOP"));\
+    DEBUG_DELAY();\
+    return I2CIP_ERR_NONE;\
+  }\
+}
+#else
+#define FAKEMUX_BREAK(mux) { if(mux == I2CIP_MUX_NUM_FAKE) { return I2CIP_ERR_NONE; } }
+#endif
+
 namespace I2CIP {
 
   namespace MUX {
@@ -58,6 +72,9 @@ namespace I2CIP {
       #ifdef I2CIP_MUX_BUS_FAKE
         FAKEBUS_BREAK(I2CIP_FQA_SEG_MUXBUS(fqa));
       #endif
+      #ifdef I2CIP_MUX_NUM_FAKE
+        FAKEMUX_BREAK(I2CIP_FQA_SEG_MODULE(fqa));
+      #endif
       return pingMUX(I2CIP_FQA_SEG_I2CBUS(fqa), I2CIP_FQA_SEG_MODULE(fqa));
     }
     
@@ -67,6 +84,10 @@ namespace I2CIP {
 
       #ifdef I2CIP_MUX_BUS_FAKE
         FAKEBUS_BREAK(I2CIP_FQA_SEG_MUXBUS(fqa));
+      #endif
+
+      #ifdef I2CIP_MUX_NUM_FAKE
+        FAKEBUS_BREAK(I2CIP_FQA_SEG_MODULE(fqa));
       #endif
 
       #ifdef I2CIP_DEBUG_SERIAL
@@ -131,6 +152,10 @@ namespace I2CIP {
 
       #ifdef I2CIP_MUX_BUS_FAKE
         FAKEBUS_BREAK(I2CIP_FQA_SEG_MUXBUS(fqa));
+      #endif
+
+      #ifdef I2CIP_MUX_NUM_FAKE
+        FAKEMUX_BREAK(I2CIP_FQA_SEG_MODULE(fqa));
       #endif
 
       #ifdef I2CIP_DEBUG_SERIAL
