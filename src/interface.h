@@ -30,6 +30,9 @@ namespace I2CIP {
       InputInterface(Device* device);
       virtual ~InputInterface() = 0;
 
+      typedef G i2cip_input_type_t;
+      typedef A i2cip_input_args_t;
+
       i2cip_errorlevel_t get(const void* args = nullptr) override;
 
       /**
@@ -78,6 +81,9 @@ namespace I2CIP {
       OutputInterface(Device* device);
       
       virtual ~OutputInterface() = 0;
+
+      typedef S i2cip_output_type_t;
+      typedef B i2cip_output_args_t;
 
       i2cip_errorlevel_t set(const void* value = nullptr, const void* args = nullptr) override;
 
