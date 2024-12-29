@@ -36,6 +36,7 @@
 #else
 #define FAKEMUX_BREAK(mux) { if(mux == I2CIP_MUX_NUM_FAKE) { return I2CIP_ERR_NONE; } }
 #endif
+#endif
 
 namespace I2CIP {
 
