@@ -32,18 +32,18 @@ void I2CIP::beginWire(uint8_t wire) {
 
 String I2CIP::fqaToString(const i2cip_fqa_t& fqa) {
   String s = F("I2C[");
-  s += I2CIP_FQA_SEG_I2CBUS(fqa);
+  s += String(I2CIP_FQA_SEG_I2CBUS(fqa), HEX);
   s += F("]:");
-  if(I2CIP_FQA_SEG_MUXBUS(fqa) == I2CIP_MUX_BUS_FAKE) {
+  if(I2CIP_FQA_SEG_MODULE(fqa) == I2CIP_MUX_NUM_FAKE || I2CIP_FQA_SEG_MUXBUS(fqa) == I2CIP_MUX_BUS_FAKE) {
     // s += F(" NOMUX ");
   } else {
     // s += F(" Subnet ");
-    s += I2CIP_FQA_SEG_MODULE(fqa);
+    s += String(I2CIP_FQA_SEG_MODULE(fqa), HEX);
     s += ':';
-    s += I2CIP_FQA_SEG_MUXBUS(fqa);
+    s += String(I2CIP_FQA_SEG_MUXBUS(fqa), HEX);
     s += ':';
   }
   s += F("0x");
-  s += I2CIP_FQA_SEG_DEVADR(fqa) & 0x7F;
+  s += String(I2CIP_FQA_SEG_DEVADR(fqa) & 0x7F, HEX);
   return s;
 }

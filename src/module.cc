@@ -966,6 +966,7 @@ void Module::remove(Device* device, bool del) {
 }
 
 bool Module::isFQAinSubnet(const i2cip_fqa_t& fqa) { 
+  if(I2CIP_FQA_SEG_MODULE(fqa) == I2CIP_MUX_NUM_FAKE || I2CIP_FQA_SEG_MODULE(fqa) != this->getModuleNum()) return true; // Allows any Module to wrap a faked-out/non-MUX device
   bool match = I2CIP_FQA_SUBNET_MATCH(fqa, this->eeprom->getFQA());
   #ifdef I2CIP_DEBUG_SERIAL
     DEBUG_DELAY();
