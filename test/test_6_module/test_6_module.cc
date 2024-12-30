@@ -6,6 +6,9 @@
 #include <debug.h>
 #include <I2CIP.h>
 
+#include <HT16K33.hpp>
+#include <SHT45.h>
+
 using namespace I2CIP;
 
 Module* m;  // to be initialized in setup()
@@ -52,18 +55,44 @@ void test_module_discovery(void) {
   TEST_ASSERT_EQUAL_UINT8_MESSAGE(I2CIP_ERR_NONE, errlev, "Module Discovery Fail");
 }
 
+state_sht45_t cache = { 0.0f, 0.0f };
+i2cip_ht16k33_data_t data = { .f = NAN }; // = { 0xCACA }; // 0xCAFE; // 0xBEEF; // 0xDEAD; // 0x1337; // LEET
+i2cip_ht16k33_mode_t mode = SEG_1F; // SEG_HEX16;
+i2cip_args_io_t args = { .a = nullptr, .s = &data.f, .b = &mode };
+HT16K33 *ht16k33 = nullptr;
+SHT45 *sht45 = nullptr;
+
+void test_ht16k33_oop(void) {
+  ht16k33 = new HT16K33(WIRENUM, I2CIP_MUX_NUM_FAKE, I2CIP_MUX_BUS_FAKE, "SEVENSEG"); // Fakeout constructor
+  TEST_ASSERT_TRUE_MESSAGE(ht16k33 != nullptr, "HT16K33 Fakeout Constructor");
+}
+
+void test_sht45_oop(void) {
+  sht45 = new SHT45(createFQA(WIRENUM, MODULE, 0, I2CIP_SHT45_ADDRESS), "SHT45"); // Fakeout constructor
+  TEST_ASSERT_TRUE_MESSAGE(sht45 != nullptr, "SHT45 Default Constructor");
+}
+
 void setup(void) {
   Serial.begin(115200);
 
   delay(2000);
 
   UNITY_BEGIN();
-  
+  // @0x3FFBDB7C
+  // @0x3FFB2188
   RUN_TEST(test_module_init);
 
   delay(1000);
 
   RUN_TEST(test_module_discovery);
+
+  delay(1000);
+
+  RUN_TEST(test_sht45_oop);
+
+  delay(1000);
+
+  RUN_TEST(test_ht16k33_oop);
 
   // i2cip_fqa_t fqa = (m->operator const I2CIP::EEPROM &());
 
@@ -87,25 +116,25 @@ void setup(void) {
   delay(1000);
 }
 
-static bool fail = false;
+static bool end = false;
 
 void test_module_self_check(void) {
   i2cip_errorlevel_t errlev = m->operator()();
   TEST_ASSERT_EQUAL_UINT8_MESSAGE(I2CIP_ERR_NONE, errlev, "Self-check failed! Check module wiring.");
-  if(errlev > I2CIP_ERR_NONE) fail = true;
+  if(errlev > I2CIP_ERR_NONE) end = true;
 }
 
 void test_module_eeprom_check(void) {
   i2cip_errorlevel_t errlev = m->operator()<EEPROM>(m->operator const I2CIP::EEPROM &());
   TEST_ASSERT_EQUAL_UINT8_MESSAGE(I2CIP_ERR_NONE, errlev, "EEPROM check failed! Check EEPROM wiring.");
-  if(errlev > I2CIP_ERR_NONE) fail = true;
+  if(errlev > I2CIP_ERR_NONE) end = true;
 }
 
 void test_module_eeprom_update(void) {
   // i2cip_errorlevel_t errlev = (*m)((m->operator const I2CIP::EEPROM &()), true);
   i2cip_errorlevel_t errlev = m->operator()<EEPROM>(m->operator const I2CIP::EEPROM &(), true);
   TEST_ASSERT_EQUAL_UINT8_MESSAGE(I2CIP_ERR_NONE, errlev, "EEPROM read/write failed! Check EEPROM wiring.");
-  if(errlev > I2CIP_ERR_NONE) fail = true;
+  if(errlev > I2CIP_ERR_NONE) end = true;
   
   uint8_t len = strlen_P(i2cip_eeprom_default);
   char str[len+1] = { '\0' };
@@ -137,29 +166,86 @@ void test_module_eeprom_update(void) {
   // TEST_ASSERT_EQUAL_STRING_MESSAGE(str, value, "SET Value Mismatch");
 }
 
-void test_module_delete(void) {
-  delete(m);
-  TEST_ASSERT_TRUE_MESSAGE(true, "Module Deletion Fail");
+void test_ht16k33_ping(void) {
+  if(ht16k33 == nullptr) {
+    TEST_IGNORE_MESSAGE("HT16K33 Null");
+    return;
+  }
+  char msg[30];
+  sprintf(msg, "%s EIO", fqaToString(ht16k33->getFQA()));
+  i2cip_errorlevel_t result = ht16k33->ping();
+  TEST_ASSERT_EQUAL_UINT8_MESSAGE(I2CIP_ERR_NONE, result, msg);
+  if(result > I2CIP_ERR_NONE) end = true;
+}
+
+void test_ht16k33_write_string(void) {
+  if(ht16k33 == nullptr) {
+    TEST_IGNORE_MESSAGE("HT16K33 Null");
+    return;
+  }
+  // i2cip_errorlevel_t result = module->operator()<HT16K33>(WIRENUM, 0x07, 0x07, true, args, Serial);
+  i2cip_errorlevel_t result = m->operator()<HT16K33>(ht16k33, true, args);
+  // i2cip_errorlevel_t result = m->operator()<HT16K33>(ht16k33, true);
+  TEST_ASSERT_EQUAL_UINT8_MESSAGE(I2CIP_ERR_NONE, result, "HT16K33 Overwrite");
+  // if(result > I2CIP_ERR_NONE) end = true;
+}
+
+void test_sht45_ping(void) {
+  if(sht45 == nullptr) {
+    TEST_IGNORE_MESSAGE("SHT45 Null");
+    return;
+  }
+  char msg[30];
+  sprintf(msg, "%s EIO", fqaToString(sht45->getFQA()));
+  i2cip_errorlevel_t result = sht45->ping();
+  TEST_ASSERT_EQUAL_UINT8_MESSAGE(I2CIP_ERR_NONE, result, msg);
+  if(result > I2CIP_ERR_NONE) end = true;
+}
+
+void test_sht45_read(void) {
+  if(sht45 == nullptr) {
+    TEST_IGNORE_MESSAGE("SHT45 Null");
+    return;
+  }
+  i2cip_errorlevel_t result = m->operator()<SHT45>(sht45, true);
+  TEST_ASSERT_EQUAL_UINT8_MESSAGE(I2CIP_ERR_NONE, result, "SHT45 Read");
+  if(result > I2CIP_ERR_NONE) { end = true; return; }
+  cache = sht45->getCache();
+  data.f = cache.temperature;
 }
 
 i2cip_errorlevel_t errlev;
-uint8_t count = 2; bool end = false;
+uint8_t count = 2;
 void loop(void) {
-  if(end) return;
+  if (!end) {RUN_TEST(test_module_self_check);
 
-  if (!fail) RUN_TEST(test_module_self_check);
+  delay(1000);}
 
-  delay(1000);
-
-  if (!fail) RUN_TEST(test_module_eeprom_check);
+  if (!end) {RUN_TEST(test_module_eeprom_check);
   
-  delay(1000);
+  delay(1000);}
 
-  if (!fail) RUN_TEST(test_module_eeprom_update); // NOTE: Does not test EEPROM overwrite - see test_3_eeprom::test_eeprom_overwrite_contents
+  if (!end) {RUN_TEST(test_module_eeprom_update); // NOTE: Does not test EEPROM overwrite - see test_3_eeprom::test_eeprom_overwrite_contents
 
-  if(fail || count == 0) {
-    delay(1000);
-    RUN_TEST(test_module_delete);
+  delay(1000);}
+
+  if (!end) {RUN_TEST(test_ht16k33_ping);
+
+  delay(1000);}
+
+  if (!end) {RUN_TEST(test_ht16k33_write_string);
+
+  delay(1000);}
+
+  if (!end) {RUN_TEST(test_sht45_ping);
+
+  delay(1000);}
+
+  if (!end) {RUN_TEST(test_sht45_read);
+
+  delay(1000);}
+
+  if(end || count == 0) {
     delay(1000);
 
     UNITY_END();
