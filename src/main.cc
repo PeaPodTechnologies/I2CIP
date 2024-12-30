@@ -11,6 +11,9 @@
 
 #include <I2CIP.h>
 
+#include <HT16K33.hpp>
+#include <SHT45.h>
+
 using namespace I2CIP;
 
 // #define MAIN_DEBUG_SERIAL Serial
@@ -33,6 +36,9 @@ bool initializeModule(uint8_t wirenum, uint8_t modulenum);
 i2cip_errorlevel_t checkModule(uint8_t wirenum, uint8_t modulenum);
 i2cip_errorlevel_t updateModule(uint8_t wirenum, uint8_t modulenum);
 
+SHT45 *sht45 = nullptr;
+HT16K33 *ht16k33 = nullptr;
+
 void setup(void) {
   Serial.begin(115200);
 
@@ -41,11 +47,15 @@ void setup(void) {
   if (!r) { /*delete modules[MODULE];*/ modules[MODULE] = nullptr; crashout(); }
 
   // NOTE: module.eeprom == nullptr; and module["eeprom"] == nullptr
+  sht45 = new SHT45(createFQA(WIRENUM, MODULE, 0, I2CIP_SHT45_ADDRESS), "SHT45");
+  ht16k33 = new HT16K33(WIRENUM, I2CIP_MUX_NUM_FAKE, I2CIP_MUX_BUS_FAKE, "SEVENSEG");
 }
 
 i2cip_errorlevel_t errlev;
 uint8_t cycle = 0;
 unsigned long last = 0;
+
+bool temphum = false;
 
 void loop(void) {
   last = millis();
@@ -60,6 +70,18 @@ void loop(void) {
     default:
       errlev = updateModule(WIRENUM, MODULE);
       break;
+  }
+
+  if(errlev == I2CIP_ERR_NONE) {
+    errlev = modules[MODULE]->operator()<SHT45>(sht45, true, _i2cip_args_io_default, DebugJsonBreakpoints);
+    if(errlev == I2CIP_ERR_NONE) {
+      state_sht45_t state = sht45->getCache();
+      i2cip_ht16k33_mode_t mode = SEG_1F;
+      i2cip_ht16k33_data_t data = { .f = temphum ? state.temperature : state.humidity };
+      i2cip_args_io_t args = { .a = nullptr, .s = &data.f, .b = &mode };
+      errlev = modules[MODULE]->operator()<HT16K33>(ht16k33, true, args, DebugJsonBreakpoints);
+      temphum = !temphum;
+    }
   }
 
   // DEBUG PRINT: CYCLE COUNT, FPS, and ERRLEV
