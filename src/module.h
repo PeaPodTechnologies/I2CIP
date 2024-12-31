@@ -21,25 +21,29 @@
 #define I2CIP_GUARANTEE_MODULE 0x4D4F4455 // "MODU"
 #endif
 
-namespace I2CIP { class Module; }
+namespace I2CIP { 
+  class Module; class DeviceGroup;
+  BST<i2cip_fqa_t, Device*> devicetree = BST<i2cip_fqa_t, Device*>();
+  HashTable<DeviceGroup&> devicegroups = HashTable<DeviceGroup&>();
+};
 
 #ifdef I2CIP_USE_GUARANTEES
 I2CIP_GUARANTEE_DEFINE(Module, I2CIP_GUARANTEE_MODULE);
 #endif
 
+class _NullStream : public Stream {
+  // Does nothing. Everything goes nowhere. Bare minimum implementation.
+  public:
+    int available(void) { return 0; }
+    int read(void) { return -1; }
+    int peek(void) { return '\0'; } // EOS always
+    void flush(void) { }
+    size_t write(uint8_t c) { return 1; } // NOP always
+};
+
+extern _NullStream NullStream;
+
 namespace I2CIP {
-
-  class _NullStream : public Stream {
-    // Does nothing. Everything goes nowhere. Bare minimum implementation.
-    public:
-      int available(void) { return 0; }
-      int read(void) { return -1; }
-      int peek(void) { return '\0'; } // EOS always
-      void flush(void) { }
-      size_t write(uint8_t c) { return 1; } // NOP always
-  };
-
-  extern _NullStream NullStream;
 
   typedef Device* (* factory_device_t)(i2cip_fqa_t fqa);
 
@@ -52,7 +56,7 @@ namespace I2CIP {
       bool addGroup(Device* devices[], uint8_t numdevices);
       void remove(Device* device);
 
-      void destruct(void); // TODO: Private?
+      void destruct(const uint8_t& wire, const uint8_t& mux);
 
       // template <class C, typename std::enable_if<std::is_base_of<Device, C>::value, int>::type = 0> static DeviceGroup* create(i2cip_id_t id);
     public:
@@ -90,9 +94,10 @@ namespace I2CIP {
 
       bool isFQAinSubnet(const i2cip_fqa_t& fqa);
 
+      // !!! MOVED TO GLOBAL SCOPE - this is fine for a microcontroller - allows for cross-module device-group access
       // Tables/trees are allocated STATICALLY, their entries are dynamic
-      BST<i2cip_fqa_t, Device*> devices_fqabst = BST<i2cip_fqa_t, Device*>();
-      HashTable<DeviceGroup&> devices_idgroups = HashTable<DeviceGroup&>();
+      // BST<i2cip_fqa_t, Device*> devices_fqabst = BST<i2cip_fqa_t, Device*>();
+      // HashTable<DeviceGroup&> devices_idgroups = HashTable<DeviceGroup&>();
 
       HashTableEntry<DeviceGroup&>* addEmptyGroup(const char* id);
 
@@ -165,6 +170,7 @@ namespace I2CIP {
       #ifdef DEBUG_SERIAL
     public:
       template <class C, typename std::enable_if<std::is_base_of<Device, C>::value, int>::type = 0> i2cip_errorlevel_t operator()(i2cip_fqa_t fqa, bool update = false, i2cip_args_io_t args = _i2cip_args_io_default, Print& out = DEBUG_SERIAL);
+      template <class C, typename std::enable_if<std::is_base_of<Device, C>::value, int>::type = 0> i2cip_errorlevel_t operator()(i2cip_id_t id, bool update = false, i2cip_args_io_t args = _i2cip_args_io_default, Print& out = DEBUG_SERIAL);
     // protected:
       template <class C, typename std::enable_if<std::is_base_of<Device, C>::value, int>::type = 0> i2cip_errorlevel_t operator()(C& d, bool update = false, i2cip_args_io_t args = _i2cip_args_io_default, Print& out = DEBUG_SERIAL);
       template <class C, typename std::enable_if<std::is_base_of<Device, C>::value, int>::type = 0> i2cip_errorlevel_t operator()(C* d, bool update = false, i2cip_args_io_t args = _i2cip_args_io_default, Print& out = DEBUG_SERIAL);
@@ -172,6 +178,7 @@ namespace I2CIP {
       // is there a "null" stream in Arduino? I don't think so. Would it be easy to implement? Probably.
     public:
       template <class C, typename std::enable_if<std::is_base_of<Device, C>::value, int>::type = 0> i2cip_errorlevel_t operator()(i2cip_fqa_t fqa, bool update = false, i2cip_args_io_t args = _i2cip_args_io_default, Print& out = NullStream);
+      template <class C, typename std::enable_if<std::is_base_of<Device, C>::value, int>::type = 0> i2cip_errorlevel_t operator()(i2cip_id_t id, bool update = false, i2cip_args_io_t args = _i2cip_args_io_default, Print& out = NullStream);
     // protected:
       template <class C, typename std::enable_if<std::is_base_of<Device, C>::value, int>::type = 0> i2cip_errorlevel_t operator()(C& d, bool update = false, i2cip_args_io_t args = _i2cip_args_io_default, Print& out = NullStream); // Mostly for Module::eeprom
       template <class C, typename std::enable_if<std::is_base_of<Device, C>::value, int>::type = 0> i2cip_errorlevel_t operator()(C* d, bool update = false, i2cip_args_io_t args = _i2cip_args_io_default, Print& out = NullStream);

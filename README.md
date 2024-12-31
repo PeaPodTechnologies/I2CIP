@@ -2,6 +2,8 @@
 
 Inter-Integrated Circuit Intranet Protocols: A library of protocols for dynamic routing and interfacing with I2C devices on a modular switched network.
 
+<!-- TODO module operator() return type improvement? bulk status? -->
+
 ## I2C Intranet
 
 It is advantageous to view a collection of devices on an I2C bus as a network - analogous to the Internet - under certain conditions:

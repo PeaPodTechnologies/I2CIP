@@ -55,6 +55,21 @@ template <class C, typename std::enable_if<std::is_base_of<Device, C>::value, in
   return this->operator()<C>((C*)d, update, args, out); // We can assume that d is a C*
 }
 
+template <class C, typename std::enable_if<std::is_base_of<Device, C>::value, int>::type> i2cip_errorlevel_t I2CIP::Module::operator()(i2cip_id_t id, bool update, i2cip_args_io_t args, Print& out) {
+  i2cip_errorlevel_t errlev = I2CIP_ERR_NONE;
+  DeviceGroup* dg = this->operator[](id);
+  if(dg == nullptr) { return I2CIP_ERR_SOFT; } // ENOENT
+  for(uint8_t i = 0; i < I2CIP_DEVICES_PER_GROUP; i++) {
+    if(dg->devices[i] == nullptr) { continue; }
+    i2cip_fqa_t fqa = dg->devices[i]->getFQA();
+    if(I2CIP_FQA_SEG_MODULE(fqa) == I2CIP_MUX_NUM_FAKE || I2CIP_FQA_SEG_MUXBUS(fqa) == I2CIP_MUX_BUS_FAKE) { continue; } // Skip non-MUX devices
+    if(!this->isFQAinSubnet(fqa)) { continue; } // Skip devices not in subnet
+    i2cip_errorlevel_t err = this->operator()<C>((C*)dg->devices[i], update, args, out);
+    if(err > errlev) { errlev = err; } // TODO: Something better
+  }
+  return errlev;
+}
+
 template <class C, typename std::enable_if<std::is_base_of<Device, C>::value, int>::type> i2cip_errorlevel_t I2CIP::Module::operator()(C& d, bool update, i2cip_args_io_t args, Print& out) { return this->operator()(&d, update, args, out); }
 
 template <class C, typename std::enable_if<std::is_base_of<Device, C>::value, int>::type> i2cip_errorlevel_t I2CIP::Module::operator()(C* ptr, bool update, i2cip_args_io_t args, Print& out) {
