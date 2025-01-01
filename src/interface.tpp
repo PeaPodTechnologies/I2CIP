@@ -8,8 +8,6 @@
 #ifndef I2CIP_INTERFACE_T_
 #define I2CIP_INTERFACE_T_
 
-#include <debug.h>
-
 using I2CIP::i2cip_errorlevel_t;
 using I2CIP::Device;
 using I2CIP::InputGetter;

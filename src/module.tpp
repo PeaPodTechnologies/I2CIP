@@ -6,6 +6,8 @@
 #ifndef I2CIP_MODULE_T_
 #define I2CIP_MODULE_T_
 
+#include "debug.h"
+
 // TODO template devicegroupfactorymember function
 
 template <class C, typename std::enable_if<std::is_base_of<Device, C>::value, int>::type> I2CIP::DeviceGroup* I2CIP::DeviceGroup::create(i2cip_id_t id) { 
@@ -41,7 +43,7 @@ template <class C, typename std::enable_if<std::is_base_of<Device, C>::value, in
 // typename std::enable_if<std::is_base_of<Device, C>::value, int>::type = 0
 
 template <class C, typename std::enable_if<std::is_base_of<Device, C>::value, int>::type> i2cip_errorlevel_t I2CIP::Module::operator()(i2cip_fqa_t fqa, bool update, i2cip_args_io_t args, Print& out) {
-  if(!this->isFQAinSubnet(fqa)) return I2CIP_ERR_SOFT;
+  // if(!this->isFQAinSubnet(fqa)) return I2CIP_ERR_SOFT; // This is handled by the operator
   // if(out.peek() == 37) return this->operator()(fqa, update, args); // Probabaly NullStream; Refer
 
   Device* d = this->operator[](fqa); // BST lookup; FQA is unique to the entire microcontroller
@@ -63,7 +65,7 @@ template <class C, typename std::enable_if<std::is_base_of<Device, C>::value, in
     if(dg->devices[i] == nullptr) { continue; }
     i2cip_fqa_t fqa = dg->devices[i]->getFQA();
     if(I2CIP_FQA_SEG_MODULE(fqa) == I2CIP_MUX_NUM_FAKE || I2CIP_FQA_SEG_MUXBUS(fqa) == I2CIP_MUX_BUS_FAKE) { continue; } // Skip non-MUX devices
-    if(!this->isFQAinSubnet(fqa)) { continue; } // Skip devices not in subnet
+    // if(!this->isFQAinSubnet(fqa)) { continue; } // Skip devices not in subnet // This is handled by the operator
     i2cip_errorlevel_t err = this->operator()<C>((C*)dg->devices[i], update, args, out);
     if(err > errlev) { errlev = err; } // TODO: Something better
   }

@@ -2,7 +2,7 @@
 #define I2CIP_FQA_H_
 
 #include <Arduino.h>
-#include <Wire.h>
+#include "Wire.h"
 
 // --------------------------------
 // FQA: Fully Qualified Addressing

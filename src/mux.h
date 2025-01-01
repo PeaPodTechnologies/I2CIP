@@ -1,7 +1,10 @@
 #ifndef I2CIP_MUX_H_
 #define I2CIP_MUX_H_
 
-#include <fqa.h>
+#include <Arduino.h>
+#include <Wire.h>
+
+#include "fqa.h"
 
 // ----------------------
 // MUX: I2C Multiplexers
@@ -53,7 +56,7 @@ namespace I2CIP {
      * @return Hardware failure: No ACK; Module lost. Software failure: Failed to write to MUX.
      */
     i2cip_errorlevel_t setBus(const i2cip_fqa_t& fqa);
-    i2cip_errorlevel_t setBus(const uint8_t& wire, const uint8_t& m, const uint8_t& bus = I2CIP_MUX_BUS_DEFAULT);
+    i2cip_errorlevel_t setBus(const uint8_t& wire, const uint8_t& m, const uint8_t& bus);
 
     /**
      * Reset the MUX to the "inactive" bus.

@@ -1,9 +1,12 @@
 #ifndef I2CIP_DEVICE_H_
 #define I2CIP_DEVICE_H_
 
-#include <fqa.h>
-#include <mux.h>
-// #include <guarantee.h>
+#include <Arduino.h>
+#include <Wire.h>
+
+#include "fqa.h"
+#include "mux.h"
+// #include "guarantee.h"
 
 /**
  * Shifts and masks a number's bits.
@@ -218,7 +221,7 @@ namespace I2CIP {
       static const char failptr_set = '\a';
     public:
       virtual ~OutputSetter() = 0;
-      virtual i2cip_errorlevel_t set(const void* value = nullptr, const void* args = nullptr) = 0; // Unimplemented; delete this device
+      virtual i2cip_errorlevel_t set(const void* value, const void* args = nullptr) = 0; // Unimplemented; delete this device
       // virtual i2cip_errorlevel_t set(const void* value = nullptr, const void* args = nullptr) { return I2CIP_ERR_HARD; } // Unimplemented; delete this device
       i2cip_errorlevel_t reset(const void* args = nullptr) { return this->set(&failptr_set, args); }
       i2cip_errorlevel_t failSet(const void* value) { return this->set(value, &failptr_set); }
@@ -236,6 +239,7 @@ namespace I2CIP {
     protected:
       const i2cip_fqa_t fqa;
       i2cip_id_t id;
+      const uint16_t timeout;
 
       // // Set by public API, deleted on deconstruction
       InputGetter* input = nullptr;
@@ -246,7 +250,7 @@ namespace I2CIP {
       template <typename G, typename A> friend class InputInterface;
       template <typename S, typename B> friend class OutputInterface;
 
-      Device(i2cip_fqa_t fqa, i2cip_id_t id);
+      Device(i2cip_fqa_t fqa, i2cip_id_t id, unsigned int timeout = 100);
       // Device(i2cip_fqa_t fqa) : Device(fqa, getStaticID()) { }
       // Device(i2cip_fqa_t fqa, const char id_progmem[] PROGMEM, char* staticBuffer); // Replaced by ADD_STATIC_ID(PROGMEM_ID)
 
@@ -398,8 +402,8 @@ namespace I2CIP {
       InputGetter* getInput(void) const;
       OutputSetter* getOutput(void) const;
 
-      i2cip_errorlevel_t get(const void* args = nullptr);
-      i2cip_errorlevel_t set(const void* value = nullptr, const void* args = nullptr);
+      i2cip_errorlevel_t get(const void* args);
+      i2cip_errorlevel_t set(const void* value, const void* args);
 
       const i2cip_fqa_t& getFQA(void) const;
       const i2cip_id_t& getID(void) const;
@@ -424,7 +428,7 @@ namespace I2CIP {
       virtual const char* getStaticID() = 0; // Pretty much just a formality to make sure you implement the macro, which has the WAY MORE useful static function variant getID()
 
       i2cip_errorlevel_t ping(bool resetbus = true, bool setbus = true);
-      i2cip_errorlevel_t pingTimeout(bool setbus = true, bool resetbus = true, unsigned int timeout = 100);
+      i2cip_errorlevel_t pingTimeout(bool setbus = true, bool resetbus = true);
       i2cip_errorlevel_t writeByte(const uint8_t& value, bool setbus = true);
       i2cip_errorlevel_t write(const uint8_t* buffer, size_t len = 1, bool setbus = true);
       i2cip_errorlevel_t writeRegister(const uint8_t& reg, const uint8_t& value, bool setbus = true);

@@ -1,6 +1,6 @@
-#include <fqa.h>
+#include "fqa.h"
 
-#include <debug.h>
+#include "debug.h"
 
 // Has wire N been wires[N].begin() yet?
 bool wiresBegun[I2CIP_NUM_WIRES] = { false };

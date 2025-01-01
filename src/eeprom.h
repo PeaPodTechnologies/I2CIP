@@ -1,12 +1,15 @@
 #ifndef I2CIP_EEPROM_H_
 #define I2CIP_EEPROM_H_
 
-#include <fqa.h>
-#include <device.h>
-#include <interface.h>
+#include <Arduino.h>
+#include <Wire.h>
+
+#include "device.h"
+#include "interface.h"
 
 #define I2CIP_EEPROM_SIZE     100   // EEPROM size in bytes
-#define I2CIP_EEPROM_ADDR     80    // SPRT EEPROM address (0x50)
+    // SPRT EEPROM address (0x50)
+#define I2CIP_EEPROM_ADDR     80
 #define I2CIP_EEPROM_TIMEOUT  1000   // If we're going to crash on a module ping fail, we should wait a bit
 #define I2CIP_GUARANTEE_EEPROM 2432
 
@@ -74,7 +77,7 @@ namespace I2CIP {
 
       ~EEPROM();
 
-      i2cip_errorlevel_t readContents(uint8_t* dest, size_t& num_read, size_t max_read = I2CIP_EEPROM_SIZE);
+      i2cip_errorlevel_t readContents(uint8_t* dest, size_t& num_read, size_t max_read = I2CIP_EEPROM_SIZE, bool setbus = true);
 
       i2cip_errorlevel_t writeByte(const uint16_t& bytenum, const uint8_t& value, bool setbus = true);
 

@@ -1,4 +1,6 @@
-#include <module.h>
+#include "module.h"
+
+#include "debug.h"
 
 // #ifndef I2CIP_MODULE_T_FIX
 // #define I2CIP_MODULE_T_FIX
@@ -305,6 +307,15 @@ i2cip_errorlevel_t Module::discoverEEPROM(bool recurse) {
     I2CIP_DEBUG_SERIAL.print(F(" Discovering...\n"));
     DEBUG_DELAY();
   #endif
+
+  if(I2CIP_FQA_SEG_MODULE(this->eeprom->getFQA()) == I2CIP_MUX_NUM_FAKE) {
+    #ifdef I2CIP_DEBUG_SERIAL
+      DEBUG_DELAY();
+      I2CIP_DEBUG_SERIAL.print(F("Invalid Fake Module Rejected\n"));
+      DEBUG_DELAY();
+    #endif
+    return I2CIP_ERR_HARD;
+  }
 
   // 1. EEPROM MODULE OOP
 
@@ -1023,7 +1034,7 @@ i2cip_errorlevel_t Module::operator()(void) {
   }
 
   // 3. Ping EEPROM until ready
-  return this->eeprom->pingTimeout(true, true, I2CIP_EEPROM_TIMEOUT);
+  return this->eeprom->pingTimeout(true, true);
 }
 
 
