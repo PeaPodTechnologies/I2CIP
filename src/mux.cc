@@ -1,7 +1,6 @@
-#include <mux.h>
+#include "mux.h"
 
-#include <fqa.h>
-#include <debug.h>
+#include "debug.h"
 
 // #define I2CIP_DEBUG_SERIAL Serial // just this once
 #ifndef DEBUG_DELAY
@@ -17,7 +16,8 @@ I2CIP::i2cip_errorlevel_t resetBusses(uint8_t wire) {
     if(err > errlev) { errlev = err; } 
   }
   _busses_reset = true;
-  return errlev;
+  // return errlev;
+  return I2CIP::I2CIP_ERR_NONE; // We don't really care about the result
 }
 
 #ifdef I2CIP_MUX_BUS_FAKE
@@ -179,7 +179,9 @@ namespace I2CIP {
       i2cip_fqa_t nofqa = createFQA(wire, m, I2CIP_MUX_BUS_DEFAULT, 0x00);
 
       #ifdef I2CIP_MUX_NUM_FAKE
-        FAKEMUX_BREAK(nofqa);
+        if(m == I2CIP_MUX_NUM_FAKE) {
+          return I2CIP_ERR_NONE;
+        }
       #endif
 
       #ifdef I2CIP_DEBUG_SERIAL

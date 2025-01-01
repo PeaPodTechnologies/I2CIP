@@ -1,4 +1,6 @@
-#include <interface.h>
+#include "interface.h"
+
+#include "debug.h"
 
 #ifdef I2CIP_USE_GUARANTEES
 I2CIP_GUARANTEE_DEFINE(I2CIP::Device, I2CIP_GUARANTEE_DEVICE);

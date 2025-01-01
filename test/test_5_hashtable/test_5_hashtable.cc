@@ -43,10 +43,25 @@ void setup() {
   UNITY_BEGIN();
 
   RUN_TEST(test_hashtable_empty);
+
+  delay(1000);
+
   RUN_TEST(test_hashtable_set);
+
+  delay(1000);
+  
   RUN_TEST(test_hashtable_overwrite);
+
+  delay(1000);
+  
   RUN_TEST(test_hashtable_get);
+
+  delay(1000);
+  
   RUN_TEST(test_hashtable_remove);
+
+  delay(1000);
+  
 
   UNITY_END();
 }

@@ -1,7 +1,11 @@
 #ifndef I2CIP_INTERFACE_H_
 #define I2CIP_INTERFACE_H_
 
-#include <device.h>
+#include <Arduino.h>
+
+#include "device.h"
+
+#include "debug.h" // I want interfaces to be debuggable
 
 namespace I2CIP {
 
@@ -125,6 +129,6 @@ namespace I2CIP {
 
 }
 
-#include <interface.tpp>
+#include "interface.tpp"
 
 #endif

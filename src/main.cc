@@ -4,23 +4,16 @@
 
 #include <Arduino.h>
 
+#include <DebugJson.h>
+
 #include "../test/config.h"
-
-// Uncomment to enable debug
-#include <debug.h>
-
-#include <I2CIP.h>
-
-#include <HT16K33.hpp>
-#include <SHT45.h>
-
-using namespace I2CIP;
 
 // #define MAIN_DEBUG_SERIAL Serial
 #define MAIN_DEBUG_SERIAL DebugJsonOut
+#define CYCLE_DELAY 500
 
 // Module* m;  // to be initialized in setup()
-Module* modules[I2CIP_MUX_COUNT] = { nullptr };
+TestModule* modules[I2CIP_MUX_COUNT] = { nullptr };
 char idbuffer[10];
 
 void crashout(void) {
@@ -36,8 +29,11 @@ bool initializeModule(uint8_t wirenum, uint8_t modulenum);
 i2cip_errorlevel_t checkModule(uint8_t wirenum, uint8_t modulenum);
 i2cip_errorlevel_t updateModule(uint8_t wirenum, uint8_t modulenum);
 
-SHT45 *sht45 = nullptr;
 HT16K33 *ht16k33 = nullptr;
+
+i2cip_fqa_t fqa_sht45 = createFQA(WIRENUM, MODULE, 0, I2CIP_SHT45_ADDRESS);
+i2cip_fqa_t fqa_pca9685 = createFQA(WIRENUM, MODULE, 1, I2CIP_PCA9685_ADDRESS);
+i2cip_fqa_t fqa_jhd1313 = createFQA(WIRENUM, MODULE, 1, I2CIP_JHD1313_ADDRESS);
 
 void setup(void) {
   Serial.begin(115200);
@@ -47,15 +43,23 @@ void setup(void) {
   if (!r) { /*delete modules[MODULE];*/ modules[MODULE] = nullptr; crashout(); }
 
   // NOTE: module.eeprom == nullptr; and module["eeprom"] == nullptr
-  sht45 = new SHT45(createFQA(WIRENUM, MODULE, 0, I2CIP_SHT45_ADDRESS), "SHT45");
   ht16k33 = new HT16K33(WIRENUM, I2CIP_MUX_NUM_FAKE, I2CIP_MUX_BUS_FAKE, "SEVENSEG");
+
+  i2cip_errorlevel_t errlev = modules[MODULE]->operator()<HT16K33>(ht16k33, false, _i2cip_args_io_default, DebugJsonBreakpoints);
+  if(errlev != I2CIP_ERR_NONE) crashout();
+  errlev = modules[MODULE]->operator()<PCA9685>(fqa_pca9685, false, _i2cip_args_io_default, DebugJsonBreakpoints);
+  if(errlev != I2CIP_ERR_NONE) crashout();
+  errlev = modules[MODULE]->operator()<SHT45>(fqa_sht45, false, _i2cip_args_io_default, DebugJsonBreakpoints);
+  if(errlev != I2CIP_ERR_NONE) crashout();
+  errlev = modules[MODULE]->operator()<JHD1313>(fqa_jhd1313, false, _i2cip_args_io_default, DebugJsonBreakpoints);
+  if(errlev != I2CIP_ERR_NONE) crashout();
 }
 
 i2cip_errorlevel_t errlev;
 uint8_t cycle = 0;
 unsigned long last = 0;
 
-bool temphum = false;
+// bool temphum = false;
 
 void loop(void) {
   last = millis();
@@ -73,14 +77,36 @@ void loop(void) {
   }
 
   if(errlev == I2CIP_ERR_NONE) {
-    errlev = modules[MODULE]->operator()<SHT45>(sht45, true, _i2cip_args_io_default, DebugJsonBreakpoints);
-    if(errlev == I2CIP_ERR_NONE) {
-      state_sht45_t state = sht45->getCache();
+    errlev = modules[MODULE]->operator()<SHT45>(fqa_sht45, true, _i2cip_args_io_default, DebugJsonBreakpoints);
+    HashTableEntry<I2CIP::DeviceGroup&>* entry = I2CIP::devicegroups["SHT45"];
+    if(errlev == I2CIP_ERR_NONE && entry != nullptr && entry->value.numdevices > 0) {
+      // AVERAGES
+      state_sht45_t state = {0.0f, 0.0f};
+      for(uint8_t i = 0; i < entry->value.numdevices; i++) {
+        state.temperature += ((SHT45*)(entry->value.devices[i]))->getCache().temperature;
+        state.humidity += ((SHT45*)(entry->value.devices[i]))->getCache().humidity;
+      }
+      state.temperature /= entry->value.numdevices; state.humidity /= entry->value.numdevices;
+
+      // SEVENSEG
       i2cip_ht16k33_mode_t mode = SEG_1F;
-      i2cip_ht16k33_data_t data = { .f = temphum ? state.temperature : state.humidity };
-      i2cip_args_io_t args = { .a = nullptr, .s = &data.f, .b = &mode };
-      errlev = modules[MODULE]->operator()<HT16K33>(ht16k33, true, args, DebugJsonBreakpoints);
-      temphum = !temphum;
+      // i2cip_ht16k33_data_t data = { .f = temphum ? state.temperature : state.humidity };
+      i2cip_ht16k33_data_t data = { .f = state.temperature };
+      i2cip_args_io_t hargs = { .a = nullptr, .s = &data.f, .b = &mode };
+      // errlev = 
+        modules[MODULE]->operator()<HT16K33>(ht16k33, true, hargs, DebugJsonBreakpoints);
+      // temphum = !temphum;
+
+      // PWM
+      uint16_t pwm12 = (uint16_t)(0xFFF * max(0.f, state.temperature) / 100.f); // Celsius to PWM
+      i2cip_pca9685_chsel_t c = PCA9685_CH0;
+      i2cip_args_io_t pargs = { .a = nullptr, .s = &pwm12, .b = &c };
+      errlev = modules[MODULE]->operator()<PCA9685>(fqa_pca9685, true, pargs, DebugJsonBreakpoints);
+
+      // LCD
+      String msg = String("Time: ") + String(last / 1000.f, 3) + "s\nT:" + String(state.temperature, 1) + "C PWM:" + String(pwm12, HEX) + "H";
+      i2cip_args_io_t largs = { .a = nullptr, .s = &msg, .b = nullptr };
+      errlev = modules[MODULE]->operator()<JHD1313>(fqa_jhd1313, true, largs, DebugJsonBreakpoints);
     }
   }
 
@@ -96,7 +122,7 @@ void loop(void) {
 
   cycle++;
 
-  delay(1000);
+  delay(CYCLE_DELAY);
 }
 
 
@@ -114,7 +140,7 @@ bool initializeModule(uint8_t wirenum, uint8_t modulenum) {
 
   // Initialize module
   unsigned long now = millis();
-  modules[modulenum] = new Module(WIRENUM, MODULE);
+  modules[modulenum] = new TestModule(WIRENUM, MODULE);
   unsigned long delta = millis() - now;
 
   if(modules[modulenum] == nullptr) { 

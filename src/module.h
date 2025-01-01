@@ -1,16 +1,20 @@
 #ifndef I2CIP_MODULE_H_
 #define I2CIP_MODULE_H_
 
-// #include <guarantee.h>
-#include <debug.h>
-#include <device.h>
-#include <interface.h>
-#include <eeprom.h>
-
-#include <bst.h>
-#include <hashtable.h>
-
 #include <type_traits>
+
+#include <Arduino.h>
+#include <Wire.h>
+
+// #include "guarantee.h"
+#include "device.h"
+#include "interface.h"
+#include "eeprom.h"
+
+#include "bst.h"
+#include "hashtable.h"
+
+#include "debug.h"
 
 // #define I2CIP_FQA_SUBNET_MATCH(fqa, wire, module) (bool)(I2CIP_FQA_SEG_I2CBUS(fqa) == wire && I2CIP_FQA_SEG_MODULE(fqa) == module)
 #define I2CIP_FQA_SUBNET_MATCH(fqa, _fqa) (bool)((I2CIP_FQA_SEG_I2CBUS(fqa) == I2CIP_FQA_SEG_I2CBUS(_fqa)) && (I2CIP_FQA_SEG_MODULE(fqa) == I2CIP_FQA_SEG_MODULE(_fqa)))
@@ -23,8 +27,8 @@
 
 namespace I2CIP { 
   class Module; class DeviceGroup;
-  BST<i2cip_fqa_t, Device*> devicetree = BST<i2cip_fqa_t, Device*>();
-  HashTable<DeviceGroup&> devicegroups = HashTable<DeviceGroup&>();
+  extern BST<i2cip_fqa_t, Device*> devicetree;
+  extern HashTable<DeviceGroup&> devicegroups;
 };
 
 #ifdef I2CIP_USE_GUARANTEES
@@ -221,6 +225,6 @@ namespace I2CIP {
   };
 }
 
-#include <module.tpp>
+#include "module.tpp"
 
 #endif
