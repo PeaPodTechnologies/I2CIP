@@ -154,6 +154,10 @@ namespace I2CIP {
       // virtual DeviceGroup* deviceGroupFactory(const i2cip_id_t& id) = 0;
       virtual DeviceGroup* deviceGroupFactory(const i2cip_id_t& id);
 
+      void remove(Device* device, bool del = true);
+    public:
+      void remove(const i2cip_fqa_t& fqa, bool del = true);
+
       /**
        * 3. Device Lookup: HashTable<DeviceGroup&> by ID, BST<Device*> by FQA
        *  Intended Implementation:
@@ -167,7 +171,6 @@ namespace I2CIP {
       DeviceGroup* operator[](i2cip_id_t id);
       Device* operator[](const i2cip_fqa_t& fqa) const;
 
-      void remove(Device* device, bool del = true);
 
 
       // This function is like operator(Device) except it's cast to the specific Device type and prints FQA, Input cache, etc.

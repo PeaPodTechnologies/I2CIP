@@ -7,6 +7,7 @@
 #include <HT16K33.h>
 #include <PCA9685.h>
 #include <JHD1313.h>
+#include <Seesaw.h>
 
 // TESTING PARAMETERS
 #define WIRENUM 0x00
@@ -20,7 +21,7 @@
 #define I2CIP_TEST_EEPROM_OVERWRITE 1 // Uncomment to enable EEPROM overwrite test
 
 // #define EEPROM_JSON_CONTENTS_TEST I2CIP_EEPROM_DEFAULT
-#define EEPROM_JSON_CONTENTS_TEST {"[{\"24LC32\":[80],\"SHT45\":[" STR(I2CIP_SHT45_ADDRESS) "]},{\"PCA9685\":[" STR(I2CIP_PCA9685_ADDRESS) "],\"JHD1313\":[" STR(I2CIP_JHD1313_ADDRESS) "]}]"}
+#define EEPROM_JSON_CONTENTS_TEST {"[{\"24LC32\":[80],\"SHT45\":[" STR(I2CIP_SHT45_ADDRESS) "],\"SEESAW\":[" STR(I2CIP_SEESAW_ADDRESS) "]},{\"PCA9685\":[" STR(I2CIP_PCA9685_ADDRESS) "],\"JHD1313\":[" STR(I2CIP_JHD1313_ADDRESS) "]}]"}
 
 #ifdef ESP32
   SET_LOOP_TASK_STACK_SIZE( 32*1024 ); // Thanks to: https://community.platformio.org/t/esp32-stack-configuration-reloaded/20994/8; https://github.com/espressif/arduino-esp32/pull/5173
@@ -41,6 +42,8 @@ class TestModule : public JsonModule {
       dg = DeviceGroup::create<PCA9685>(id);
       if(dg != nullptr) return dg;
       dg = DeviceGroup::create<JHD1313>(id);
+      if(dg != nullptr) return dg;
+      dg = DeviceGroup::create<Seesaw_RotaryEncoder>(id);
       return dg;
     }
   public:

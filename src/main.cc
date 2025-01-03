@@ -16,7 +16,10 @@
 TestModule* modules[I2CIP_MUX_COUNT] = { nullptr };
 char idbuffer[10];
 
+HT16K33 *ht16k33 = nullptr;
+
 void crashout(void) {
+  if(modules[MODULE] != nullptr) modules[MODULE]->operator()<HT16K33>(ht16k33, true); // Display "FAIL" on seven segment
   while(true) { // Blinks
     digitalWrite(LED_BUILTIN, HIGH);
     delay(100);
@@ -29,11 +32,10 @@ bool initializeModule(uint8_t wirenum, uint8_t modulenum);
 i2cip_errorlevel_t checkModule(uint8_t wirenum, uint8_t modulenum);
 i2cip_errorlevel_t updateModule(uint8_t wirenum, uint8_t modulenum);
 
-HT16K33 *ht16k33 = nullptr;
-
 i2cip_fqa_t fqa_sht45 = createFQA(WIRENUM, MODULE, 0, I2CIP_SHT45_ADDRESS);
 // i2cip_fqa_t fqa_pca9685 = createFQA(WIRENUM, MODULE, 1, I2CIP_PCA9685_ADDRESS);
 i2cip_fqa_t fqa_jhd1313 = createFQA(WIRENUM, MODULE, 1, I2CIP_JHD1313_ADDRESS);
+i2cip_fqa_t fqa_rotary = createFQA(WIRENUM, MODULE, 0, I2CIP_SEESAW_ADDRESS);
 
 void setup(void) {
   Serial.begin(115200);
@@ -45,6 +47,7 @@ void setup(void) {
   // NOTE: module.eeprom == nullptr; and module["eeprom"] == nullptr
   ht16k33 = new HT16K33(WIRENUM, I2CIP_MUX_NUM_FAKE, I2CIP_MUX_BUS_FAKE, "SEVENSEG");
 
+  // Each operator() call adds the Device to I2CIP::devicegroups and I2CIP::devicetree
   i2cip_errorlevel_t errlev = modules[MODULE]->operator()<HT16K33>(ht16k33, true, _i2cip_args_io_default, DebugJsonBreakpoints);
   if(errlev != I2CIP_ERR_NONE) crashout();
   // errlev = modules[MODULE]->operator()<PCA9685>(fqa_pca9685, false, _i2cip_args_io_default, DebugJsonBreakpoints);
@@ -53,6 +56,8 @@ void setup(void) {
   if(errlev != I2CIP_ERR_NONE) crashout();
   errlev = modules[MODULE]->operator()<JHD1313>(fqa_jhd1313, false, _i2cip_args_io_default, DebugJsonBreakpoints);
   if(errlev != I2CIP_ERR_NONE) crashout();
+  errlev = modules[MODULE]->operator()<Seesaw_RotaryEncoder>(fqa_rotary, false, _i2cip_args_io_default, DebugJsonBreakpoints);
+  if(errlev != I2CIP_ERR_NONE) modules[MODULE]->remove(fqa_rotary);
 }
 
 i2cip_errorlevel_t errlev;
@@ -60,7 +65,7 @@ uint8_t cycle = 0;
 unsigned long last = 0;
 
 // bool temphum = false;
-
+state_sht45_t state = {NAN, NAN};
 void loop(void) {
   last = millis();
   switch(checkModule(WIRENUM, MODULE)) {
@@ -81,22 +86,14 @@ void loop(void) {
     HashTableEntry<I2CIP::DeviceGroup&>* entry = I2CIP::devicegroups["SHT45"];
     if(errlev == I2CIP_ERR_NONE && entry != nullptr && entry->value.numdevices > 0) {
       // AVERAGES
-      state_sht45_t state = {0.0f, 0.0f};
+      state = {0.0f, 0.0f};
       for(uint8_t i = 0; i < entry->value.numdevices; i++) {
         state.temperature += ((SHT45*)(entry->value.devices[i]))->getCache().temperature;
         state.humidity += ((SHT45*)(entry->value.devices[i]))->getCache().humidity;
       }
       state.temperature /= entry->value.numdevices; state.humidity /= entry->value.numdevices;
 
-      if(isnan(ht16k33->getValue().f) || abs(state.temperature - ht16k33->getValue().f) > 0.01f) {
-        // SEVENSEG
-        i2cip_ht16k33_mode_t mode = SEG_1F;
-        // i2cip_ht16k33_data_t data = { .f = temphum ? state.temperature : state.humidity };
-        i2cip_ht16k33_data_t data = { .f = state.temperature };
-        i2cip_args_io_t hargs = { .a = nullptr, .s = &data.f, .b = &mode };
-        // errlev = 
-          modules[MODULE]->operator()<HT16K33>(ht16k33, true, hargs, DebugJsonBreakpoints);
-        // temphum = !temphum;
+      // if(isnan(ht16k33->getValue().f) || abs(state.temperature - ht16k33->getValue().f) > 0.01f) {
 
         // PWM
         // uint16_t pwm12 = (uint16_t)(0xFFF * max(0.f, state.temperature) / 100.f); // Celsius to PWM
@@ -106,17 +103,21 @@ void loop(void) {
 
         // LCD
         String msg = String("Time: ") + String(last / 1000.f, 3) + "s\nT:" + String(state.temperature, 1) + "C H:" + String(state.humidity, 1) + "%";
-        i2cip_args_io_t largs = { .a = nullptr, .s = &msg, .b = nullptr };
-        errlev = modules[MODULE]->operator()<JHD1313>(fqa_jhd1313, true, largs, DebugJsonBreakpoints);
-      }
+        uint32_t lcdrgb = random(0, 0xFFFFFF);
+        float brightness = (lcdrgb >> 16) / 3.f + (lcdrgb >> 8) / 3.f + (lcdrgb & 0xFF) / 3.f; // Average RGB should be ~50% for readability
+        float scale = 0.5f / brightness;
+        i2cip_jhd1313_args_t lcdargs = { .r = (uint8_t)(((uint32_t)(lcdrgb * scale) >> 16) & 0xFF), .g = (uint8_t)(((uint32_t)(lcdrgb * scale) >> 8) & 0xFF), .b = (uint8_t)((uint32_t)(lcdrgb * scale) & 0xFF) };
+        i2cip_args_io_t largs = { .a = nullptr, .s = &msg, .b = &lcdargs };
+        modules[MODULE]->operator()<JHD1313>(fqa_jhd1313, true, largs, DebugJsonBreakpoints);
+      // }
     } else {
-      if(!isnan(ht16k33->getValue().f)) {
-        i2cip_ht16k33_mode_t mode = SEG_1F;
+      // if(!isnan(ht16k33->getValue().f)) {
+        // i2cip_ht16k33_mode_t mode = SEG_1F;
         // i2cip_ht16k33_data_t data = { .f = temphum ? state.temperature : state.humidity };
-        i2cip_ht16k33_data_t data = { .f = NAN };
-        i2cip_args_io_t hargs = { .a = nullptr, .s = &data.f, .b = &mode };
+        // i2cip_ht16k33_data_t data = { .f = NAN };
+        // i2cip_args_io_t hargs = { .a = nullptr, .s = &data.f, .b = &mode };
         // errlev = 
-          modules[MODULE]->operator()<HT16K33>(ht16k33, true, hargs, DebugJsonBreakpoints);
+          // modules[MODULE]->operator()<HT16K33>(ht16k33, true, hargs, DebugJsonBreakpoints);
         // temphum = !temphum;
 
         // PWM
@@ -129,8 +130,33 @@ void loop(void) {
         String msg = String("Time: ") + String(last / 1000.f, 3) + "s\nSHT45 ERR 0x" + String(errlev, HEX) + " :(";
         i2cip_args_io_t largs = { .a = nullptr, .s = &msg, .b = nullptr };
         errlev = modules[MODULE]->operator()<JHD1313>(fqa_jhd1313, true, largs, DebugJsonBreakpoints);
-      }
+      // }
     }
+
+    Seesaw_RotaryEncoder* rotary = (Seesaw_RotaryEncoder*)modules[MODULE]->operator[](fqa_rotary);
+    i2cip_ht16k33_mode_t mode = SEG_1F;
+    i2cip_ht16k33_data_t data = { .f = state.temperature };
+    i2cip_args_io_t hargs = { .a = nullptr, .s = &data.f, .b = &mode };
+    if(rotary != nullptr) {
+      i2cip_errorlevel_t rerrlev = modules[MODULE]->operator()<Seesaw_RotaryEncoder>(fqa_rotary, true, _i2cip_args_io_default, DebugJsonOut);
+      mode = SEG_INT;
+      data.h = 10000; // Will produce "+ERR" on display
+      hargs.s = &data.h;
+      if(rerrlev == I2CIP_ERR_NONE) {
+        i2cip_rotaryencoder_t cache = rotary->getCache();
+        uint16_t position = ((uint32_t)cache.encoder) % 1000;
+        int32_t display = cache.button ? position : -position;
+        data.h = display; // Now h is the active member
+      }
+      //  else {
+      //   if(errlev == I2CIP_ERR_NONE) { // still SHT45 error
+      //     mode = SEG_1F;
+      //     data.f = state.temperature;
+      //     hargs.s = &data.f;
+      //   }
+      // }
+    }
+    modules[MODULE]->operator()<HT16K33>(ht16k33, true, hargs, DebugJsonBreakpoints);
   }
 
   // DEBUG PRINT: CYCLE COUNT, FPS, and ERRLEV

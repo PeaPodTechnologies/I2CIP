@@ -943,7 +943,11 @@ DeviceGroup* Module::operator[](i2cip_id_t id) {
 
 void Module::remove(Device* device, bool del) {
   if(device == nullptr) return;
+  i2cip_fqa_t fqa = device->getFQA();
+  this->remove(fqa, del);
+}
 
+void Module::remove(const i2cip_fqa_t& fqa, bool del) {
   #ifdef I2CIP_DEBUG_SERIAL
     DEBUG_DELAY();
     I2CIP_DEBUG_SERIAL.print(F("-> Removing Device... "));
@@ -961,23 +965,28 @@ void Module::remove(Device* device, bool del) {
   //   }
   // }
 
-  i2cip_fqa_t fqa = device->getFQA();
-
   // Lookup in BST
   Device** dptr = I2CIP::devicetree[fqa];
-  if(dptr != nullptr && (*dptr == device || (*dptr)->getFQA() == fqa)) I2CIP::devicetree.remove(fqa);  // Device doesn't match
+  if(dptr != nullptr && (*dptr)->getFQA() == fqa) {
+    I2CIP::devicetree.remove(fqa);
   
-  // Lookup in HashTable
-  HashTableEntry<DeviceGroup&>* entry = I2CIP::devicegroups[device->getID()];
-  if(entry != nullptr) entry->value.remove(entry->value[fqa]);
+    // Lookup in HashTable
+    HashTableEntry<DeviceGroup&>* entry = I2CIP::devicegroups[(*dptr)->getID()];
+    if(entry != nullptr) entry->value.remove(entry->value[fqa]);
 
-  // Delete device
-  if(del) delete device;
+    // Delete device
+    if(del) { delete (*dptr); }
 
-  #ifdef I2CIP_DEBUG_SERIAL
-    I2CIP_DEBUG_SERIAL.print(F("Removed!\n"));
-    DEBUG_DELAY();
-  #endif
+    #ifdef I2CIP_DEBUG_SERIAL
+      I2CIP_DEBUG_SERIAL.print(F("Removed!\n"));
+      DEBUG_DELAY();
+    #endif
+  } else {
+    #ifdef I2CIP_DEBUG_SERIAL
+      I2CIP_DEBUG_SERIAL.print(F("Not Found!\n"));
+      DEBUG_DELAY();
+    #endif
+  }
 }
 
 bool Module::isFQAinSubnet(const i2cip_fqa_t& fqa) { 
