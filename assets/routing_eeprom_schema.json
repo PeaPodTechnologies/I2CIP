@@ -1,0 +1,19 @@
+[
+	// Bus 0 (default bus)
+	{
+		// Array is used to list all occurrences of flexible-address devices
+		"eeprom" : [ 80 ], // Decimal encoding (0x50) - This is the EEPROM we are reading from
+		"sht31" : [ 68 ],
+		"gpio" : [ 32 ],
+	},
+	//Bus 1, etc. up to Bus 7 (makes 8 buses)
+	{ },
+	{
+		"eeprom" : [ 80 ], // A different eeprom, on bus 2
+	},
+	{ },
+	{ },
+	{ },
+	{ },
+	{ },
+]

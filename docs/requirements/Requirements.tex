@@ -1,0 +1,277 @@
+\documentclass{../tex/report}
+\usepackage{setspace} % Setting line spacing
+\usepackage{ulem} % Underline
+\usepackage{caption} % Captioning figures
+\usepackage{subcaption} % Subfigures
+\usepackage{geometry} % Page layout
+\usepackage{multicol} % Columned pages
+\usepackage{array,etoolbox}
+\usepackage{fancyhdr}
+\usepackage{enumitem}
+\usepackage[toc,page]{appendix}
+
+% Page layout (margins, size, line spacing)
+\geometry{letterpaper, left=1in, right=1in, bottom=1in, top=1in}
+\setstretch{1.5}
+
+% Headers
+\pagestyle{fancy}
+\lhead{I${}^2$CIP - Requirements}
+\rhead{PeaPod Technologies Inc.}
+
+% Metric counter, referencing commands
+\newcounter{metricnumber}
+\setcounter{metricnumber}{1}
+\newcommand{\metricrow}{M\arabic{metricnumber}}
+\newcommand{\mlabel}[1]{\addtocounter{metricnumber}{-1}\refstepcounter{metricnumber}\label{#1}\addtocounter{metricnumber}{1}}
+\newcommand{\mref}[1]{\hyperref[#1]{M\ref{#1}}}
+
+\begin{document}
+
+\begin{titlepage}
+    \begin{center}
+        \vspace*{1.2cm}
+
+        \textbf{\large{I${}^2$CIP: Inter-Integrated Circuit Intra-networking Protocols}}
+
+        \vspace{0.5cm}
+
+        Requirements for: a Hardware Design Specification for Bus-Switched Hot-Swap Modules of I${}^2$C Targets, and; a Software Library of Intra-Network Communications Protocols for Rapid Implementation of Plug-and-Play Embedded Systems\\
+
+        \vfill
+        \scriptsize{
+            \textbf{Jayden Lefebvre - Founder \& CEO, Lead Engineer}\\
+            Northumberland County, ON, Canada\\
+        }
+        \vspace{.75cm}
+        Primary Contact Email: \uline{contact@peapodtech.com}
+        \vspace{1.25cm}
+
+        Revision 1.0\\
+        PeaPod Technologies Inc.\\
+        July 26th, 2024
+
+    \end{center}
+\end{titlepage}
+
+\thispagestyle{plain}
+
+\tableofcontents
+\newpage
+
+\section{Introduction}\label{sec:intro}
+
+\subsection{Purpose}\label{sec:purpose}
+
+The purpose of this document is to two-fold:
+
+Outline the categorical requirements (Section \ref{sec:requirements}) of an intra-network design specification for hot-swap bus-switched modules of plug-and-play I${}^2$C devices, and a software library for communications protocols
+
+Detail the scoped requirements (Section \ref{sec:scope}) for the design and protocols as-proposed by PeaPod Technologies Inc., namely \textbf{I${}^2$CIP}.
+
+% conditions:
+
+% - Dynamic Routing: ***.*** This enables physical “plug-and-play” functionality.
+% - Modularity: ***.*** This enables lifecycle management for physical collections of devices, and informs dynamic routing.
+
+\subsection{Design Paradigm}\label{sec:structure}
+
+\input{../tex/DesignParadigm.tex}
+
+\clearpage
+
+
+\subsection{Scope and Justification}\label{sec:scope}
+
+\subsubsection{I${}^2$C Specification}
+
+From the I${}^2$C Specification Version 7 (2021, \textit{NXP Semiconductors}): 8-bit-oriented one-ended (controller-driven) bidirectional (read \& write) serial communication over a 2-wire bus (data "SDA" \& clock "SCL") for integrated circuit "devices" ("targets"), including (but not limited to):
+
+\begin{itemize}
+    \item \textbf{Remote Multi-Channel Ports}: GPIO banks, internal-clock PWM drivers, A/D and D/A converters, etc.
+    \item \textbf{System Devices}: real-time clocks, LCD screens, etc.
+    \item \textbf{Data Storage Devices}: EEPROM, SRAM, FRAM, etc.
+    \item \textbf{Digital Sensors}: temperature, light, speed, pressure, etc.
+\end{itemize}
+
+The I${}^2$C Specification can be imagined as an incomplete analogue to the Internet's OSI Model, with the following layers defined:
+
+\begin{enumerate}[label=SC\arabic*., ref=SC\arabic*]
+    \item\label{sc:1} \textbf{Physical Layer} - Compare to RJ45
+    \begin{enumerate}[ref=SC1\alph*]
+        \item\label{sc:1a} \textbf{VDD \& GND} - +5 VDC
+        \item\label{sc:1b} \textbf{SDA \& SCL} - Pull-Up Bias Resistors (10 k$\Omega$)
+    \end{enumerate}
+    \item\label{sc:2} \textbf{Data Link Layer} - Compare to Ethernet
+    \begin{enumerate}[ref=SC2\alph*]
+        \item\label{sc:2a} \textbf{Controller} - Bus Speed Control, Start \& Stop Conditions, Multi-Controller Arbitration
+        \item\label{sc:2b} \textbf{Targets} - 7-bit Device Addressing, Acknowledgement ("ACK")
+        \item\label{sc:2c} \textbf{Packet Structure} Read \& Write Flags, 8-/16-bit Register Addressing, Byte-Stream Data
+    \end{enumerate}
+\end{enumerate}
+
+The \textbf{Network} (data routing), \textbf{Transport} (data delivery), and \textbf{Session} (transmission context) layers of the OSI model analogy are not defined by the I${}^2$C Specification. The following proposed extensions to the I${}^2$C Specification, the focus of the \textbf{I${}^2$CIP} design, are intended to fill this gap, enabling \textbf{Presentation} and \textbf{Application} layer functionality to be rapidly implemented by developers for embedded systems.
+
+% TODO: WHy modules?
+% TODO: Use for control systems
+
+\subsubsection{Switched-Bus Intra-Networking}
+
+Suppose an I${}^2$C target device $D$ with $N$ possible unique addresses. An I${}^2$C bus controller can communicate with $N$ uniquely-addressed instantiations of $D$ on one bus without conflict or modification to connections.
+
+Suppose an I${}^2$C target device with $M$ possible unique addresses that acts as a multiplexer and repeater ("switch") for $B$ bitwise-enabled output busses ("subnets"). An I${}^2$C bus controller can communicate with $M * B * N$ independently-addressable instantiations of $D$ across $M * B$ subnets by setting ONE active output bus on each of the $M$ switches (and disabling ALL on the remaining $M - 1$).
+
+Example: For $M = 8$ switches with $B = 8$ subnets each, the total number of uniquely-addressable instantiations of $D$ on an I${}^2$CIP intra-network is $8 * 8 * N = 64N$, effectively enabling a 64-fold increase in independently-addressable targets of all types by a single controller.
+
+% Module = switch + routing table
+
+\begin{enumerate}[label=SC\arabic*., ref=SC\arabic*, resume]
+    \item\label{sc:3} \textbf{Network Layer} - Fully-Qualified Addressing ("FQA") - Compare to IP Addressing
+    \item\label{sc:4} \textbf{Transport Layer} - Switch \& Target Ping and Target Control with Quality-of-Service 2 ("only-once" delivery) via ACK - Compare to TCP
+    \item\label{sc:5} \textbf{Session Layer} - Target Discovery \& Module Configuration via Dedicated EEPROM Target
+\end{enumerate}
+
+% Electrical Isolation (\textit{ISO1540})
+
+
+
+% Unimplemented, but considered for future development:
+% \begin{enumerate}[label=SC\arabic*., ref=SC\arabic*, resume]
+%     \item\label{sc:6} \textbf{Presentation Layer} - Data Formatting, Data Parsing
+%     \item\label{sc:7} \textbf{Application Layer} - Data Conversion, Data Processing
+% \end{enumerate}
+
+% Eight modules, eight busses per module
+% "DISABLED" Bus - prevents cross-talk
+
+\subsection{Definitions}\label{sec:definitions}
+
+A number of useful definitions have emerged from the above scoping:
+\begin{enumerate}
+    \item \textbf{Switch} - An I${}^2$C target device that acts as a repeater for bitwise multiplexed output busses.
+    \item \textbf{Subnet} - A specific output bus of a specific switch.
+    \item \textbf{Intra-Network} - A general term referring to ALL routable targets (not including switches) on ALL subnets across ALL of a controller's I${}^2$C busses (in the case of multiple controller busses).
+    \item \textbf{Fully-Qualified Address (FQA)} - A unique intra-network routing location identifier, encoding: a specific I${}^2$C bus (in the case of multiple controller busses), and; a specific Subnet, and; a target's address.
+    \item \textbf{Module} - A switch, and; a physical collection of targets located on the switch's subnets, and; a data storage target with a predetermined address with all routing information for all targets on this switch's subnets.
+\end{enumerate}
+
+\clearpage
+
+
+\section{Framing}\label{sec:framing}
+
+\subsection{Problem Statement}\label{sec:opportunity}
+
+
+
+\subsection{Solution Requirements}\label{sec:requirements}
+
+
+
+
+% Justify:
+% I2CIP MUST provide the context for the implementation for Module lifecycle management
+% I2CIP MUST provide the context for the implementation for Module configuration via EEPROM
+% I2CIP DOES NOT provide the implementation of Module data parsing or formatting or conversion (i.e. data is passed as-is as bytes)
+
+
+The following are the overall challenge requirements compiled from A, B, and an excerpt from C:
+\begin{enumerate}[label=R\arabic*., ref=R\arabic*]
+    \item\label{r:1} \textbf{Must} lorem ipsum dolor sit amet, consectetur adipiscing elit:
+    \begin{enumerate}[ref=R1\alph*]
+        \item\label{r:1a} \textbf{Should} lorem ipsum dolor sit amet, consectetur adipiscing elit;
+    \end{enumerate}
+\end{enumerate}
+
+% Change line spacing for the more list-heavy sections
+\setstretch{1}
+\subsection{Stakeholders and Values}\label{sec:stakeholders}
+
+\begin{enumerate}[label=S\arabic*., ref=S\arabic*]
+    \item\label{s:1} A - Values, etc.
+    \item\label{s:2} B - DfX, etc.
+\end{enumerate}
+
+\clearpage
+
+
+\subsection{Problem-Solving Goals}\label{sec:goals}
+
+% High-Level
+\begin{multicols}{2}[]
+    \begin{enumerate}[label=HL\arabic*., ref=HL\arabic*]
+        \item\label{hl:output} Goal ABC \hfill (\ref{s:1},~\ref{r:1},~\ref{r:1a})
+    \end{enumerate}
+\end{multicols}
+
+\subsection{Solution Objectives}\label{sec:objectives}
+
+% I2CIP DOES provide the the context for the implementation of Device parsing (but not formatting or conversion), as exemplified in the classes `EEPROM' (i.e. implementations of virtual functions inherited from Device and IOInterface<Get: char* readRegistersFromZero(uint16_t lenUntilNull), Set: const char* writeRegistersFromZero(uint16_t lenUntilNull)>)
+
+% Low-Level
+\begin{multicols}{2}[]
+    \begin{enumerate}[label=LL\arabic*., ref=LL\arabic*]
+        \item\label{ll:output_variety} Objective ABC \hfill (\ref{hl:output})
+    \end{enumerate}
+\end{multicols}
+
+\clearpage
+
+
+\subsection{Metrics}\label{sec:metrics}
+
+\begin{tabular}{| @{\makebox[2.4em][c]{\metricrow}} | p{8.7cm} | p{5.9cm} |} 
+    \hline
+    \multicolumn{1}{| @{\makebox[2.4em][c]{\textbf{\#}}} | l |}{\textbf{Metric}} & \textbf{Units}\\ 
+    \hline
+    Metric ABC \mlabel{m:constraint} \hfill (\ref{ll:output_variety}) & Yes/No \\
+    Metric XYZ \mlabel{m:criteria} \hfill (\ref{ll:output_variety}) & 0 - 100\% \\
+    \hline
+\end{tabular}
+
+\clearpage
+
+
+\subsection{Constraints}\label{sec:constraints}
+
+\begin{tabular}{|l|p{14.35cm}|}
+    \hline
+    \textbf{Metric} & \textbf{Constraint \hfill Justification} \\
+    \hline
+    \mref{m:constraint} & Yes \hfill (\ref{s:1})\\
+    \hline
+\end{tabular}
+
+\subsection{Criteria}\label{sec:criteria}
+
+\begin{tabular}{|l|p{14.35cm}|}
+    \hline
+    \textbf{Metric} & \textbf{Criteria \hfill Justification} \\
+    \hline
+    \mref{m:criteria} & Should Maximize \hfill (\ref{r:1a}) \\
+    \hline
+\end{tabular}
+
+% Refer to Appendix \ref{sec:assessment} for prototype verification Assessment Criteria (categories, weights, etc.).
+
+\newpage
+
+\section{Reference Designs}
+
+% -------- TEMPLATE --------
+% Introduction - Project goal, scope, differences from this project
+% Graphics - Design drawings/photos, etc.
+% Analysis - Rank the design across each of our metrics
+    % TODO: Metrics might be too much, maybe just qualitative analysis based on LLOs?
+
+\subsection{Reference Design XYZ}
+
+Lorem ipsum dolor sit amet, consectetur adipiscing elit. Sed auctor, nunc nec ultricies ultricies, nunc nunc ultricies nunc, nec ultricies nunc nunc nec.
+
+% \newpage
+
+% % References
+% \bibliographystyle{IEEEtran}
+% \bibliography{references}
+
+\end{document}

@@ -2,7 +2,28 @@
 
 Inter-Integrated Circuit Intranet Protocols: A library of protocols for dynamic routing and interfacing with I2C devices on a modular switched network.
 
-<!-- TODO module operator() return type improvement? bulk status? -->
+
+Hardware Design Specification for Bus-Switched Hot-Swap Modules of Inter-Integrated Circuit (I${}^2$C) Devices; and a Software Library of Intra-Network Communications Protocols with Dynamic Routing for Plug-and-Play Embedded Systems.\\
+
+% Part II: OSI Model and Justification
+
+% I2CIP is a software library that enables dynamic routing of I2C devices in a network of Modules
+
+As per the I${}_2$C Specification, Version 6, 2014, \textit{NXP Semiconductors}):
+
+\begin{enumerate}[label=SC\arabic*., ref=SC\arabic*]
+    \item\label{sc:1} \textbf{Physical Layer} - I${}_2$C SDA \& SCL, Masters \& Slaves
+    % \begin{enumerate}[label=SC3\alph*., ref=SC3\alph*]
+    %     \item\label{sc:1a} 
+    % \end{enumerate}
+    \item\label{sc:2} \textbf{Data Link Layer} - I${}_2$C Bitwise Packets: Read/Write Flags, 7-bit Addresses, Byte Data
+\end{enumerate}
+
+\begin{enumerate}[label=SC\arabic*., ref=SC\arabic*, resume]
+    \item\label{sc:3} \textbf{Network Layer} - I${}_2$CIP Fully-Qualified Addressing via I${}_2$C Multiplexer (MUX) Bus-Switching
+    \item\label{sc:4} \textbf{Transport Layer} - I${}_2$CIP QOS 2 via I${}_2$C ACK Byte, I${}_2$CIP Module Disable via I${}_2$C MUX Bus Exclusion
+    \item\label{sc:5} \textbf{Session Layer} - I${}_2$CIP Module Lifecycle Management, I${}_2$CIP Module Configuration
+    \item\label{sc:6} \textbf{Presentation Layer} - I${}_2$CIP Module Data Formatting, I${}_2$CIP Module Data Parsing
 
 ## I2C Intranet
 
