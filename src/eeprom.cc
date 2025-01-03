@@ -7,9 +7,10 @@ using namespace I2CIP;
 bool EEPROM::_failsafe_set = false;
 char EEPROM::_failsafe[I2CIP_EEPROM_SIZE] = {'\0'};
 uint16_t EEPROM::_failsafe_b = I2CIP_EEPROM_SIZE;
+char* EEPROM::_default_g = nullptr;
+uint16_t EEPROM::_default_a = 0;
 
 I2CIP_DEVICE_INIT_STATIC_ID(EEPROM, I2CIP_EEPROM_ID);
-I2CIP_INPUT_INIT_RESET(EEPROM, char*, nullptr, uint16_t, I2CIP_EEPROM_SIZE);
 
 EEPROM::EEPROM(i2cip_fqa_t fqa, const i2cip_id_t& id) : Device(fqa, id, I2CIP_EEPROM_TIMEOUT), IOInterface<char*, uint16_t, const char*, uint16_t>((Device*)this) {
   #ifdef I2CIP_DEBUG_SERIAL
@@ -271,12 +272,15 @@ i2cip_errorlevel_t EEPROM::set(const char * const& value, const uint16_t& args) 
 //   return (len > 0 ? 0 : 1);
 // }
 
-// S - Setter type: const char* (null-terminated; immutable)
 void EEPROM::resetFailsafe(void) {
-  // if(_failsafe_set && this->getValue() == _failsafe) return; // Already set
-  // if(this->getValue() != nullptr && this->getValue() != _failsafe) delete this->getValue();
+  const char* f = getDefaultS();
+  this->setValue(f);
+  this->setArgsB(strlen(f));
+}
 
-  // Load from PROGMEM
+const uint16_t& EEPROM::getDefaultB(void) const { return strlen(getDefaultS()); }
+
+const char* const& EEPROM::getDefaultS(void) const {
   if(!_failsafe_set) {
     uint8_t len = strlen_P(i2cip_eeprom_default);
 
@@ -310,18 +314,5 @@ void EEPROM::resetFailsafe(void) {
     #endif
   }
 
-
-  this->setValue((const char*)_failsafe);
-  this->setArgsB(_failsafe_b);
-
-  #ifdef I2CIP_DEBUG_SERIAL
-    DEBUG_DELAY();
-    I2CIP_DEBUG_SERIAL.print(F("EEPROM Value Reset\n"));
-    DEBUG_DELAY();
-  #endif
-}
-
-// B - Setter argument type: uint16_t (max bytes to write)
-const uint16_t& EEPROM::getDefaultB(void) const {
-  return i2cip_eeprom_capacity;
+  return _failsafe;
 }

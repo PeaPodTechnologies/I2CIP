@@ -12,7 +12,7 @@
 
 #define I2CIP_MUX_ADDR_MIN      0x70 // The lowest device address
 #define I2CIP_MUX_ADDR_MAX      0x77 // The highest device address
-#define I2CIP_MUX_COUNT         (I2CIP_MUX_ADDR_MAX - I2CIP_MUX_ADDR_MIN + 1)
+#define I2CIP_MUX_COUNT         (I2CIP_MUX_ADDR_MAX - I2CIP_MUX_ADDR_MIN) // One less than usual; Fake Module
 #define I2CIP_MUX_BUS_MIN       0x00 // The lowest bus number
 #define I2CIP_MUX_BUS_MAX       0x07 // The highest bus number
 #define I2CIP_MUX_BUS_COUNT     (I2CIP_MUX_BUS_MAX - I2CIP_MUX_BUS_MIN + 1)

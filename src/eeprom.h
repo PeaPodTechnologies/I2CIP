@@ -56,7 +56,7 @@ namespace I2CIP {
     {
     I2CIP_DEVICE_CLASS_BUNDLE(EEPROM, I2CIP_EEPROM_ID);
 
-    I2CIP_INPUT_USE_RESET(char*, uint16_t);
+    // I2CIP_INPUT_USE_RESET(char*, uint16_t);
     
     #ifdef I2CIP_USE_GUARANTEES
     I2CIP_CLASS_USE_GUARANTEE(EEPROM, I2CIP_GUARANTEE_EEPROM);
@@ -69,6 +69,9 @@ namespace I2CIP {
       static bool _failsafe_set;
       static char _failsafe[]; // to be loaded from progmem
       static uint16_t _failsafe_b;
+
+      static char* _default_g;
+      static uint16_t _default_a;
 
       char readBuffer[I2CIP_EEPROM_SIZE+1] = { '\0' };
 
@@ -103,6 +106,11 @@ namespace I2CIP {
 
       void resetFailsafe(void) override;
       const uint16_t& getDefaultB(void) const override;
+      const char* const& getDefaultS(void) const override;
+
+      void clearCache(void) override { this->setCache(_default_g); }
+      const uint16_t& getDefaultA(void) const override { return _default_a; }
+      char* const& getDefaultG(void) const override { return _default_g; }
 
       const char* cacheToString(void) override { return readBuffer; } // Simple manual cache return
   };

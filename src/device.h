@@ -143,7 +143,8 @@ public:\
   void resetFailsafe(void) override {\
     this->setValue(_default_s);\
   }\
-  __VA_OPT__(__VA_ARGS__)VALUE_IFNOT(__VA_OPT__(1), const TYPEB)& getDefaultB(void) const override { return _default_b; }
+  __VA_OPT__(__VA_ARGS__)VALUE_IFNOT(__VA_OPT__(1), const TYPEB)& getDefaultB(void) const override { return _default_b; }\
+  const TYPE& getDefaultS(void) const override { return _default_s; }
 
 #define I2CIP_OUTPUT_INIT_FAILSAFE(CLASS, TYPE, ARGS, TYPEB, ARGSB) \
   TYPE CLASS::_default_s = ARGS;\
@@ -159,7 +160,8 @@ public:\
     static TYPEA _default_a;\
   public:\
     void clearCache(void) override { this->setCache(_default_g); }\
-    __VA_OPT__(__VA_ARGS__)VALUE_IFNOT(__VA_OPT__(1), const TYPEA)& getDefaultA(void) const override { return _default_a; }
+    __VA_OPT__(__VA_ARGS__)VALUE_IFNOT(__VA_OPT__(1), const TYPEA)& getDefaultA(void) const override { return _default_a; }\
+    const TYPE& getDefaultG(void) const override { return _default_g; }
 
 #define I2CIP_INPUT_INIT_RESET(CLASS, TYPE, ARGS, TYPEA, ARGSA) \
   TYPE CLASS::_default_g = ARGS;\

@@ -10,7 +10,7 @@
 
 // TODO template devicegroupfactorymember function
 
-template <class C, typename std::enable_if<std::is_base_of<Device, C>::value, int>::type> I2CIP::DeviceGroup* I2CIP::DeviceGroup::create(i2cip_id_t id) { 
+template <class C, typename std::enable_if<std::is_base_of<Device, C>::value, int>::type> I2CIP::DeviceGroup* I2CIP::DeviceGroup::create(i2cip_id_t id, handler_device_t handler) { 
   #ifdef I2CIP_DEBUG_SERIAL
     DEBUG_DELAY();
     I2CIP_DEBUG_SERIAL.print(F("DeviceGroup::create<"));
@@ -29,7 +29,7 @@ template <class C, typename std::enable_if<std::is_base_of<Device, C>::value, in
       I2CIP_DEBUG_SERIAL.println(F("PASS"));
       DEBUG_DELAY();
     #endif
-    return new DeviceGroup(C::getID(), C::factory);
+    return new DeviceGroup(C::getID(), C::factory, handler == nullptr ? &(Module::_handle) : handler); // virtual with default
   }
   #ifdef I2CIP_DEBUG_SERIAL
     I2CIP_DEBUG_SERIAL.println(F("FAIL"));
@@ -151,7 +151,7 @@ template <class C, typename std::enable_if<std::is_base_of<InputGetter, C>::valu
 
   String m = fqaToString(that->getFQA());
   m += F(" @0x");
-  m += String((uintptr_t)that->getFQA(), HEX);
+  m += String(that, HEX);
   m += F(" '");
   m += that->getID();
   m += F("' @0x");

@@ -30,6 +30,7 @@ namespace I2CIP {
        * To be implemented by the child class.
       */
       virtual const A& getDefaultA(void) const = 0;
+      virtual const G& getDefaultG(void) const = 0;
     public:
       InputInterface(Device* device);
       virtual ~InputInterface() = 0;
@@ -81,6 +82,7 @@ namespace I2CIP {
        * To be implemented by the child class.
       */
       virtual const B& getDefaultB(void) const = 0;
+      virtual const S& getDefaultS(void) const = 0;
     public:
       OutputInterface(Device* device);
       

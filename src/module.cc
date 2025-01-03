@@ -13,7 +13,7 @@ using namespace I2CIP;
 
 _NullStream NullStream;
 
-DeviceGroup::DeviceGroup(const i2cip_id_t& key, factory_device_t factory) : key(key), factory(factory) {
+DeviceGroup::DeviceGroup(const i2cip_id_t& key, factory_device_t factory, handler_device_t handler) : key(key), factory(factory), handler(handler) {
   for(uint8_t i = 0; i < I2CIP_DEVICES_PER_GROUP; i++) {
     devices[i] = nullptr;
   }
@@ -365,7 +365,7 @@ i2cip_errorlevel_t Module::discoverEEPROM(bool recurse) {
 
   // 2. SELF CHECK MUX & EEPROM
 
-  i2cip_errorlevel_t errlev = this->operator()();
+  i2cip_errorlevel_t errlev = this->eeprom->pingTimeout(true, false);
   I2CIP_ERR_BREAK(errlev);
 
   // 3. READ EEPROM CONTENTS
@@ -1125,3 +1125,12 @@ i2cip_errorlevel_t Module::operator()(void) {
 uint8_t Module::getWireNum(void) const { return this->wire; }
 
 uint8_t Module::getModuleNum(void) const { return this->mux; }
+
+// Static _handler: Routes to module instance handle()
+template <class C, typename std::enable_if<std::is_base_of<Device, C>::value, int>::type> i2cip_errorlevel_t Module::_handle(C* device, i2cip_args_io_t args) {
+  if(device == nullptr) return I2CIP_ERR_SOFT;
+  
+  uint8_t m = I2CIP_FQA_SEG_MODULE(device->getFQA());
+  if(I2CIP::modules[m] == nullptr) return I2CIP_ERR_SOFT;
+  return (I2CIP::modules[m]->handle<C>(device, args));
+}

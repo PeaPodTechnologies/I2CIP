@@ -50,6 +50,7 @@ extern _NullStream NullStream;
 namespace I2CIP {
 
   typedef Device* (* factory_device_t)(i2cip_fqa_t fqa);
+  typedef i2cip_errorlevel_t (* handler_device_t)(Device* device, i2cip_args_io_t args);
 
   class DeviceGroup {
     protected:
@@ -64,20 +65,37 @@ namespace I2CIP {
 
       // template <class C, typename std::enable_if<std::is_base_of<Device, C>::value, int>::type = 0> static DeviceGroup* create(i2cip_id_t id);
     public:
-      template <class C, typename std::enable_if<std::is_base_of<Device, C>::value, int>::type = 0> static DeviceGroup* create(i2cip_id_t id);
+      template <class C, typename std::enable_if<std::is_base_of<Device, C>::value, int>::type = 0> static DeviceGroup* create(i2cip_id_t id, handler_device_t handler = nullptr);
 
       i2cip_id_t key;
       uint8_t numdevices = 0;
       Device* devices[I2CIP_DEVICES_PER_GROUP] = { nullptr };
 
       factory_device_t factory;
+      handler_device_t handler;
 
-      DeviceGroup(const i2cip_id_t& key, factory_device_t factory = nullptr);
+      DeviceGroup(const i2cip_id_t& key, factory_device_t factory = nullptr, handler_device_t handler = nullptr);
 
       bool contains(Device* device) const;
       bool contains(const i2cip_fqa_t& fqa) const;
 
       Device* operator[](const i2cip_fqa_t& fqa) const;
+
+      i2cip_errorlevel_t operator()(Device* d, i2cip_args_io_t args = _i2cip_args_io_default) {
+        if(d == nullptr || !contains(d)) return I2CIP_ERR_SOFT;
+        if(handler == nullptr) return I2CIP_ERR_NONE;
+        return handler(d, args);
+      }
+
+      i2cip_errorlevel_t operator()(i2cip_args_io_t args = _i2cip_args_io_default) {
+        i2cip_errorlevel_t errlev = I2CIP_ERR_NONE;
+        for(uint8_t i = 0; i < I2CIP_DEVICES_PER_GROUP; i++) {
+          if(devices[i] == nullptr) continue;
+          i2cip_errorlevel_t err = operator()(devices[i], args);
+          if(err > errlev) errlev = err;
+        }
+        return errlev;
+      }
 
       // DeviceGroup& operator=(const DeviceGroup& rhs);
 
@@ -169,7 +187,9 @@ namespace I2CIP {
 
       void remove(Device* device, bool del = true);
 
-
+      /**
+       * 4. Device Updates
+       */
       // This function is like operator(Device) except it's cast to the specific Device type and prints FQA, Input cache, etc.
       #ifdef DEBUG_SERIAL
     public:
@@ -192,6 +212,13 @@ namespace I2CIP {
       // i2cip_errorlevel_t operator()(Device& d, bool update = false, i2cip_args_io_t args = _i2cip_args_io_default);
       // i2cip_errorlevel_t operator()(Device* d, bool update = false, i2cip_args_io_t args = _i2cip_args_io_default);
     
+    /**
+     * 5. Device Post-Update State Handling (Defaults to NOP)
+     * Used by DeviceGroup
+     */
+    public:
+      virtual i2cip_errorlevel_t handle(Device* device, i2cip_args_io_t args = _i2cip_args_io_default) { return; }
+      static i2cip_errorlevel_t _handle(Device* device, i2cip_args_io_t args = _i2cip_args_io_default);
     public:
       inline operator const EEPROM&() const { return *this->eeprom; }
       
