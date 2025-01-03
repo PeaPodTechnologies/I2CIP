@@ -31,7 +31,7 @@ I2CIP::i2cip_errorlevel_t resetBusses(uint8_t wire) {
   }\
 }
 #else
-#define FAKEBUS_BREAK(fqa) { if(I2CIP_FQA_SEG_MUXBUS(fqa) == I2CIP_MUX_BUS_FAKE) { return resetBusses(I2CIP_FQA_SEG_WIRE(fqa)); } }
+#define FAKEBUS_BREAK(fqa) { if(I2CIP_FQA_SEG_MUXBUS(fqa) == I2CIP_MUX_BUS_FAKE) { return resetBusses(I2CIP_FQA_SEG_I2CBUS(fqa)); } }
 #endif
 #endif
 
@@ -39,14 +39,14 @@ I2CIP::i2cip_errorlevel_t resetBusses(uint8_t wire) {
 #ifdef I2CIP_DEBUG_SERIAL
 #define FAKEMUX_BREAK(fqa) {\
   if(I2CIP_FQA_SEG_MODULE(fqa) == I2CIP_MUX_NUM_FAKE) {\
-    DEBUG_DELAY();\
+    DEBUG_DELAY();\\
     I2CIP_DEBUG_SERIAL.println(F("--> FAKE MUX; NOP"));\
     DEBUG_DELAY();\
     return resetBusses(I2CIP_FQA_SEG_I2CBUS(fqa));\
   }\
 }
 #else
-#define FAKEMUX_BREAK(fqa) { if(I2CIP_FQA_SEG_MODULE(fqa) == I2CIP_MUX_NUM_FAKE) { resetBusses(I2CIP_FQA_SEG_WIRE(fqa)); } }
+#define FAKEMUX_BREAK(fqa) { if(I2CIP_FQA_SEG_MODULE(fqa) == I2CIP_MUX_NUM_FAKE) { resetBusses(I2CIP_FQA_SEG_I2CBUS(fqa)); } }
 #endif
 #endif
 
