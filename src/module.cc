@@ -209,6 +209,17 @@ Device* DeviceGroup::operator()(i2cip_fqa_t fqa) {
   return device;
 }
 
+void DeviceGroup::unready(const uint8_t& wirenum, const uint8_t& muxnum) {
+  for(uint8_t i = 0; i < I2CIP_DEVICES_PER_GROUP; i++) {
+    if(this->devices[i] != nullptr) {
+      i2cip_fqa_t fqa = this->devices[i]->getFQA();
+      if(I2CIP_FQA_SEG_I2CBUS(fqa) == wirenum && I2CIP_FQA_SEG_MODULE(fqa) == muxnum) {
+        this->devices[i]->unready();
+      }
+    }
+  }
+}
+
 // DeviceGroup& DeviceGroup::operator=(const DeviceGroup& rhs) {
 //   for(unsigned char i = 0; i < I2CIP_DEVICES_PER_GROUP; i++) this->devices[i] = rhs.devices[i];
 //   this->numdevices = rhs.numdevices;
@@ -242,7 +253,7 @@ Module::Module(const i2cip_fqa_t& eeprom_fqa) : wire(I2CIP_FQA_SEG_I2CBUS(eeprom
   // eeprom->resetFailsafe(); // ensure default EEPROM buffer is cached for next write
 
   // !! Super important: prevents EEPROM from being overwritten during call operator update
-  eeprom->removeOutput();
+  // eeprom->removeOutput(); // on second thought, this is bad form
 
   // NOTE: I MOVED THIS STEP TO DISCOVER, FLAGGED WITH `eeprom_added`, & MADE DEVICEGROUPFACTORY PURE VIRTUAL
   // This potentially useful if I decide to ping in deviceFactory
@@ -1019,6 +1030,19 @@ bool Module::isFQAinSubnet(const i2cip_fqa_t& fqa) {
 //   return false;
 // }
 
+void Module::unready(void) {
+  if(this->eeprom != nullptr) this->eeprom->unready();
+  for(uint8_t g = 0; g < HASHTABLE_SLOTS; g++) {
+    HashTableEntry<DeviceGroup&>* entry = I2CIP::devicegroups.hashtable[g];
+    do {
+      if(entry != nullptr && entry->value.numdevices > 0) {
+        entry->value.unready(this->wire, this->mux);
+      }
+      entry = entry->next;
+    } while(entry != nullptr);
+  }
+}
+
 i2cip_errorlevel_t Module::operator()(void) {
   #ifdef I2CIP_DEBUG_SERIAL
     DEBUG_DELAY();
@@ -1035,9 +1059,10 @@ i2cip_errorlevel_t Module::operator()(void) {
     if(!MUX::pingMUX(eeprom->getFQA())) {
       #ifdef I2CIP_DEBUG_SERIAL
         DEBUG_DELAY();
-        I2CIP_DEBUG_SERIAL.print(F("MUX Ping Failed! Aborting...\n"));
+        I2CIP_DEBUG_SERIAL.print(F("MUX Ping Failed! Unreadying All Devices...\n"));
         DEBUG_DELAY();
       #endif
+      this->unready();
       return I2CIP_ERR_HARD;
     }
   }

@@ -43,7 +43,7 @@ class TestModule : public JsonModule {
       if(dg != nullptr) return dg;
       dg = DeviceGroup::create<JHD1313>(id);
       if(dg != nullptr) return dg;
-      dg = DeviceGroup::create<Seesaw_RotaryEncoder>(id);
+      dg = DeviceGroup::create<RotaryEncoder>(id);
       return dg;
     }
   public:

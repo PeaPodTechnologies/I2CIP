@@ -93,21 +93,21 @@ template <class C, typename std::enable_if<std::is_base_of<Device, C>::value, in
     I2CIP_ERR_BREAK(errlev); // Critical
 
     // Do Output, then Input
-    if(d->getOutput()) {
+    if(d->getOutput() != nullptr) {
       // #ifdef I2CIP_DEBUG_SERIAL
       //   DEBUG_DELAY();
       //   I2CIP_DEBUG_SERIAL.print(F("Output Set:\n"));
       //   DEBUG_DELAY();
       // #endif
-      errlev = (args.s == nullptr) ? d->getOutput()->failSet() : d->getOutput()->set(args.s, args.b);
+      errlev = d->set(args.s, args.b);
     }
-    if(errlev == I2CIP_ERR_NONE && d->getInput()) {
+    if(errlev == I2CIP_ERR_NONE && (d->getInput() != nullptr)) {
       // #ifdef I2CIP_DEBUG_SERIAL
       //   DEBUG_DELAY();
       //   I2CIP_DEBUG_SERIAL.print(F("Input Get:\n"));
       //   DEBUG_DELAY();
       // #endif
-      errlev = (args.a == nullptr) ? d->getInput()->failGet() : d->getInput()->get();
+      errlev = d->get(args.a);
       // errlev = d->getInput()->get(args.a); // .a defaults to nullptr which triggers failGet anyway
     }
   } else {

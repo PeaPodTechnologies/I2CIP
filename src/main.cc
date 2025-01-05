@@ -10,16 +10,19 @@
 
 // #define MAIN_DEBUG_SERIAL Serial
 #define MAIN_DEBUG_SERIAL DebugJsonOut
-#define CYCLE_DELAY 500
+// #define CYCLE_DELAY 1000
+#define EPSILON_TEMPERATURE 0.5f
+#define EPSILON_HUMIDITY 5.0f // 0.11f
+#define LCD_REFRESH_MAX 2000
 
 // Module* m;  // to be initialized in setup()
-TestModule* modules[I2CIP_MUX_COUNT] = { nullptr };
+TestModule* m = nullptr;
 char idbuffer[10];
 
 HT16K33 *ht16k33 = nullptr;
 
 void crashout(void) {
-  if(modules[MODULE] != nullptr) modules[MODULE]->operator()<HT16K33>(ht16k33, true); // Display "FAIL" on seven segment
+  if(m != nullptr) m->operator()<HT16K33>(ht16k33, true); // Display "FAIL" on seven segment
   while(true) { // Blinks
     digitalWrite(LED_BUILTIN, HIGH);
     delay(100);
@@ -28,309 +31,205 @@ void crashout(void) {
   }
 }
 
-bool initializeModule(uint8_t wirenum, uint8_t modulenum);
-i2cip_errorlevel_t checkModule(uint8_t wirenum, uint8_t modulenum);
-i2cip_errorlevel_t updateModule(uint8_t wirenum, uint8_t modulenum);
-
 i2cip_fqa_t fqa_sht45 = createFQA(WIRENUM, MODULE, 0, I2CIP_SHT45_ADDRESS);
 // i2cip_fqa_t fqa_pca9685 = createFQA(WIRENUM, MODULE, 1, I2CIP_PCA9685_ADDRESS);
-i2cip_fqa_t fqa_jhd1313 = createFQA(WIRENUM, MODULE, 1, I2CIP_JHD1313_ADDRESS);
+i2cip_fqa_t fqa_lcd = createFQA(WIRENUM, MODULE, 1, I2CIP_JHD1313_ADDRESS);
 i2cip_fqa_t fqa_rotary = createFQA(WIRENUM, MODULE, 0, I2CIP_SEESAW_ADDRESS);
 
 void setup(void) {
   Serial.begin(115200);
 
-  // OPTIONAL: FIRST TIME INIT
-  bool r = initializeModule(WIRENUM, MODULE);
-  if (!r) { /*delete modules[MODULE];*/ modules[MODULE] = nullptr; crashout(); }
+  m = new TestModule(WIRENUM, MODULE);
+
+  // i2cip_errorlevel_t errlev = m->operator()();
 
   // NOTE: module.eeprom == nullptr; and module["eeprom"] == nullptr
   ht16k33 = new HT16K33(WIRENUM, I2CIP_MUX_NUM_FAKE, I2CIP_MUX_BUS_FAKE, "SEVENSEG");
 
   // Each operator() call adds the Device to I2CIP::devicegroups and I2CIP::devicetree
-  i2cip_errorlevel_t errlev = modules[MODULE]->operator()<HT16K33>(ht16k33, true, _i2cip_args_io_default, DebugJsonBreakpoints);
-  if(errlev != I2CIP_ERR_NONE) crashout();
-  // errlev = modules[MODULE]->operator()<PCA9685>(fqa_pca9685, false, _i2cip_args_io_default, DebugJsonBreakpoints);
-  // if(errlev != I2CIP_ERR_NONE) crashout();
-  errlev = modules[MODULE]->operator()<SHT45>(fqa_sht45, false, _i2cip_args_io_default, DebugJsonBreakpoints);
-  if(errlev != I2CIP_ERR_NONE) crashout();
-  errlev = modules[MODULE]->operator()<JHD1313>(fqa_jhd1313, false, _i2cip_args_io_default, DebugJsonBreakpoints);
-  if(errlev != I2CIP_ERR_NONE) crashout();
-  errlev = modules[MODULE]->operator()<Seesaw_RotaryEncoder>(fqa_rotary, false, _i2cip_args_io_default, DebugJsonBreakpoints);
-  if(errlev != I2CIP_ERR_NONE) modules[MODULE]->remove(fqa_rotary);
+  m->operator()<HT16K33>(ht16k33, true, _i2cip_args_io_default, DebugJsonBreakpoints);
+  // m->operator()<PCA9685>(fqa_pca9685, false, _i2cip_args_io_default, DebugJsonBreakpoints);
+  m->operator()<SHT45>(fqa_sht45, false, _i2cip_args_io_default, DebugJsonBreakpoints);
+  m->operator()<JHD1313>(fqa_lcd, false, _i2cip_args_io_default, DebugJsonBreakpoints);
+  m->operator()<RotaryEncoder>(fqa_rotary, false, _i2cip_args_io_default, DebugJsonBreakpoints);
+}
+
+String timestampToString(unsigned long t) {
+  uint8_t hours = (t / 1000) / 3600;
+  uint8_t minutes = ((t / 1000) - (hours * 3600)) / 60;
+  uint8_t seconds = ((t / 1000) - (hours * 3600) - (minutes * 60));
+  uint8_t ms = (t % 1000);
+  String msg;
+  if(hours > 0) {
+    if(hours < 10) msg += "0";
+    msg += String(hours) + ":";
+  }
+  if(minutes > 0) {
+    if(minutes < 10) msg += "0";
+    msg += String(minutes) + ":";
+    if(seconds < 10) msg += "0";
+  }
+  if(hours == 0 && minutes < 10) {
+    // msg += String(seconds + (ms / 1000.f), 3);
+    msg += String(seconds + (ms / 1000.f), 2);
+    if(minutes == 0) msg += "s";
+  } else {
+    msg += String(seconds);
+  }
+  return msg;
+}
+
+#define I2CIP_JHD1313_BRIGHTNESS 0.65f // Keep it low for good contrast and readability
+i2cip_jhd1313_args_t randomRGBLCD(void) {
+  uint32_t lcdrgb = random(0, 0xFFFFFF); // Random color
+  // Serial.print("Random RGB: 0x"); Serial.println(lcdrgb, HEX);
+  uint8_t red = ((lcdrgb >> 16) & 0xFF); uint8_t green = ((lcdrgb >> 8) & 0xFF); uint8_t blue = (lcdrgb & 0xFF); // Extract RGB
+
+  // float brightness = (float)lcdrgb / 0xFFFFFF; // Normal Brightness
+  float brightness = (red / (float)0xFF) * 0.299f + (green / (float)0xFF) * 0.587f + (blue / (float)0xFF) * 0.114f; // Relative Spectral Luminance
+  float _scale = I2CIP_JHD1313_BRIGHTNESS / brightness; // Raw scalings
+
+  float _red = _scale * red / 255.f; float _green = _scale * green / 255.f; float _blue = _scale * blue / 255.f; // Normalize
+  float scale = 1.f / max(1.f, max(_red, max(_green, _blue))); // Adjusted scaling
+
+  red = (uint8_t)min(255.f, _red * scale * 255);
+  green = (uint8_t)min(255.f, _green * scale * 255);
+  blue = (uint8_t)min(255.f, _blue * scale * 255);
+  // Serial.print("LCD RGB: 0x");
+  // if(red < 0x10) Serial.print('0');
+  // Serial.print(red, HEX);
+  // if(green < 0x10) Serial.print('0');
+  // Serial.print(green, HEX);
+  // if(blue < 0x10) Serial.print('0');
+  // Serial.println(blue, HEX);
+  i2cip_jhd1313_args_t lcdargs = { .r = red, .g = green, .b = blue };
+  return lcdargs;
 }
 
 i2cip_errorlevel_t errlev;
 uint8_t cycle = 0;
 unsigned long last = 0;
+uint32_t fps = 0; // Something other than zero
 
 // bool temphum = false;
-state_sht45_t state = {NAN, NAN};
+state_sht45_t temphum = {NAN, NAN};
+int32_t rotary_zero = 0;
+unsigned long last_lcd = LCD_REFRESH_MAX; // Fixes first-frame bug
 void loop(void) {
   last = millis();
-  switch(checkModule(WIRENUM, MODULE)) {
-    case I2CIP_ERR_HARD:
-      // delete modules[MODULE];
-      modules[MODULE] = nullptr;
-      return;
-    case I2CIP_ERR_SOFT:
-      if (!initializeModule(WIRENUM, MODULE)) { /*delete modules[MODULE];*/ modules[MODULE] = nullptr; return; }
-      break;
-    default:
-      errlev = updateModule(WIRENUM, MODULE);
-      break;
-  }
+  // switch(checkModule(WIRENUM, MODULE)) {
+  //   case I2CIP_ERR_HARD:
+  //     // delete m;
+  //     m = nullptr;
+  //     return;
+  //   case I2CIP_ERR_SOFT:
+  //     if (!initializeModule(WIRENUM, MODULE)) { /*delete m;*/ m = nullptr; return; }
+  //     break;
+  //   default:
+  //     errlev = updateModule(WIRENUM, MODULE);
+  //     break;
+  // }
 
+  i2cip_ht16k33_mode_t seg_mode = SEG_SNAKE;
+  i2cip_ht16k33_data_t seg_data = { .h = fps };
+  i2cip_args_io_t args_7seg = { .a = nullptr, .s = &seg_data, .b = &seg_mode };
+
+  // Module Errlev
+  errlev = m->operator()(); // First-Time EEPROM Self-Registration and Discovery; Ping MUX && EEPROM
   if(errlev == I2CIP_ERR_NONE) {
-    errlev = modules[MODULE]->operator()<SHT45>(fqa_sht45, true, _i2cip_args_io_default, DebugJsonOut);
+    // Prep Args: LCD
+    String msg = String(fps) + "Hz " + String("T+") + timestampToString(last) + "\n"; // Further append will be on second line
+    i2cip_jhd1313_args_t rgb = randomRGBLCD();
+    i2cip_args_io_t args_lcd = { .a = nullptr, .s = nullptr, .b = &rgb };
+    
+    // Prep Args: 7SEG
+    seg_mode = SEG_UINT;
+    // seg_data.f = NAN; // Will produce "NUL.L" on display instead of temperature
+    // args_7seg.s = &seg_data.f;
+
+    // SHT45
+    i2cip_errorlevel_t errlev_sht45 = m->operator()<SHT45>(fqa_sht45, true, _i2cip_args_io_default, DebugJsonOut);
+
+    // Average and print to LCD
     HashTableEntry<I2CIP::DeviceGroup&>* entry = I2CIP::devicegroups["SHT45"];
-    if(errlev == I2CIP_ERR_NONE && entry != nullptr && entry->value.numdevices > 0) {
+    if(errlev_sht45 == I2CIP_ERR_NONE && entry != nullptr && entry->value.numdevices > 0) {
       // AVERAGES
-      state = {0.0f, 0.0f};
+      state_sht45_t th = {0.0f, 0.0f};
       for(uint8_t i = 0; i < entry->value.numdevices; i++) {
-        state.temperature += ((SHT45*)(entry->value.devices[i]))->getCache().temperature;
-        state.humidity += ((SHT45*)(entry->value.devices[i]))->getCache().humidity;
+        th.temperature += ((SHT45*)(entry->value.devices[i]))->getCache().temperature;
+        th.humidity += ((SHT45*)(entry->value.devices[i]))->getCache().humidity;
       }
-      state.temperature /= entry->value.numdevices; state.humidity /= entry->value.numdevices;
+      th.temperature /= entry->value.numdevices; th.humidity /= entry->value.numdevices;
 
-      // if(isnan(ht16k33->getValue().f) || abs(state.temperature - ht16k33->getValue().f) > 0.01f) {
+      msg += '[' + String(th.temperature, 1) + "C, " + String(th.humidity, 1) + "%]"; // The double-space might cut off the % but who cares
+      seg_data.f = th.temperature;
+      seg_mode = SEG_1F;
 
-        // PWM
-        // uint16_t pwm12 = (uint16_t)(0xFFF * max(0.f, state.temperature) / 100.f); // Celsius to PWM
-        // i2cip_pca9685_chsel_t c = PCA9685_CH0;
-        // i2cip_args_io_t pargs = { .a = nullptr, .s = &pwm12, .b = &c };
-        // errlev = modules[MODULE]->operator()<PCA9685>(fqa_pca9685, true, pargs, DebugJsonBreakpoints);
-
-        // LCD
-        String msg = String("Time: ") + String(last / 1000.f, 3) + "s\nT:" + String(state.temperature, 1) + "C H:" + String(state.humidity, 1) + "%";
-        uint32_t lcdrgb = random(0, 0xFFFFFF);
-        float brightness = (lcdrgb >> 16) / 3.f + (lcdrgb >> 8) / 3.f + (lcdrgb & 0xFF) / 3.f; // Average RGB should be ~50% for readability
-        float scale = 0.5f / brightness;
-        i2cip_jhd1313_args_t lcdargs = { .r = (uint8_t)(((uint32_t)(lcdrgb * scale) >> 16) & 0xFF), .g = (uint8_t)(((uint32_t)(lcdrgb * scale) >> 8) & 0xFF), .b = (uint8_t)((uint32_t)(lcdrgb * scale) & 0xFF) };
-        i2cip_args_io_t largs = { .a = nullptr, .s = &msg, .b = &lcdargs };
-        modules[MODULE]->operator()<JHD1313>(fqa_jhd1313, true, largs, DebugJsonBreakpoints);
-      // }
+      // If messages match and neither temperature nor humidity have changed (and are not NaN), skip LCD
+      if(!isnan(temphum.temperature) && !isnan(temphum.humidity) && (abs(th.temperature - temphum.temperature) < EPSILON_TEMPERATURE && abs(th.humidity - temphum.humidity) < EPSILON_HUMIDITY) && ((long int)millis() - last_lcd < LCD_REFRESH_MAX)) {
+        MAIN_DEBUG_SERIAL.println(F("[I2CIP | LCD SKIP; RGB ONLY]"));
+      } else {
+        temphum.temperature = th.temperature; temphum.humidity = th.humidity;
+        args_lcd.s = &msg;
+      }
     } else {
-      // if(!isnan(ht16k33->getValue().f)) {
-        // i2cip_ht16k33_mode_t mode = SEG_1F;
-        // i2cip_ht16k33_data_t data = { .f = temphum ? state.temperature : state.humidity };
-        // i2cip_ht16k33_data_t data = { .f = NAN };
-        // i2cip_args_io_t hargs = { .a = nullptr, .s = &data.f, .b = &mode };
-        // errlev = 
-          // modules[MODULE]->operator()<HT16K33>(ht16k33, true, hargs, DebugJsonBreakpoints);
-        // temphum = !temphum;
-
-        // PWM
-        // uint16_t pwm12 = (uint16_t)(0xFFF * max(0.f, state.temperature) / 100.f); // Celsius to PWM
-        // i2cip_pca9685_chsel_t c = PCA9685_CH0;
-        // i2cip_args_io_t pargs = { .a = nullptr, .s = &pwm12, .b = &c };
-        // errlev = modules[MODULE]->operator()<PCA9685>(fqa_pca9685, true, pargs, DebugJsonBreakpoints);
-
-        // LCD
-        String msg = String("Time: ") + String(last / 1000.f, 3) + "s\nSHT45 ERR 0x" + String(errlev, HEX) + " :(";
-        i2cip_args_io_t largs = { .a = nullptr, .s = &msg, .b = nullptr };
-        errlev = modules[MODULE]->operator()<JHD1313>(fqa_jhd1313, true, largs, DebugJsonBreakpoints);
-      // }
+      // LCD Default
+      msg += "SHT45 ERR 0x" + String(errlev_sht45, HEX) + " :(";
+      args_lcd.s = &msg;
     }
 
-    Seesaw_RotaryEncoder* rotary = (Seesaw_RotaryEncoder*)modules[MODULE]->operator[](fqa_rotary);
-    i2cip_ht16k33_mode_t mode = SEG_1F;
-    i2cip_ht16k33_data_t data = { .f = state.temperature };
-    i2cip_args_io_t hargs = { .a = nullptr, .s = &data.f, .b = &mode };
+    // LCD: On-Module SHT45 Status Display
+    i2cip_errorlevel_t errlev_lcd = m->operator()<JHD1313>(fqa_lcd, true, args_lcd, DebugJsonBreakpoints);
+    if(errlev_lcd == I2CIP_ERR_NONE && args_lcd.s != nullptr && fps != 0) {
+      last_lcd = millis();
+    }
+
+    RotaryEncoder* rotary = (RotaryEncoder*)m->operator[](fqa_rotary);
     if(rotary != nullptr) {
-      i2cip_errorlevel_t rerrlev = modules[MODULE]->operator()<Seesaw_RotaryEncoder>(fqa_rotary, true, _i2cip_args_io_default, DebugJsonOut);
-      mode = SEG_INT;
-      data.h = 10000; // Will produce "+ERR" on display
-      hargs.s = &data.h;
-      if(rerrlev == I2CIP_ERR_NONE) {
+
+      // seg_data.f = NAN; // Will produce "NUL.L" on display instead of temperature
+      i2cip_errorlevel_t errlev_rotary = m->operator()<RotaryEncoder>(fqa_rotary, true, _i2cip_args_io_default, DebugJsonOut);
+
+      if(errlev_rotary == I2CIP_ERR_NONE) {
         i2cip_rotaryencoder_t cache = rotary->getCache();
-        uint16_t position = ((uint32_t)cache.encoder) % 1000;
-        int32_t display = cache.button ? position : -position;
-        data.h = display; // Now h is the active member
+        if(cache.button) rotary_zero = cache.encoder;
+        uint32_t angle_ticks = -(cache.encoder - rotary_zero); // Invert rotation
+        uint32_t position = Seesaw::_encoderDegrees(angle_ticks, 9999); // 27 * 360 = 9720; Maximum revolutions on 4 digit display
+
+        // Overwrite 7Seg Args
+        seg_mode = SEG_UINT;
+        seg_data.h = position; // Now h is the active member
       }
       //  else {
       //   if(errlev == I2CIP_ERR_NONE) { // still SHT45 error
       //     mode = SEG_1F;
-      //     data.f = state.temperature;
+      //     data.f = temphum.temperature;
       //     hargs.s = &data.f;
       //   }
       // }
     }
-    modules[MODULE]->operator()<HT16K33>(ht16k33, true, hargs, DebugJsonBreakpoints);
+  } else {
+    seg_mode = SEG_SNAKE;
   }
+  // 7SEG: Off-Module (MCU Featherwing/Shield) Multi-Status Display: Rotary, else SHT45, else Snake
+  i2cip_errorlevel_t errlev_7seg = m->operator()<HT16K33>(ht16k33, true, args_7seg, DebugJsonBreakpoints);
 
   // DEBUG PRINT: CYCLE COUNT, FPS, and ERRLEV
   unsigned long delta = millis() - last;
-  MAIN_DEBUG_SERIAL.print(F("[I2CIP | CYCLE "));
-  MAIN_DEBUG_SERIAL.print(cycle);
-  MAIN_DEBUG_SERIAL.print(F(" | "));
-  MAIN_DEBUG_SERIAL.print(1000.0 / delta, 0);
-  MAIN_DEBUG_SERIAL.print(F(" FPS | 0x"));
-  MAIN_DEBUG_SERIAL.print(errlev, HEX);
-  MAIN_DEBUG_SERIAL.println(F("]"));
+  fps = (uint32_t)round(1000.f / (delta < 10 ? 10 : delta)); // 100FPS max
+  // MAIN_DEBUG_SERIAL.print(F("[I2CIP | CYCLE "));
+  // MAIN_DEBUG_SERIAL.print(cycle);
+  // MAIN_DEBUG_SERIAL.print(F(" | "));
+  // MAIN_DEBUG_SERIAL.print(fps);
+  // MAIN_DEBUG_SERIAL.print(F(" FPS | 0x"));
+  // MAIN_DEBUG_SERIAL.print(max(errlev, max(errlev_7seg, errlev_lcd)), HEX);
+  // MAIN_DEBUG_SERIAL.println(F("]"));
 
   cycle++;
 
+  #ifdef CYCLE_DELAY
   delay(CYCLE_DELAY);
-}
-
-
-bool initializeModule(uint8_t wirenum, uint8_t modulenum) {
-  MAIN_DEBUG_SERIAL.print(F("[I2CIP] MODULE "));
-  MAIN_DEBUG_SERIAL.print(wirenum);
-  MAIN_DEBUG_SERIAL.print(":");
-  MAIN_DEBUG_SERIAL.print(modulenum);
-  MAIN_DEBUG_SERIAL.print(F(":.:. | INIT: "));
-
-  if(modules[modulenum] != nullptr) {
-    MAIN_DEBUG_SERIAL.print(F("(DELETED) "));
-  //   delete modules[modulenum];
-  }
-
-  // Initialize module
-  unsigned long now = millis();
-  modules[modulenum] = new TestModule(WIRENUM, MODULE);
-  unsigned long delta = millis() - now;
-
-  if(modules[modulenum] == nullptr) { 
-    MAIN_DEBUG_SERIAL.println(F("FAIL UNREACH"));
-    return false;
-  } else if((EEPROM*)(modules[modulenum]) == nullptr) {
-    MAIN_DEBUG_SERIAL.println(F("FAIL EEPROM"));
-    // delete modules[modulenum];
-    modules[modulenum] = nullptr;
-    return false;
-  }
-
-  MAIN_DEBUG_SERIAL.print(delta / 1000.0, 3);
-  MAIN_DEBUG_SERIAL.println("s");
-
-  return true;
-}
-
-i2cip_errorlevel_t checkModule(uint8_t wirenum, uint8_t modulenum) {
-  MAIN_DEBUG_SERIAL.print(F("[I2CIP] MODULE "));
-  MAIN_DEBUG_SERIAL.print(wirenum, HEX);
-  MAIN_DEBUG_SERIAL.print(":");
-  MAIN_DEBUG_SERIAL.print(modulenum, HEX);
-  MAIN_DEBUG_SERIAL.print(F(":.:. | CHECK: "));
-
-  if(modules[modulenum] == nullptr) {
-    MAIN_DEBUG_SERIAL.println(F("FAIL ENOENT"));
-    return I2CIP_ERR_SOFT; // ENOENT
-  }
-
-  unsigned long now = millis();
-  i2cip_errorlevel_t errlev = modules[MODULE]->operator()();
-  unsigned long delta = millis() - now;
-
-  switch(errlev) {
-    case I2CIP_ERR_HARD:
-      MAIN_DEBUG_SERIAL.print(F("FAIL EIO "));
-      break;
-    case I2CIP_ERR_SOFT:
-      MAIN_DEBUG_SERIAL.print(F("FAIL EINVAL "));
-      break;
-    default:
-      MAIN_DEBUG_SERIAL.print(F("PASS "));
-      break;
-  }
-  MAIN_DEBUG_SERIAL.print(delta / 1000.0, 3);
-  MAIN_DEBUG_SERIAL.println(F("s"));
-  // I2CIP_ERR_BREAK(errlev);
-
-  // // Continue - EEPROM check
-  // i2cip_fqa_t eeprom = ((EEPROM*)modules[MODULE])->getFQA();
-
-  // MAIN_DEBUG_SERIAL.print(F("[I2CIP] EEPROM "));
-  // MAIN_DEBUG_SERIAL.print(wirenum);
-  // MAIN_DEBUG_SERIAL.print(":");
-  // MAIN_DEBUG_SERIAL.print(modulenum);
-  // MAIN_DEBUG_SERIAL.print(":");
-  // MAIN_DEBUG_SERIAL.print(I2CIP_FQA_SEG_MUXBUS(eeprom));
-  // MAIN_DEBUG_SERIAL.print(":");
-  // MAIN_DEBUG_SERIAL.print(I2CIP_FQA_SEG_DEVADR(eeprom));
-  // MAIN_DEBUG_SERIAL.print(F(" - CHECK: "));
-
-  // now = millis();
-  // errlev = modules[MODULE]->operator()(eeprom);
-  // delta = millis() - now;
-
-  // switch(errlev) {
-  //   case I2CIP_ERR_HARD:
-  //     MAIN_DEBUG_SERIAL.print(F("FAIL EIO "));
-  //     break;
-  //   case I2CIP_ERR_SOFT:
-  //     MAIN_DEBUG_SERIAL.print(F("FAIL EINVAL "));
-  //     break;
-  //   case I2CIP_ERR_NONE:
-  //   default:
-  //     MAIN_DEBUG_SERIAL.print(F("PASS "));
-  //     break;
-  // }
-  // MAIN_DEBUG_SERIAL.print(delta / 1000.0, 3);
-  // MAIN_DEBUG_SERIAL.println(F("s"));
-  return errlev;
-}
-
-i2cip_errorlevel_t updateModule(uint8_t wirenum, uint8_t modulenum) {
-  MAIN_DEBUG_SERIAL.print(F("[I2CIP] MODULE "));
-  MAIN_DEBUG_SERIAL.print(wirenum);
-  MAIN_DEBUG_SERIAL.print(":");
-  MAIN_DEBUG_SERIAL.print(modulenum);
-  MAIN_DEBUG_SERIAL.print(F(":.:. | UPDATE: "));
-
-  if(modules[modulenum] == nullptr) {
-    MAIN_DEBUG_SERIAL.println(F("FAIL ENOENT"));
-    return I2CIP_ERR_SOFT; // ENOENT
-  }
-
-  const EEPROM& eeprom = modules[modulenum]->operator const I2CIP::EEPROM &();
-
-  MAIN_DEBUG_SERIAL.print(F("EEPROM "));
-  MAIN_DEBUG_SERIAL.print(I2CIP_FQA_SEG_I2CBUS(eeprom.getFQA()), HEX);
-  MAIN_DEBUG_SERIAL.print(":");
-  MAIN_DEBUG_SERIAL.print(I2CIP_FQA_SEG_MODULE(eeprom.getFQA()), HEX);
-  MAIN_DEBUG_SERIAL.print(":");
-  MAIN_DEBUG_SERIAL.print(I2CIP_FQA_SEG_MUXBUS(eeprom.getFQA()), HEX);
-  MAIN_DEBUG_SERIAL.print(":");
-  MAIN_DEBUG_SERIAL.print(I2CIP_FQA_SEG_DEVADR(eeprom.getFQA()), HEX);
-  MAIN_DEBUG_SERIAL.print(" ");
-
-  unsigned long now = millis();
-  i2cip_errorlevel_t errlev = modules[modulenum]->operator()<EEPROM>(eeprom.getFQA(), true, _i2cip_args_io_default, DebugJsonBreakpoints);
-  unsigned long delta = millis() - now;
-
-  switch(errlev) {
-    case I2CIP_ERR_HARD:
-      MAIN_DEBUG_SERIAL.print(F("FAIL EIO "));
-      break;
-    case I2CIP_ERR_SOFT:
-      MAIN_DEBUG_SERIAL.print(F("FAIL EINVAL "));
-      break;
-    default:
-      MAIN_DEBUG_SERIAL.print(F("PASS "));
-      break;
-  }
-  MAIN_DEBUG_SERIAL.print(delta / 1000.0, 3);
-  MAIN_DEBUG_SERIAL.print(F("s"));
-  if(errlev != I2CIP_ERR_NONE) {
-    MAIN_DEBUG_SERIAL.println();
-    return errlev;
-  }
-
-  // Bonus Points - Print EEPROM contents
-  const char* cache = eeprom.getCache();
-  if(cache == nullptr || cache[0] == '\0') {
-    MAIN_DEBUG_SERIAL.println(F(" EMPTY"));
-    return errlev;
-  }
-
-  MAIN_DEBUG_SERIAL.print(F(" \""));
-  MAIN_DEBUG_SERIAL.print(cache);
-  MAIN_DEBUG_SERIAL.println(F("\""));
-
-  return errlev;
+  #endif
 }
 
 #endif

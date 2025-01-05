@@ -8,7 +8,6 @@
 #include "debug.h" // I want interfaces to be debuggable
 
 namespace I2CIP {
-
   /**
    * An I2CIP peripheral used for input/state "getting".
    * @param G type used for "get" variable

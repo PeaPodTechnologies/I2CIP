@@ -142,3 +142,7 @@ A partial routing table (see below) indexes only the devices on a bus.
 
 > Note: when flashed, all comments, whitespaces, and trailing commas MUST be removed. All strings must be double quotes.
 <!-- TODO: Is this true? -->
+
+<!-- Changelog WIP -->
+
+<!-- Device writes now don't reset bus by default; separate parameter (..., bool resetbus = false); -->
