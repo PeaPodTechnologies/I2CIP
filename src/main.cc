@@ -10,10 +10,11 @@
 
 // #define MAIN_DEBUG_SERIAL Serial
 #define MAIN_DEBUG_SERIAL DebugJsonOut
-// #define CYCLE_DELAY 1000
+#define CYCLE_DELAY 20 // Max FPS 100Hz
 #define EPSILON_TEMPERATURE 0.5f
-#define EPSILON_HUMIDITY 5.0f // 0.11f
-#define LCD_REFRESH_MAX 2000
+#define EPSILON_HUMIDITY 2.0f // 0.11f
+#define LCD_REFRESH_MAX 5000
+#define RGB_REFRESH_MAX 1000
 
 // Module* m;  // to be initialized in setup()
 TestModule* m = nullptr;
@@ -35,6 +36,7 @@ i2cip_fqa_t fqa_sht45 = createFQA(WIRENUM, MODULE, 0, I2CIP_SHT45_ADDRESS);
 // i2cip_fqa_t fqa_pca9685 = createFQA(WIRENUM, MODULE, 1, I2CIP_PCA9685_ADDRESS);
 i2cip_fqa_t fqa_lcd = createFQA(WIRENUM, MODULE, 1, I2CIP_JHD1313_ADDRESS);
 i2cip_fqa_t fqa_rotary = createFQA(WIRENUM, MODULE, 0, I2CIP_SEESAW_ADDRESS);
+i2cip_fqa_t fqa_nunchuck = createFQA(WIRENUM, MODULE, 0, I2CIP_NUNCHUCK_ADDRESS);
 
 void setup(void) {
   Serial.begin(115200);
@@ -51,8 +53,11 @@ void setup(void) {
   // m->operator()<PCA9685>(fqa_pca9685, false, _i2cip_args_io_default, DebugJsonBreakpoints);
   m->operator()<SHT45>(fqa_sht45, false, _i2cip_args_io_default, DebugJsonBreakpoints);
   m->operator()<JHD1313>(fqa_lcd, false, _i2cip_args_io_default, DebugJsonBreakpoints);
-  m->operator()<RotaryEncoder>(fqa_rotary, false, _i2cip_args_io_default, DebugJsonBreakpoints);
 }
+
+/** LOOP SECTION */
+
+// LOOP HELPERS
 
 String timestampToString(unsigned long t) {
   uint8_t hours = (t / 1000) / 3600;
@@ -106,6 +111,26 @@ i2cip_jhd1313_args_t randomRGBLCD(void) {
   return lcdargs;
 }
 
+// PING AND SOFT IF NOT FOUND, OTHERWISE RESULT
+template <class C> i2cip_errorlevel_t handleDevice(C*& d, const i2cip_fqa_t& fqa, i2cip_args_io_t args = _i2cip_args_io_default) {
+  if(d == nullptr) {
+  // Not Given, Try to Find
+    d = (C*)m->operator[](fqa);
+    if(d != nullptr) {
+      // FOUND!
+      return m->operator()<C>(d, true, args, DebugJsonOut);
+    } else {
+      // Not Found, Try to Ping
+      i2cip_errorlevel_t errlev = m->operator()<C>(fqa, false, _i2cip_args_io_default, DebugJsonBreakpoints);
+      return ((errlev == I2CIP_ERR_HARD) ? I2CIP_ERR_HARD : I2CIP_ERR_SOFT);
+    }
+  }
+  else return m->operator()<C>(d, true, args, DebugJsonOut);
+}
+
+
+// LOOP GLOBALS
+
 i2cip_errorlevel_t errlev;
 uint8_t cycle = 0;
 unsigned long last = 0;
@@ -114,7 +139,10 @@ uint32_t fps = 0; // Something other than zero
 // bool temphum = false;
 state_sht45_t temphum = {NAN, NAN};
 int32_t rotary_zero = 0;
-unsigned long last_lcd = LCD_REFRESH_MAX; // Fixes first-frame bug
+unsigned long last_lcd = LCD_REFRESH_MAX; unsigned long last_rgb = RGB_REFRESH_MAX; // Fixes first-frame bug
+bool do_lcd = true;
+float nunchuck_sum = 0.0f;
+
 void loop(void) {
   last = millis();
   // switch(checkModule(WIRENUM, MODULE)) {
@@ -137,6 +165,8 @@ void loop(void) {
   // Module Errlev
   errlev = m->operator()(); // First-Time EEPROM Self-Registration and Discovery; Ping MUX && EEPROM
   if(errlev == I2CIP_ERR_NONE) {
+    // DebugJson Heartbeat
+    DebugJson::revision(0, Serial); // sends revision
     // Prep Args: LCD
     String msg = String(fps) + "Hz " + String("T+") + timestampToString(last) + "\n"; // Further append will be on second line
     i2cip_jhd1313_args_t rgb = randomRGBLCD();
@@ -154,12 +184,17 @@ void loop(void) {
     HashTableEntry<I2CIP::DeviceGroup&>* entry = I2CIP::devicegroups["SHT45"];
     if(errlev_sht45 == I2CIP_ERR_NONE && entry != nullptr && entry->value.numdevices > 0) {
       // AVERAGES
-      state_sht45_t th = {0.0f, 0.0f};
+      state_sht45_t th = {0.0f, 0.0f}; uint8_t c = 0;
       for(uint8_t i = 0; i < entry->value.numdevices; i++) {
+        SHT45* d = (SHT45*)(entry->value.devices[i]);
+        if(d == nullptr) continue;
+        DebugJson::telemetry(d->getLastRX(), d->getCache().temperature, "temperature");
+        DebugJson::telemetry(d->getLastRX(), d->getCache().humidity, "humidity");
         th.temperature += ((SHT45*)(entry->value.devices[i]))->getCache().temperature;
         th.humidity += ((SHT45*)(entry->value.devices[i]))->getCache().humidity;
+        c++;
       }
-      th.temperature /= entry->value.numdevices; th.humidity /= entry->value.numdevices;
+      th.temperature /= c; th.humidity /= c;
 
       msg += '[' + String(th.temperature, 1) + "C, " + String(th.humidity, 1) + "%]"; // The double-space might cut off the % but who cares
       seg_data.f = th.temperature;
@@ -168,55 +203,75 @@ void loop(void) {
       // If messages match and neither temperature nor humidity have changed (and are not NaN), skip LCD
       if(!isnan(temphum.temperature) && !isnan(temphum.humidity) && (abs(th.temperature - temphum.temperature) < EPSILON_TEMPERATURE && abs(th.humidity - temphum.humidity) < EPSILON_HUMIDITY) && ((long int)millis() - last_lcd < LCD_REFRESH_MAX)) {
         MAIN_DEBUG_SERIAL.println(F("[I2CIP | LCD SKIP; RGB ONLY]"));
+        do_lcd = false;
       } else {
         temphum.temperature = th.temperature; temphum.humidity = th.humidity;
         args_lcd.s = &msg;
+        do_lcd = true;
       }
     } else {
       // LCD Default
       msg += "SHT45 ERR 0x" + String(errlev_sht45, HEX) + " :(";
       args_lcd.s = &msg;
+      do_lcd = true;
     }
 
+    if(do_lcd || (long int)millis() - last_rgb > RGB_REFRESH_MAX) {
     // LCD: On-Module SHT45 Status Display
-    i2cip_errorlevel_t errlev_lcd = m->operator()<JHD1313>(fqa_lcd, true, args_lcd, DebugJsonBreakpoints);
-    if(errlev_lcd == I2CIP_ERR_NONE && args_lcd.s != nullptr && fps != 0) {
-      last_lcd = millis();
+      i2cip_errorlevel_t errlev_lcd = m->operator()<JHD1313>(fqa_lcd, true, args_lcd, DebugJsonOut);
+      if(errlev_lcd == I2CIP_ERR_NONE && fps != 0) {
+        if(args_lcd.s != nullptr) last_lcd = millis();
+        last_rgb = millis();
+      }
     }
 
-    RotaryEncoder* rotary = (RotaryEncoder*)m->operator[](fqa_rotary);
-    if(rotary != nullptr) {
+    Nunchuck* nunchuck = nullptr;
+    if(handleDevice<Nunchuck>(nunchuck, fqa_nunchuck, _i2cip_args_io_default) == I2CIP_ERR_NONE && nunchuck != nullptr) {
+      i2cip_nunchuck_t cache = nunchuck->getCache();
 
-      // seg_data.f = NAN; // Will produce "NUL.L" on display instead of temperature
-      i2cip_errorlevel_t errlev_rotary = m->operator()<RotaryEncoder>(fqa_rotary, true, _i2cip_args_io_default, DebugJsonOut);
+      nunchuck_sum += ((float)cache.x - 127.f) / 255.f; // += cache.y;
 
-      if(errlev_rotary == I2CIP_ERR_NONE) {
-        i2cip_rotaryencoder_t cache = rotary->getCache();
-        if(cache.button) rotary_zero = cache.encoder;
-        uint32_t angle_ticks = -(cache.encoder - rotary_zero); // Invert rotation
-        uint32_t position = Seesaw::_encoderDegrees(angle_ticks, 9999); // 27 * 360 = 9720; Maximum revolutions on 4 digit display
+      DebugJson::telemetry(nunchuck->getLastRX(), cache.x, "joy_x");
+      DebugJson::telemetry(nunchuck->getLastRX(), cache.y, "joy_y");
+      DebugJson::telemetry(nunchuck->getLastRX(), cache.c, "button_c");
+      DebugJson::telemetry(nunchuck->getLastRX(), cache.z, "button_z");
+    } else {
+      nunchuck_sum = 0.0f;
+    }
 
-        // Overwrite 7Seg Args
-        seg_mode = SEG_UINT;
-        seg_data.h = position; // Now h is the active member
-      }
-      //  else {
-      //   if(errlev == I2CIP_ERR_NONE) { // still SHT45 error
-      //     mode = SEG_1F;
-      //     data.f = temphum.temperature;
-      //     hargs.s = &data.f;
-      //   }
-      // }
+    RotaryEncoder* rotary = nullptr;
+    if(handleDevice<RotaryEncoder>(rotary, fqa_rotary, _i2cip_args_io_default) == I2CIP_ERR_NONE && rotary != nullptr) {
+      i2cip_rotaryencoder_t cache = rotary->getCache();
+      if(cache.button) rotary_zero = cache.encoder;
+      uint32_t angle_ticks = -(cache.encoder - rotary_zero); // Invert rotation
+      uint32_t position = Seesaw::_encoderDegrees(angle_ticks, 9999); // 27 * 360 = 9720; Maximum revolutions on 4 digit display
+
+      DebugJson::telemetry(rotary->getLastRX(), cache.encoder, "encoder");
+      DebugJson::telemetry(rotary->getLastRX(), position, "position");
+      DebugJson::telemetry(rotary->getLastRX(), cache.button, "button");
+
+      // Overwrite 7Seg Args
+      seg_mode = SEG_UINT;
+      seg_data.h = position + ((unsigned)nunchuck_sum); // Now h is the active member
+    } else {
+      rotary_zero = 0;
     }
   } else {
     seg_mode = SEG_SNAKE;
   }
   // 7SEG: Off-Module (MCU Featherwing/Shield) Multi-Status Display: Rotary, else SHT45, else Snake
-  i2cip_errorlevel_t errlev_7seg = m->operator()<HT16K33>(ht16k33, true, args_7seg, DebugJsonBreakpoints);
+  i2cip_errorlevel_t errlev_7seg = m->operator()<HT16K33>(ht16k33, true, args_7seg, DebugJsonOut);
+
+  cycle++;
+
+  #ifdef CYCLE_DELAY
+  delay(CYCLE_DELAY);
+  #endif
 
   // DEBUG PRINT: CYCLE COUNT, FPS, and ERRLEV
   unsigned long delta = millis() - last;
-  fps = (uint32_t)round(1000.f / (delta < 10 ? 10 : delta)); // 100FPS max
+  fps += 1000.f / max(1.f, (float)delta);
+  fps /= 2;
   // MAIN_DEBUG_SERIAL.print(F("[I2CIP | CYCLE "));
   // MAIN_DEBUG_SERIAL.print(cycle);
   // MAIN_DEBUG_SERIAL.print(F(" | "));
@@ -225,11 +280,6 @@ void loop(void) {
   // MAIN_DEBUG_SERIAL.print(max(errlev, max(errlev_7seg, errlev_lcd)), HEX);
   // MAIN_DEBUG_SERIAL.println(F("]"));
 
-  cycle++;
-
-  #ifdef CYCLE_DELAY
-  delay(CYCLE_DELAY);
-  #endif
 }
 
 #endif

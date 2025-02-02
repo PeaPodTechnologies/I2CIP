@@ -8,6 +8,7 @@
 #include <PCA9685.h>
 #include <JHD1313.h>
 #include <Seesaw.h>
+#include <Nunchuck.h>
 
 // TESTING PARAMETERS
 #define WIRENUM 0x00

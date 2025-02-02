@@ -61,7 +61,7 @@ template <typename G, typename A> i2cip_errorlevel_t InputInterface<G, A>::get(c
 
   // If successful, update last cache
   if(errlev == I2CIP::i2cip_errorlevel_t::I2CIP_ERR_NONE) { 
-    this->clearCache(); this->cache = temp; this->argsA = arg; 
+    this->clearCache(); this->cache = temp; this->argsA = arg; this->lastrx = millis();
     // #ifdef I2CIP_DEBUG_SERIAL
     //   DEBUG_DELAY();
     //   I2CIP_DEBUG_SERIAL.println(F("Cache Set"));
@@ -129,7 +129,7 @@ template <typename S, typename B> i2cip_errorlevel_t OutputInterface<S, B>::set(
   i2cip_errorlevel_t errlev = this->set(val, arg);
 
   // 4. If successful, update cached `value` and `args`
-  if(errlev == I2CIP::i2cip_errorlevel_t::I2CIP_ERR_NONE) { this->value = val; this->argsB = arg; };
+  if(errlev == I2CIP::i2cip_errorlevel_t::I2CIP_ERR_NONE) { this->value = val; this->argsB = arg; this->lasttx = millis(); };
 
   return errlev;
 }

@@ -135,6 +135,18 @@ public:\
     return this->print_buffer;\
   }
 
+#define I2CIP_OUTPUTS_USE_TOSTRING true // uncomment to disable input cache toString/print macros
+#define I2CIP_OUTPUT_USE_TOSTRING(TYPE, ARGS, ...)\
+private:\
+  char value_buffer[I2CIP_INPUT_CACHEBUFFER_SIZE];\
+public:\
+  const char* valueToString(void) override {\
+    memset(this->value_buffer, 0, I2CIP_INPUT_CACHEBUFFER_SIZE);\
+    TYPE value = this->getValue();\
+    snprintf(this->value_buffer, I2CIP_INPUT_CACHEBUFFER_SIZE, ARGS, __VA_OPT__(__VA_ARGS__)VALUE_IFNOT(__VA_OPT__(1), value));\
+    return this->value_buffer;\
+  }
+
 #define I2CIP_OUTPUTS_USE_FAILSAFE true // uncomment to disable ouput set-value failsafe defaulting
 #ifdef I2CIP_OUTPUTS_USE_FAILSAFE
 #define I2CIP_OUTPUT_USE_FAILSAFE(TYPE, TYPEB, ...)\
@@ -240,6 +252,10 @@ namespace I2CIP {
           I2CIP_DEBUG_SERIAL.println(F("OUTPUT FAILSAFE"));
         #endif
         return this->set(value, &failptr_set); }
+      
+      #ifdef I2CIP_OUTPUTS_USE_TOSTRING
+        virtual const char* valueToString(void) = 0; // To be implemented by the child class (i.e. for debugging, sensors)
+      #endif
   };
 
   typedef i2cip_errorlevel_t (*i2cip_device_begin_t)(const i2cip_fqa_t& fqa, bool setbus);

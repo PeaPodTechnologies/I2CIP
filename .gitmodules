@@ -16,3 +16,6 @@
 [submodule "lib/I2CIP-Seesaw"]
 	path = lib/I2CIP-Seesaw
 	url = https://github.com/PeaPodTechnologies/I2CIP-Seesaw
+[submodule "lib/I2CIP-Nunchuck"]
+	path = lib/I2CIP-Nunchuck
+	url = https://github.com/PeaPodTechnologies/I2CIP-Nunchuck

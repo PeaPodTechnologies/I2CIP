@@ -77,6 +77,8 @@ namespace I2CIP {
 
       ~EEPROM();
 
+      const char* valueToString(void) override { return this->getValue(); }
+
       i2cip_errorlevel_t readContents(uint8_t* dest, size_t& num_read, size_t max_read = I2CIP_EEPROM_SIZE, bool setbus = true);
 
       i2cip_errorlevel_t writeByte(const uint16_t& bytenum, const uint8_t& value, bool setbus = true);

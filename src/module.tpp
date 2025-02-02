@@ -131,8 +131,18 @@ template <class C, typename std::enable_if<std::is_base_of<Device, C>::value, in
   m += ('s');
 
   if(update && errlev == I2CIP_ERR_NONE) {
-    if(d->getInput() != nullptr) { m += (F(" INPGET ")); m += (d->getInput()->printCache()); }
-    if(d->getOutput() != nullptr) { m += (F(" OUTSET")); }
+    if(d->getInput() != nullptr) {
+      m += (F(" INPGET ")); 
+      #ifdef I2CIP_INPUTS_USE_TOSTRING
+        m += (d->getInput()->printCache());
+      #endif
+    }
+    if(d->getOutput() != nullptr) {
+      m += (F(" OUTSET "));
+      #ifdef I2CIP_OUTPUTS_USE_TOSTRING
+        m += ((args.s == nullptr) ? "NULL" : (d->getOutput()->valueToString()));
+      #endif
+    }
     // if(d->getInput() == nullptr && d->getOutput() == nullptr) { m += (F(" NOP")); }
   }
   out.println(m);
