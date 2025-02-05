@@ -13,8 +13,14 @@
 #define CYCLE_DELAY 20 // Max FPS 100Hz
 #define EPSILON_TEMPERATURE 0.5f
 #define EPSILON_HUMIDITY 2.0f // 0.11f
-#define LCD_REFRESH_MAX 5000
-#define RGB_REFRESH_MAX 1000
+#define LCD_REFRESH_MAX 1000
+#define RGB_REFRESH_MAX 1 // Near-instantaneous
+
+// PeaPod Stuff
+#define PEAPOD_PIN_TOGGLE 33 // Multipurpose; Interpreted input from rotary button (Debounced; Toggle)
+#define PEAPOD_PIN_OUT 32 // Multipurpose; Direct input from rotary button
+#define PEAPOD_PIN_PWM1 15 // Multipurpose; Interpreted output from rotary knob (0-360 -> 0-255)
+#define PEAPOD_PIN_PWM2 14 // Multipurpose; Interpreted output from rotary knob (0-360 -> 0-255)
 
 // Module* m;  // to be initialized in setup()
 TestModule* m = nullptr;
@@ -39,7 +45,15 @@ i2cip_fqa_t fqa_rotary = createFQA(WIRENUM, MODULE, 0, I2CIP_SEESAW_ADDRESS);
 i2cip_fqa_t fqa_nunchuck = createFQA(WIRENUM, MODULE, 0, I2CIP_NUNCHUCK_ADDRESS);
 
 void setup(void) {
+  pinMode(LED_BUILTIN, OUTPUT);
   Serial.begin(115200);
+  while(!Serial) { digitalWrite(LED_BUILTIN, HIGH); delay(100); digitalWrite(LED_BUILTIN, LOW); delay(100); }
+
+  // PeaPod PinModes
+  pinMode(PEAPOD_PIN_TOGGLE, OUTPUT);
+  pinMode(PEAPOD_PIN_OUT, OUTPUT);
+  pinMode(PEAPOD_PIN_PWM1, OUTPUT);
+  pinMode(PEAPOD_PIN_PWM2, OUTPUT);
 
   m = new TestModule(WIRENUM, MODULE);
 
@@ -138,10 +152,18 @@ uint32_t fps = 0; // Something other than zero
 
 // bool temphum = false;
 state_sht45_t temphum = {NAN, NAN};
-int32_t rotary_zero = 0;
+int32_t rotary_zero1 = 0;
+int32_t rotary_zero2 = 0;
 unsigned long last_lcd = LCD_REFRESH_MAX; unsigned long last_rgb = RGB_REFRESH_MAX; // Fixes first-frame bug
 bool do_lcd = true;
 float nunchuck_sum = 0.0f;
+
+// PeaPod Stuff
+uint8_t peapod_pwm1 = 0;
+uint8_t peapod_pwm2 = 0;
+bool peapod_toggle = false;
+bool peapod_out = false;
+bool flag_debounce = false;
 
 void loop(void) {
   last = millis();
@@ -216,15 +238,6 @@ void loop(void) {
       do_lcd = true;
     }
 
-    if(do_lcd || (long int)millis() - last_rgb > RGB_REFRESH_MAX) {
-    // LCD: On-Module SHT45 Status Display
-      i2cip_errorlevel_t errlev_lcd = m->operator()<JHD1313>(fqa_lcd, true, args_lcd, DebugJsonOut);
-      if(errlev_lcd == I2CIP_ERR_NONE && fps != 0) {
-        if(args_lcd.s != nullptr) last_lcd = millis();
-        last_rgb = millis();
-      }
-    }
-
     Nunchuck* nunchuck = nullptr;
     if(handleDevice<Nunchuck>(nunchuck, fqa_nunchuck, _i2cip_args_io_default) == I2CIP_ERR_NONE && nunchuck != nullptr) {
       i2cip_nunchuck_t cache = nunchuck->getCache();
@@ -242,25 +255,85 @@ void loop(void) {
     RotaryEncoder* rotary = nullptr;
     if(handleDevice<RotaryEncoder>(rotary, fqa_rotary, _i2cip_args_io_default) == I2CIP_ERR_NONE && rotary != nullptr) {
       i2cip_rotaryencoder_t cache = rotary->getCache();
-      if(cache.button) rotary_zero = cache.encoder;
-      uint32_t angle_ticks = -(cache.encoder - rotary_zero); // Invert rotation
+
+      // PeaPod Stuff
+      if(cache.button == HIGH) { // Debounce to pulse ONCE on button press
+        if(!flag_debounce){
+          // Invert and set debounce
+          peapod_toggle = !peapod_toggle;
+          flag_debounce = true;
+        }
+        peapod_out = true;
+      } else {
+        // Reset debounce
+        flag_debounce = false;
+        peapod_out = false;
+      }
+      uint32_t angle_ticks =0;
+
+      // Toggle also selects PWM control target
+      if(peapod_toggle) {
+        if(cache.button) rotary_zero1 = cache.encoder; // Set zero-point
+        angle_ticks = -(cache.encoder - rotary_zero1); // Invert rotation
+        peapod_pwm1 = (uint8_t)((float)(Seesaw::_encoderDegrees(angle_ticks)) / 360 * 255); // 0-3840 (256 ticks) -> 0-255
+      } else {
+        if(cache.button) rotary_zero2 = cache.encoder; // Set zero-point
+        angle_ticks = -(cache.encoder - rotary_zero2); // Invert rotation
+        peapod_pwm2 = (uint8_t)((float)(Seesaw::_encoderDegrees(angle_ticks)) / 360 * 255); // 0-3840 (256 ticks) -> 0-255
+      }
       uint32_t position = Seesaw::_encoderDegrees(angle_ticks, 9999); // 27 * 360 = 9720; Maximum revolutions on 4 digit display
 
       DebugJson::telemetry(rotary->getLastRX(), cache.encoder, "encoder");
       DebugJson::telemetry(rotary->getLastRX(), position, "position");
       DebugJson::telemetry(rotary->getLastRX(), cache.button, "button");
+      DebugJson::telemetry(rotary->getLastRX(), ((float)peapod_pwm1 / 255), "peapod_pwm1");
+      DebugJson::telemetry(rotary->getLastRX(), ((float)peapod_pwm2 / 255), "peapod_pwm2");
+      DebugJson::telemetry(rotary->getLastRX(), peapod_toggle, "peapod_toggle");
+      DebugJson::telemetry(rotary->getLastRX(), peapod_out, "peapod_out");
+
+      if(args_lcd.s != nullptr) {
+        if(peapod_toggle) {
+          *((String*)args_lcd.s) += " B";
+        } else {
+          *((String*)args_lcd.s) += " R";
+        }
+      }
 
       // Overwrite 7Seg Args
       seg_mode = SEG_UINT;
       seg_data.h = position + ((unsigned)nunchuck_sum); // Now h is the active member
-    } else {
-      rotary_zero = 0;
+    }
+    //  else {
+    //   rotary_zero = 0;
+    // }
+
+    if(do_lcd || (long int)millis() - last_rgb > RGB_REFRESH_MAX) {
+    // LCD: On-Module SHT45 Status Display
+      i2cip_errorlevel_t errlev_lcd = m->operator()<JHD1313>(fqa_lcd, true, args_lcd, DebugJsonOut);
+      if(errlev_lcd == I2CIP_ERR_NONE && fps != 0) {
+        if(args_lcd.s != nullptr) last_lcd = millis();
+        last_rgb = millis();
+      }
     }
   } else {
     seg_mode = SEG_SNAKE;
   }
   // 7SEG: Off-Module (MCU Featherwing/Shield) Multi-Status Display: Rotary, else SHT45, else Snake
   i2cip_errorlevel_t errlev_7seg = m->operator()<HT16K33>(ht16k33, true, args_7seg, DebugJsonOut);
+
+  // PeaPod Stuff
+  if(peapod_toggle) {
+    digitalWrite(PEAPOD_PIN_TOGGLE, HIGH);
+  } else {
+    digitalWrite(PEAPOD_PIN_TOGGLE, LOW);
+  }
+  if(peapod_out) {
+    digitalWrite(PEAPOD_PIN_OUT, HIGH);
+  } else {
+    digitalWrite(PEAPOD_PIN_OUT, LOW);
+  }
+  analogWrite(PEAPOD_PIN_PWM1, peapod_pwm1);
+  analogWrite(PEAPOD_PIN_PWM2, peapod_pwm2);
 
   cycle++;
 
