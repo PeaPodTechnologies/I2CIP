@@ -4,7 +4,8 @@
 
 #include <Arduino.h>
 
-#include <DebugJson.h>
+#include <DebugJson.h> // Debugging JSON Serial Outputs (Breakpoints, Telemetry, etc.)
+#include <chrono.h> // Uncomment for Finite State Machine (w/ Timer)
 
 #include "../test/config.h"
 
@@ -73,7 +74,7 @@ void setup(void) {
 
 // LOOP HELPERS
 
-String timestampToString(unsigned long t) {
+String printableTimestampString(unsigned long t) {
   uint8_t hours = (t / 1000) / 3600;
   uint8_t minutes = ((t / 1000) - (hours * 3600)) / 60;
   uint8_t seconds = ((t / 1000) - (hours * 3600) - (minutes * 60));
@@ -167,6 +168,10 @@ bool flag_debounce = false;
 
 void loop(void) {
   last = millis();
+  #ifdef FSM_STATE_H_
+    FSM::Chronos.set(last); // Update timer
+  #endif
+
   // switch(checkModule(WIRENUM, MODULE)) {
   //   case I2CIP_ERR_HARD:
   //     // delete m;
@@ -190,7 +195,7 @@ void loop(void) {
     // DebugJson Heartbeat
     DebugJson::revision(0, Serial); // sends revision
     // Prep Args: LCD
-    String msg = String(fps) + "Hz " + String("T+") + timestampToString(last) + "\n"; // Further append will be on second line
+    String msg = String(fps) + "Hz " + String("T+") + printableTimestampString(last) + "\n"; // Further append will be on second line
     i2cip_jhd1313_args_t rgb = randomRGBLCD();
     i2cip_args_io_t args_lcd = { .a = nullptr, .s = nullptr, .b = &rgb };
     

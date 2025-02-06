@@ -19,3 +19,6 @@
 [submodule "lib/I2CIP-Nunchuck"]
 	path = lib/I2CIP-Nunchuck
 	url = https://github.com/PeaPodTechnologies/I2CIP-Nunchuck
+[submodule "lib/FiniteStateMachine"]
+	path = lib/FiniteStateMachine
+	url = https://github.com/PeaPodTechnologies/FiniteStateMachine
