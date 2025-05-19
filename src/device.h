@@ -211,6 +211,7 @@ namespace I2CIP {
     #endif
     protected:
       static const char failptr_get = '\a';
+      unsigned long lastrx = 0; // Set by InputInterface
     public:
       virtual ~InputGetter() = 0;
       // virtual i2cip_errorlevel_t get(const void* args = nullptr) { return I2CIP_ERR_HARD; } // Unimplemented; delete this device
@@ -221,6 +222,8 @@ namespace I2CIP {
         #endif
         return this->get(&failptr_get);
       }
+
+      unsigned long getLastRX(void) const { return this->lastrx; }
 
       #ifdef I2CIP_INPUTS_USE_TOSTRING
         virtual const char* cacheToString(void) = 0; // To be implemented by the child class (i.e. for debugging, sensors)
@@ -238,6 +241,7 @@ namespace I2CIP {
     #endif
     protected:
       static const char failptr_set = '\a';
+      unsigned long lasttx = 0;
     public:
       virtual ~OutputSetter() = 0;
       virtual i2cip_errorlevel_t set(const void* value, const void* args = nullptr) = 0; // Unimplemented; delete this device
@@ -252,6 +256,8 @@ namespace I2CIP {
           I2CIP_DEBUG_SERIAL.println(F("OUTPUT FAILSAFE"));
         #endif
         return this->set(value, &failptr_set); }
+      
+      unsigned long getLastTX(void) const { return this->lasttx; }
       
       #ifdef I2CIP_OUTPUTS_USE_TOSTRING
         virtual const char* valueToString(void) = 0; // To be implemented by the child class (i.e. for debugging, sensors)

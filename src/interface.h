@@ -19,7 +19,7 @@ namespace I2CIP {
       A argsA;  // Last passed arguments
 
       bool argsAset = false;
-      unsigned long lastrx = 0;
+      
     protected:
       void setCache(G value);
       void setArgsA(A args);
@@ -55,8 +55,6 @@ namespace I2CIP {
       */
       A getArgsA(void) const;
 
-      unsigned long getLastRX(void) const { return this->lastrx; }
-
       /**
        * Gets the input device's state.
        **/
@@ -74,7 +72,7 @@ namespace I2CIP {
       B argsB;  // Last passed arguments
 
       bool argsBset = false;
-      unsigned long lasttx = 0;
+      
     protected:
       void setValue(S value);
       void setArgsB(B args);
@@ -103,8 +101,6 @@ namespace I2CIP {
        * Gets the last set value.
       */
       S getValue(void) const;
-
-      unsigned long getLastTX(void) const { return this->lasttx; }
 
       /**
        * Gets the default "zero"/off-state value.

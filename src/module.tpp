@@ -10,6 +10,26 @@
 
 // TODO template devicegroupfactorymember function
 
+template <class C, typename std::enable_if<std::is_base_of<Device, C>::value, int>::type> i2cip_errorlevel_t I2CIP::handleFQA(const i2cip_fqa_t& fqa, i2cip_args_io_t args) {
+  // TODO: Add debugging serial outputs to call operators
+
+  uint8_t m = I2CIP_FQA_SEG_MODULE(fqa);
+  if(m >= I2CIP_MUX_COUNT || modules[m] == nullptr) {
+    return I2CIP_ERR_SOFT; // How did we get here?
+  }
+
+  // Not Given, Try to Find
+  C* d = (C*)modules[m]->operator[](fqa);
+  if(d != nullptr) {
+    // FOUND!
+    return modules[m]->operator()<C>(d, true, args);
+  } else {
+    // Not Found, Try to Ping
+    i2cip_errorlevel_t errlev = modules[m]->operator()<C>(fqa, false, _i2cip_args_io_default);
+    return ((errlev == I2CIP_ERR_HARD) ? I2CIP_ERR_HARD : I2CIP_ERR_SOFT);
+  }
+}
+
 template <class C, typename std::enable_if<std::is_base_of<Device, C>::value, int>::type> I2CIP::DeviceGroup* I2CIP::DeviceGroup::create(i2cip_id_t id) { 
   #ifdef I2CIP_DEBUG_SERIAL
     DEBUG_DELAY();
@@ -29,7 +49,7 @@ template <class C, typename std::enable_if<std::is_base_of<Device, C>::value, in
       I2CIP_DEBUG_SERIAL.println(F("PASS"));
       DEBUG_DELAY();
     #endif
-    return new DeviceGroup(C::getID(), C::factory);
+    return new DeviceGroup(C::getID(), C::factory, I2CIP::handleFQA<C>);
   }
   #ifdef I2CIP_DEBUG_SERIAL
     I2CIP_DEBUG_SERIAL.println(F("FAIL"));

@@ -13,7 +13,7 @@ using namespace I2CIP;
 
 _NullStream NullStream;
 
-DeviceGroup::DeviceGroup(const i2cip_id_t& key, factory_device_t factory) : key(key), factory(factory) {
+DeviceGroup::DeviceGroup(const i2cip_id_t& key, factory_device_t factory, handler_device_t handler) : key(key), factory(factory), handler(handler) {
   for(uint8_t i = 0; i < I2CIP_DEVICES_PER_GROUP; i++) {
     devices[i] = nullptr;
   }
@@ -26,6 +26,8 @@ DeviceGroup::DeviceGroup(const i2cip_id_t& key, factory_device_t factory) : key(
     I2CIP_DEBUG_SERIAL.print((uintptr_t)key, HEX);
     I2CIP_DEBUG_SERIAL.print(F(", Device* (*)(fqa) @0x"));
     I2CIP_DEBUG_SERIAL.print((uintptr_t)factory, HEX);
+    I2CIP_DEBUG_SERIAL.print(F("), errlev (*)(Device*, fqa, args) @0x"));
+    I2CIP_DEBUG_SERIAL.print((uintptr_t)handler, HEX);
     I2CIP_DEBUG_SERIAL.print(F(")\n"));
     DEBUG_DELAY();
   #endif

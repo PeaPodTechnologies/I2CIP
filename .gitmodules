@@ -22,3 +22,6 @@
 [submodule "lib/FiniteStateMachine"]
 	path = lib/FiniteStateMachine
 	url = https://github.com/PeaPodTechnologies/FiniteStateMachine
+[submodule "lib/I2CIP-MCP23017"]
+	path = lib/I2CIP-MCP23017
+	url = https://github.com/PeaPodTechnologies/I2CIP-MCP23017

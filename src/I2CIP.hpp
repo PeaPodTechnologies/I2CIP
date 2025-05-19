@@ -18,6 +18,7 @@
 #include "debug.h"
 
 namespace I2CIP {
+
   class JsonModule : public Module {
     public:
       JsonModule(const uint8_t& wire, const uint8_t& module, const uint8_t& eeprom_addr = I2CIP_EEPROM_ADDR) : Module(wire, module, eeprom_addr) { }
@@ -28,7 +29,9 @@ namespace I2CIP {
 
       // NOTE: Still virtual; need to implement deviceGroupFactory
   };
+
 };
 
+#include "I2CIP.tpp"
 
 #endif

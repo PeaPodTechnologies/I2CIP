@@ -16,8 +16,8 @@ const i2cip_fqa_t& eeprom_fqa = I2CIP::createFQA(WIRENUM, MODULE, I2CIP_MUX_BUS_
  * FQA (Fully Qualified Address) is a 16-bit unsigned integer that contains the following information:
  * - 3-bit I2C Bus Number
  * - 3-bit Module Number
- * - 4-bit MUX Bus Number
- * - 8-bit Device Address
+ * - 3-bit MUX Bus Number
+ * - 7-bit Device Address
 */
 
 char buffer[I2CIP_TEST_BUFFERSIZE] = { '\0' };

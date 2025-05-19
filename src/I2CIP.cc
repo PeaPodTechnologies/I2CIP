@@ -6,6 +6,8 @@ using namespace I2CIP;
 
 BST<i2cip_fqa_t, Device*> I2CIP::devicetree = BST<i2cip_fqa_t, Device*>();
 HashTable<DeviceGroup&> I2CIP::devicegroups = HashTable<DeviceGroup&>();
+Module* I2CIP::modules[I2CIP_MUX_COUNT] = { nullptr };
+i2cip_errorlevel_t I2CIP::errlev[I2CIP_MUX_COUNT] = { I2CIP_ERR_NONE };
 
 bool JsonModule::parseEEPROMContents(const char* buffer) {
   #ifdef I2CIP_DEBUG_SERIAL
