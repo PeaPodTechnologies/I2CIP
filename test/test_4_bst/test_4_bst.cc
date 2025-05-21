@@ -43,10 +43,24 @@ void setup() {
   UNITY_BEGIN();
 
   RUN_TEST(test_bst_empty);
+
+  delay(1000);
+
   RUN_TEST(test_bst_insert);
+
+  delay(1000);
+
   RUN_TEST(test_bst_overwrite);
+
+  delay(1000);
+
   RUN_TEST(test_bst_find);
+
+  delay(1000);
+
   RUN_TEST(test_bst_remove);
+
+  delay(1000);
 
   UNITY_END();
 }

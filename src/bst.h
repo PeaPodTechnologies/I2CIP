@@ -64,6 +64,6 @@ template <typename K, typename T> class BST {
     BSTNode<K,T>* findMax(void);
 };
 
-#include <bst.tpp>
+#include "bst.tpp"
 
 #endif

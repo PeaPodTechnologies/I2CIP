@@ -1,0 +1,1 @@
+Reroutes `#include <I2CIP.h>` in all `lib/**/*.*` to `./I2CIP.h` in the project root (`../..`).

@@ -6,6 +6,9 @@
 #include <debug.h>
 #include <I2CIP.h>
 
+#include <HT16K33.hpp>
+#include <SHT45.h>
+
 using namespace I2CIP;
 
 Module* m;  // to be initialized in setup()
@@ -52,6 +55,15 @@ void test_module_discovery(void) {
   TEST_ASSERT_EQUAL_UINT8_MESSAGE(I2CIP_ERR_NONE, errlev, "Module Discovery Fail");
 }
 
+i2cip_ht16k33_mode_t mode = SEG_SNAKE;
+i2cip_args_io_t args = { .a = nullptr, .s = nullptr, .b = &mode };
+HT16K33 *ht16k33 = nullptr;
+
+void test_ht16k33_oop(void) {
+  ht16k33 = new HT16K33(WIRENUM, I2CIP_MUX_NUM_FAKE, I2CIP_MUX_BUS_FAKE, "SEVENSEG"); // Fakeout constructor
+  TEST_ASSERT_TRUE_MESSAGE(ht16k33 != nullptr, "HT16K33 Fakeout Constructor");
+}
+
 void setup(void) {
   Serial.begin(115200);
 
@@ -65,6 +77,10 @@ void setup(void) {
   delay(1000);
 
   RUN_TEST(test_module_discovery);
+
+  delay(1000);
+
+  RUN_TEST(test_ht16k33_oop);
 
   // i2cip_fqa_t fqa = (m->operator const I2CIP::EEPROM &());
 
@@ -138,8 +154,32 @@ void test_module_eeprom_update(void) {
   // TEST_ASSERT_EQUAL_STRING_MESSAGE(str, value, "SET Value Mismatch");
 }
 
+void test_ht16k33_ping(void) {
+  if(ht16k33 == nullptr) {
+    TEST_IGNORE_MESSAGE("HT16K33 Null");
+    return;
+  }
+  char msg[30];
+  sprintf(msg, "%s EIO", fqaToString(ht16k33->getFQA()));
+  i2cip_errorlevel_t result = ht16k33->ping();
+  TEST_ASSERT_EQUAL_UINT8_MESSAGE(I2CIP_ERR_NONE, result, msg);
+  if(result > I2CIP_ERR_NONE) end = true;
+}
+
+void test_ht16k33_write(void) {
+  if(ht16k33 == nullptr) {
+    TEST_IGNORE_MESSAGE("HT16K33 Null");
+    return;
+  }
+  // i2cip_errorlevel_t result = module->operator()<HT16K33>(WIRENUM, 0x07, 0x07, true, args, Serial);
+  i2cip_errorlevel_t result = m->operator()<HT16K33>(ht16k33, true, args);
+  // i2cip_errorlevel_t result = m->operator()<HT16K33>(ht16k33, true);
+  TEST_ASSERT_EQUAL_UINT8_MESSAGE(I2CIP_ERR_NONE, result, "HT16K33 Overwrite");
+  // if(result > I2CIP_ERR_NONE) end = true;
+}
+
 i2cip_errorlevel_t errlev;
-uint8_t count = 2;
+// uint8_t count = 2;
 void loop(void) {
   if (!end) {RUN_TEST(test_module_self_check);
 
@@ -153,7 +193,17 @@ void loop(void) {
 
   delay(1000);}
 
-  if(end || count == 0) {
+  if (!end) {RUN_TEST(test_ht16k33_ping);
+
+  delay(1000);}
+
+  if (!end) {RUN_TEST(test_ht16k33_write);
+
+  delay(1000);}
+
+  if(end 
+  // || count == 0 
+  ) {
     delay(1000);
 
     UNITY_END();
@@ -164,5 +214,5 @@ void loop(void) {
   }
 
   delay(1000);
-  count--;
+  // count--;
 }

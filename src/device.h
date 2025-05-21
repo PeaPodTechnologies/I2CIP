@@ -1,9 +1,14 @@
 #ifndef I2CIP_DEVICE_H_
 #define I2CIP_DEVICE_H_
 
-#include <fqa.h>
-#include <mux.h>
-// #include <guarantee.h>
+#include <Arduino.h>
+#include <Wire.h>
+
+#include "fqa.h"
+#include "mux.h"
+// #include "guarantee.h"
+
+#define I2CIP_DEVICE_TIMEOUT 10
 
 /**
  * Shifts and masks a number's bits.
@@ -130,6 +135,18 @@ public:\
     return this->print_buffer;\
   }
 
+#define I2CIP_OUTPUTS_USE_TOSTRING true // uncomment to disable input cache toString/print macros
+#define I2CIP_OUTPUT_USE_TOSTRING(TYPE, ARGS, ...)\
+private:\
+  char value_buffer[I2CIP_INPUT_CACHEBUFFER_SIZE];\
+public:\
+  const char* valueToString(void) override {\
+    memset(this->value_buffer, 0, I2CIP_INPUT_CACHEBUFFER_SIZE);\
+    TYPE value = this->getValue();\
+    snprintf(this->value_buffer, I2CIP_INPUT_CACHEBUFFER_SIZE, ARGS, __VA_OPT__(__VA_ARGS__)VALUE_IFNOT(__VA_OPT__(1), value));\
+    return this->value_buffer;\
+  }
+
 #define I2CIP_OUTPUTS_USE_FAILSAFE true // uncomment to disable ouput set-value failsafe defaulting
 #ifdef I2CIP_OUTPUTS_USE_FAILSAFE
 #define I2CIP_OUTPUT_USE_FAILSAFE(TYPE, TYPEB, ...)\
@@ -194,11 +211,19 @@ namespace I2CIP {
     #endif
     protected:
       static const char failptr_get = '\a';
+      unsigned long lastrx = 0; // Set by InputInterface
     public:
       virtual ~InputGetter() = 0;
       // virtual i2cip_errorlevel_t get(const void* args = nullptr) { return I2CIP_ERR_HARD; } // Unimplemented; delete this device
       virtual i2cip_errorlevel_t get(const void* args = nullptr) = 0; // Unimplemented; delete this device
-      i2cip_errorlevel_t failGet(void) { return this->get(&failptr_get); }
+      i2cip_errorlevel_t failGet(void) { 
+        #ifdef I2CIP_DEBUG_SERIAL
+          I2CIP_DEBUG_SERIAL.println(F("INPUT DEFAULT"));
+        #endif
+        return this->get(&failptr_get);
+      }
+
+      unsigned long getLastRX(void) const { return this->lastrx; }
 
       #ifdef I2CIP_INPUTS_USE_TOSTRING
         virtual const char* cacheToString(void) = 0; // To be implemented by the child class (i.e. for debugging, sensors)
@@ -216,14 +241,30 @@ namespace I2CIP {
     #endif
     protected:
       static const char failptr_set = '\a';
+      unsigned long lasttx = 0;
     public:
       virtual ~OutputSetter() = 0;
-      virtual i2cip_errorlevel_t set(const void* value = nullptr, const void* args = nullptr) = 0; // Unimplemented; delete this device
+      virtual i2cip_errorlevel_t set(const void* value, const void* args = nullptr) = 0; // Unimplemented; delete this device
       // virtual i2cip_errorlevel_t set(const void* value = nullptr, const void* args = nullptr) { return I2CIP_ERR_HARD; } // Unimplemented; delete this device
-      i2cip_errorlevel_t reset(const void* args = nullptr) { return this->set(&failptr_set, args); }
-      i2cip_errorlevel_t failSet(const void* value) { return this->set(value, &failptr_set); }
-      i2cip_errorlevel_t failSet(void) { return this->set(&failptr_set, &failptr_set); }
+      i2cip_errorlevel_t reset(const void* args = nullptr) { 
+        #ifdef I2CIP_DEBUG_SERIAL
+          I2CIP_DEBUG_SERIAL.println(F("OUTPUT RESET"));
+        #endif
+        return this->set(&failptr_set, args); }
+      i2cip_errorlevel_t failSet(const void* value = nullptr) { 
+        #ifdef I2CIP_DEBUG_SERIAL
+          I2CIP_DEBUG_SERIAL.println(F("OUTPUT FAILSAFE"));
+        #endif
+        return this->set(value, &failptr_set); }
+      
+      unsigned long getLastTX(void) const { return this->lasttx; }
+      
+      #ifdef I2CIP_OUTPUTS_USE_TOSTRING
+        virtual const char* valueToString(void) = 0; // To be implemented by the child class (i.e. for debugging, sensors)
+      #endif
   };
+
+  typedef i2cip_errorlevel_t (*i2cip_device_begin_t)(const i2cip_fqa_t& fqa, bool setbus);
 
   class Device
     #ifdef I2CIP_USE_GUARANTEES
@@ -233,9 +274,16 @@ namespace I2CIP {
     #ifdef I2CIP_USE_GUARANTEES
     I2CIP_CLASS_USE_GUARANTEE(Device, I2CIP_GUARANTEE_DEVICE);
     #endif
+    private:
+      bool _begin(bool setbus);
+      // TODO: Rejig member protection
     protected:
       const i2cip_fqa_t fqa;
       i2cip_id_t id;
+      const uint16_t timeout;
+
+      bool ready = false; // set false in constructor iff begin != nullptr
+      virtual i2cip_errorlevel_t begin(bool setbus) { return I2CIP_ERR_NONE; }
 
       // // Set by public API, deleted on deconstruction
       InputGetter* input = nullptr;
@@ -246,7 +294,7 @@ namespace I2CIP {
       template <typename G, typename A> friend class InputInterface;
       template <typename S, typename B> friend class OutputInterface;
 
-      Device(i2cip_fqa_t fqa, i2cip_id_t id);
+      Device(i2cip_fqa_t fqa, i2cip_id_t id, unsigned int timeout = I2CIP_DEVICE_TIMEOUT);
       // Device(i2cip_fqa_t fqa) : Device(fqa, getStaticID()) { }
       // Device(i2cip_fqa_t fqa, const char id_progmem[] PROGMEM, char* staticBuffer); // Replaced by ADD_STATIC_ID(PROGMEM_ID)
 
@@ -268,7 +316,7 @@ namespace I2CIP {
        * @param timeout Attempt duration (ms)
        * @return Hardware failure: Device unreachable, module check. Software failure: Failed to switch MUX bus
        */
-      static i2cip_errorlevel_t pingTimeout(const i2cip_fqa_t& fqa, bool setbus = true, bool resetbus = true, unsigned int timeout = 100);
+      static i2cip_errorlevel_t pingTimeout(const i2cip_fqa_t& fqa, bool setbus = true, bool resetbus = true, unsigned int timeout = I2CIP_DEVICE_TIMEOUT);
 
       /**
        * Write one byte to a device.
@@ -278,7 +326,7 @@ namespace I2CIP {
        * @param setbus Should the MUX be set and reset? (Default: `true`)
        * @return Hardware failure: Device and/or module lost. Software failure: Failed to write and/or failed to switch MUX bus
        */
-      static i2cip_errorlevel_t writeByte(const i2cip_fqa_t& fqa, const uint8_t& value, bool setbus = true);
+      static i2cip_errorlevel_t writeByte(const i2cip_fqa_t& fqa, const uint8_t& value, bool setbus = true, bool resetbus = false);
 
       /**
        * Write data to a device.
@@ -289,7 +337,7 @@ namespace I2CIP {
        * @param setbus Should the MUX be set and reset? (Default: `true`)
        * @return Hardware failure: Device and/or module lost. Software failure: Failed to write and/or failed to switch MUX bus
        */
-      static i2cip_errorlevel_t write(const i2cip_fqa_t& fqa, const uint8_t* buffer, size_t len = 1, bool setbus = true);
+      static i2cip_errorlevel_t write(const i2cip_fqa_t& fqa, const uint8_t* buffer, size_t len = 1, bool setbus = true, bool resetbus = false);
 
       /**
        * Write one byte to a device's register. Effectively adds ONE prefix byte.
@@ -300,7 +348,7 @@ namespace I2CIP {
        * @param setbus Should the MUX be reset? (Default: `true`)
        * @return Hardware failure: Device and/or module lost. Software failure: Failed to write and/or failed to switch MUX bus
        */
-      static i2cip_errorlevel_t writeRegister(const i2cip_fqa_t& fqa, const uint8_t& reg, const uint8_t& value, bool setbus = true);
+      static i2cip_errorlevel_t writeRegister(const i2cip_fqa_t& fqa, const uint8_t& reg, const uint8_t& value, bool setbus = true, bool resetbus = false);
 
       /**
        * Write one byte to a device's register (16-bit register address). Effectively adds TWO prefix bytes.
@@ -311,11 +359,11 @@ namespace I2CIP {
        * @param setbus Should the MUX be reset? (Default: `true`)
        * @return Hardware failure: Device and/or module lost. Software failure: Failed to write and/or failed to switch MUX bus
        */
-      static i2cip_errorlevel_t writeRegister(const i2cip_fqa_t& fqa, const uint16_t& reg, const uint8_t& value, bool setbus = true);
+      static i2cip_errorlevel_t writeRegister(const i2cip_fqa_t& fqa, const uint16_t& reg, const uint8_t& value, bool setbus = true, bool resetbus = false);
 
-      static i2cip_errorlevel_t writeRegister(const i2cip_fqa_t& fqa, const uint8_t& reg, uint8_t* buffer, size_t len = 1, bool setbus = true);
+      static i2cip_errorlevel_t writeRegister(const i2cip_fqa_t& fqa, const uint8_t& reg, uint8_t* buffer, size_t len = 1, bool setbus = true, bool resetbus = false);
 
-      static i2cip_errorlevel_t writeRegister(const i2cip_fqa_t& fqa, const uint16_t& reg, uint8_t* buffer, size_t len = 1, bool setbus = true);
+      static i2cip_errorlevel_t writeRegister(const i2cip_fqa_t& fqa, const uint16_t& reg, uint8_t* buffer, size_t len = 1, bool setbus = true, bool resetbus = false);
 
       /**
        * Request and read in data from a device.
@@ -347,6 +395,10 @@ namespace I2CIP {
        * @param setbus Should the MUX be reset? (Default: `true`)
        */
       static i2cip_errorlevel_t readWord(const i2cip_fqa_t& fqa, uint16_t& dest, bool resetbus = true, bool setbus = true);
+
+      // Loads the RX buffer (wire.read())
+      static i2cip_errorlevel_t requestFromRegister(const i2cip_fqa_t& fqa, size_t& len, const uint8_t& reg, bool sendStop = true);
+      static i2cip_errorlevel_t requestFromRegister(const i2cip_fqa_t& fqa, size_t& len, const uint16_t& reg, bool sendStop = true);
 
       static i2cip_errorlevel_t readRegister(const i2cip_fqa_t& fqa, const uint8_t& reg, uint8_t* dest, size_t& len, bool nullterminate = false, bool resetbus = true, bool setbus = true);
 
@@ -398,8 +450,8 @@ namespace I2CIP {
       InputGetter* getInput(void) const;
       OutputSetter* getOutput(void) const;
 
-      i2cip_errorlevel_t get(const void* args = nullptr);
-      i2cip_errorlevel_t set(const void* value = nullptr, const void* args = nullptr);
+      i2cip_errorlevel_t get(const void* args);
+      i2cip_errorlevel_t set(const void* value, const void* args);
 
       const i2cip_fqa_t& getFQA(void) const;
       const i2cip_id_t& getID(void) const;
@@ -421,16 +473,18 @@ namespace I2CIP {
       virtual void setStaticID(const char* id) = 0;
       #endif
     public:
+      void unready(void) { this->ready = false; }
+      
       virtual const char* getStaticID() = 0; // Pretty much just a formality to make sure you implement the macro, which has the WAY MORE useful static function variant getID()
 
       i2cip_errorlevel_t ping(bool resetbus = true, bool setbus = true);
-      i2cip_errorlevel_t pingTimeout(bool setbus = true, bool resetbus = true, unsigned int timeout = 100);
-      i2cip_errorlevel_t writeByte(const uint8_t& value, bool setbus = true);
-      i2cip_errorlevel_t write(const uint8_t* buffer, size_t len = 1, bool setbus = true);
-      i2cip_errorlevel_t writeRegister(const uint8_t& reg, const uint8_t& value, bool setbus = true);
-      i2cip_errorlevel_t writeRegister(const uint16_t& reg, const uint8_t& value, bool setbus = true);
-      i2cip_errorlevel_t writeRegister(const uint8_t& reg, uint8_t* buffer, size_t len = 1, bool setbus = true);
-      i2cip_errorlevel_t writeRegister(const uint16_t& reg, uint8_t* buffer, size_t len = 1, bool setbus = true);
+      i2cip_errorlevel_t pingTimeout(bool setbus = true, bool resetbus = true);
+      i2cip_errorlevel_t writeByte(const uint8_t& value, bool setbus = true, bool resetbus = false);
+      i2cip_errorlevel_t write(const uint8_t* buffer, size_t len = 1, bool setbus = true, bool resetbus = false);
+      i2cip_errorlevel_t writeRegister(const uint8_t& reg, const uint8_t& value, bool setbus = true, bool resetbus = false);
+      i2cip_errorlevel_t writeRegister(const uint16_t& reg, const uint8_t& value, bool setbus = true, bool resetbus = false);
+      i2cip_errorlevel_t writeRegister(const uint8_t& reg, uint8_t* buffer, size_t len = 1, bool setbus = true, bool resetbus = false);
+      i2cip_errorlevel_t writeRegister(const uint16_t& reg, uint8_t* buffer, size_t len = 1, bool setbus = true, bool resetbus = false);
       i2cip_errorlevel_t read(uint8_t* dest, size_t& len, bool nullterminate = false, bool resetbus = true, bool setbus = true);
       i2cip_errorlevel_t readByte(uint8_t& dest, bool resetbus = true, bool setbus = true);
       i2cip_errorlevel_t readWord(uint16_t& dest, bool resetbus = true, bool setbus = true);

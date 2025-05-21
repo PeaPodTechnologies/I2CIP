@@ -54,6 +54,6 @@ template <typename T> class HashTable {
     bool remove(const char* key);
 };
 
-#include <hashtable.tpp>
+#include "hashtable.tpp"
 
 #endif

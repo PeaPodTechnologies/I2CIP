@@ -1,16 +1,20 @@
 #ifndef I2CIP_MODULE_H_
 #define I2CIP_MODULE_H_
 
-// #include <guarantee.h>
-#include <debug.h>
-#include <device.h>
-#include <interface.h>
-#include <eeprom.h>
-
-#include <bst.h>
-#include <hashtable.h>
-
 #include <type_traits>
+
+#include <Arduino.h>
+#include <Wire.h>
+
+// #include "guarantee.h"
+#include "device.h"
+#include "interface.h"
+#include "eeprom.h"
+
+#include "bst.h"
+#include "hashtable.h"
+
+#include "debug.h"
 
 // #define I2CIP_FQA_SUBNET_MATCH(fqa, wire, module) (bool)(I2CIP_FQA_SEG_I2CBUS(fqa) == wire && I2CIP_FQA_SEG_MODULE(fqa) == module)
 #define I2CIP_FQA_SUBNET_MATCH(fqa, _fqa) (bool)((I2CIP_FQA_SEG_I2CBUS(fqa) == I2CIP_FQA_SEG_I2CBUS(_fqa)) && (I2CIP_FQA_SEG_MODULE(fqa) == I2CIP_FQA_SEG_MODULE(_fqa)))
@@ -23,8 +27,10 @@
 
 namespace I2CIP { 
   class Module; class DeviceGroup;
-  BST<i2cip_fqa_t, Device*> devicetree = BST<i2cip_fqa_t, Device*>();
-  HashTable<DeviceGroup&> devicegroups = HashTable<DeviceGroup&>();
+  extern BST<i2cip_fqa_t, Device*> devicetree;
+  extern HashTable<DeviceGroup&> devicegroups;
+  extern Module* modules[I2CIP_MUX_COUNT];
+  extern i2cip_errorlevel_t errlev[I2CIP_MUX_COUNT];
 };
 
 #ifdef I2CIP_USE_GUARANTEES
@@ -46,10 +52,15 @@ extern _NullStream NullStream;
 namespace I2CIP {
 
   typedef Device* (* factory_device_t)(i2cip_fqa_t fqa);
+  typedef i2cip_errorlevel_t (* handler_device_t)(const i2cip_fqa_t&, i2cip_args_io_t);
+
+  template <class C, typename std::enable_if<std::is_base_of<Device, C>::value, int>::type = 0> i2cip_errorlevel_t handleFQA(const i2cip_fqa_t& fqa, i2cip_args_io_t args = _i2cip_args_io_default);
 
   class DeviceGroup {
     protected:
       friend class Module;
+
+      void unready(const uint8_t& wirenum, const uint8_t& muxnum);
 
       bool add(Device& device);
       bool add(Device* device);
@@ -67,8 +78,9 @@ namespace I2CIP {
       Device* devices[I2CIP_DEVICES_PER_GROUP] = { nullptr };
 
       factory_device_t factory;
+      handler_device_t handler;
 
-      DeviceGroup(const i2cip_id_t& key, factory_device_t factory = nullptr);
+      DeviceGroup(const i2cip_id_t& key, factory_device_t factory, handler_device_t handler);
 
       bool contains(Device* device) const;
       bool contains(const i2cip_fqa_t& fqa) const;
@@ -105,6 +117,8 @@ namespace I2CIP {
       
     protected:
       EEPROM* const eeprom; // EEPROM device - to be added to `devices_fqabst` and `devices_idgroups` on construction
+
+      void unready(void); // ready = false for all devices in subnet
       
     public:
       Module(const uint8_t& wire, const uint8_t& module, const uint8_t& eeprom_addr = I2CIP_EEPROM_ADDR);
@@ -150,6 +164,10 @@ namespace I2CIP {
       // virtual DeviceGroup* deviceGroupFactory(const i2cip_id_t& id) = 0;
       virtual DeviceGroup* deviceGroupFactory(const i2cip_id_t& id);
 
+      void remove(Device* device, bool del = true);
+    public:
+      void remove(const i2cip_fqa_t& fqa, bool del = true);
+
       /**
        * 3. Device Lookup: HashTable<DeviceGroup&> by ID, BST<Device*> by FQA
        *  Intended Implementation:
@@ -163,7 +181,6 @@ namespace I2CIP {
       DeviceGroup* operator[](i2cip_id_t id);
       Device* operator[](const i2cip_fqa_t& fqa) const;
 
-      void remove(Device* device, bool del = true);
 
 
       // This function is like operator(Device) except it's cast to the specific Device type and prints FQA, Input cache, etc.
@@ -221,6 +238,6 @@ namespace I2CIP {
   };
 }
 
-#include <module.tpp>
+#include "module.tpp"
 
 #endif

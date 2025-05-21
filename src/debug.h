@@ -4,7 +4,7 @@
 
 #ifndef DEBUG
 // Uncomment to enable debug
-#define DEBUG 1
+// #define DEBUG 1
 #endif
 
 // CROSS-LIBRARY DEBUG COMPATIBILITY
@@ -20,11 +20,11 @@
 
 #ifdef DEBUG_SERIAL
 // Just once
-#define I2CIP_DEBUG_SERIAL DebugJsonBreakpoints
+// #define I2CIP_DEBUG_SERIAL DebugJsonBreakpoints
+// #define I2CIP_DEBUG_SERIAL DEBUG_SERIAL
 
 #ifndef DEBUG_DELAY
-// #define DEBUG_DELAY() {delayMicroseconds(10);}
-#define DEBUG_DELAY() {delay(1);}
+#define DEBUG_DELAY() {delayMicroseconds(10);}
 #endif
 #endif
 

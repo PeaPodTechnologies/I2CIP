@@ -1,3 +1,27 @@
 [submodule "lib/DebugJson"]
 	path = lib/DebugJson
 	url = https://github.com/PeaPodTechnologies/DebugJson
+[submodule "lib/I2CIP-SHT45"]
+	path = lib/I2CIP-SHT45
+	url = https://github.com/PeaPodTechnologies/I2CIP-SHT45
+[submodule "lib/I2CIP-JHD1313"]
+	path = lib/I2CIP-JHD1313
+	url = https://github.com/PeaPodTechnologies/I2CIP-JHD1313
+[submodule "lib/I2CIP-PCA9685"]
+	path = lib/I2CIP-PCA9685
+	url = https://github.com/PeaPodTechnologies/I2CIP-PCA9685
+[submodule "lib/I2CIP-HT16K33"]
+	path = lib/I2CIP-HT16K33
+	url = https://github.com/PeaPodTechnologies/I2CIP-HT16K33
+[submodule "lib/I2CIP-Seesaw"]
+	path = lib/I2CIP-Seesaw
+	url = https://github.com/PeaPodTechnologies/I2CIP-Seesaw
+[submodule "lib/I2CIP-Nunchuck"]
+	path = lib/I2CIP-Nunchuck
+	url = https://github.com/PeaPodTechnologies/I2CIP-Nunchuck
+[submodule "lib/FiniteStateMachine"]
+	path = lib/FiniteStateMachine
+	url = https://github.com/PeaPodTechnologies/FiniteStateMachine
+[submodule "lib/I2CIP-MCP23017"]
+	path = lib/I2CIP-MCP23017
+	url = https://github.com/PeaPodTechnologies/I2CIP-MCP23017
