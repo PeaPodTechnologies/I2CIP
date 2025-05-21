@@ -17,7 +17,8 @@ Module
 
 ```
 
-1. Device Handler \<C>
-2. FQA-BST Lookup Device*
-3. IFF Device* Found: Module Call Operator\<C> (FQA) no-update; C::ID-HashTable Lookup DeviceGroup&; DeviceGroup& Call Operator (Find or Factory); 
+# File Structure
 
+## FQA
+
+### Definitions
