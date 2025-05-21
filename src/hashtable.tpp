@@ -61,6 +61,15 @@ template <typename T> T* HashTable<T>::operator[](const char* key) {
 // Public methods
 
 template <typename T> HashTableEntry<T>* HashTable<T>::set(const char* key, T* value, bool overwrite) {
+  #ifdef I2CIP_DEBUG_SERIAL
+    DEBUG_DELAY();
+    I2CIP_DEBUG_SERIAL.print(F("HashTable Set "));
+    I2CIP_DEBUG_SERIAL.print(key);
+    I2CIP_DEBUG_SERIAL.print(F(" @0x"));
+    I2CIP_DEBUG_SERIAL.println((uintptr_t)value, HEX);
+    DEBUG_DELAY();
+  #endif
+
   HashTableEntry<T>* head = get(key);
 
   // Match found?
@@ -82,6 +91,12 @@ template <typename T> HashTableEntry<T>* HashTable<T>::set(const char* key, T* v
 }
 
 template <typename T> HashTableEntry<T>* HashTable<T>::get(const char* key) {
+  #ifdef I2CIP_DEBUG_SERIAL
+    DEBUG_DELAY();
+    I2CIP_DEBUG_SERIAL.print(F("HashTable Get "));
+    I2CIP_DEBUG_SERIAL.println(key);
+    DEBUG_DELAY();
+  #endif
   HashTableEntry<T>* np;
   for (np = hashtable[hash(key)]; np != nullptr; np = np->next) {
     if (strcmp(key, np->key) == 0) {
@@ -92,6 +107,13 @@ template <typename T> HashTableEntry<T>* HashTable<T>::get(const char* key) {
 }
 
 template <typename T> bool HashTable<T>::remove(const char* key) {
+  #ifdef I2CIP_DEBUG_SERIAL
+    DEBUG_DELAY();
+    I2CIP_DEBUG_SERIAL.print(F("HashTable Remove "));
+    I2CIP_DEBUG_SERIAL.println(key);
+    DEBUG_DELAY();
+  #endif
+
   // Find ptr.next.key == key
   uint8_t index = hash(key);
   HashTableEntry<T>* ptr = hashtable[index];

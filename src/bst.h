@@ -13,7 +13,17 @@ template <typename K, typename T> class BSTNode {
     BSTNode<K,T>* left;   // Pointer to left (lesser) node
     BSTNode<K,T>* right;  // Pointer to right (greater) node
 
-    String toString(void) const;
+    String toString(void) const {
+      String str;
+      if(this->left != nullptr) { 
+        str += this->left->toString(); str += (' ');
+      }
+      str += this->key; str += (' ');
+      if(this->right != nullptr) {
+        str += this->right->toString(); str += (' ');
+      }
+      return str;
+    }
 };
 
 template <typename K, typename T> class BST {
@@ -67,7 +77,9 @@ template <typename K, typename T> class BST {
     static BSTNode<K,T>* findMax(BSTNode<K,T>* root);
     BSTNode<K,T>* findMax(void);
 
-    
+    String toString(void) const {
+      return this->root == nullptr ? String("BST Empty") : String("BST [") + this->root->toString() + "]";
+    }
 };
 
 #include "bst.tpp"

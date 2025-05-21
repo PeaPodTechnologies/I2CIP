@@ -19,6 +19,20 @@ template <typename T> class HashTableEntry {
     const char* key;
     T* value;
     HashTableEntry<T>* next;
+
+    String toString(void) const {
+      String str;
+      str += "{ ";
+      str += this->key;
+      str += " : ";
+      str += String((uintptr_t)this->value, HEX);
+      str += " }";
+      if(this->next != nullptr) {
+        str += " : ";
+        str += this->next->toString();
+      }
+      return str;
+    }
 };
 
 template <typename T> class HashTable {
@@ -54,6 +68,22 @@ template <typename T> class HashTable {
     T* operator[](const char* key);
 
     bool remove(const char* key);
+
+    String toString(void) const {
+      String str = "HashTable [";
+      bool content = false;
+      for (uint8_t i = 0; i < HASHTABLE_SLOTS; i++) {
+        if (this->hashtable[i] != nullptr) {
+          if(content) str += " ; ";
+          content = true;
+          str += this->hashtable[i]->toString();
+        }
+      }
+      if(!content) {
+        str += "Empty";
+      }
+      return str + "]";
+    }
 };
 
 #include "hashtable.tpp"

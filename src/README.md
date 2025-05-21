@@ -8,7 +8,6 @@ HashTable [const char* ID]
 |- DeviceGroup*
 |  |- Device* devices[]
 |  |- Device Factory
-|  |- Device Handler
 
 Module
 |- wire

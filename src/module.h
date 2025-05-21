@@ -21,8 +21,8 @@
 
 namespace I2CIP { 
   class Module; class DeviceGroup;
+
   extern BST<i2cip_fqa_t, Device*> devicetree;
-  extern HashTable<DeviceGroup&> devicegroups;
   extern Module* modules[I2CIP_MUX_COUNT];
   extern i2cip_errorlevel_t errlev[I2CIP_MUX_COUNT];
 };
@@ -42,9 +42,6 @@ extern _NullStream NullStream;
 namespace I2CIP {
 
   typedef Device* (* factory_device_t)(i2cip_fqa_t fqa);
-  typedef i2cip_errorlevel_t (* handler_device_t)(const i2cip_fqa_t&, i2cip_args_io_t);
-
-  template <class C, typename std::enable_if<std::is_base_of<Device, C>::value, int>::type = 0> i2cip_errorlevel_t handleFQA(const i2cip_fqa_t& fqa, i2cip_args_io_t args = _i2cip_args_io_default);
 
   class DeviceGroup {
     protected:
@@ -68,9 +65,9 @@ namespace I2CIP {
       Device* devices[I2CIP_DEVICES_PER_GROUP] = { nullptr };
 
       factory_device_t factory;
-      handler_device_t handler;
 
-      DeviceGroup(const i2cip_id_t& key, factory_device_t factory, handler_device_t handler);
+      DeviceGroup(const i2cip_id_t& key, factory_device_t factory);
+      ~DeviceGroup();
 
       bool contains(Device* device) const;
       bool contains(const i2cip_fqa_t& fqa) const;
