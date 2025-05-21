@@ -1,6 +1,8 @@
 #ifndef I2CIP_BST_H_
 #define I2CIP_BST_H_
 
+// Basic Binary Search Tree (BST) implementation
+
 template <typename K, typename T> class BSTNode {
   public:
     BSTNode(K key, T value, BSTNode<K,T>* left = nullptr, BSTNode<K,T>* right = nullptr);
@@ -10,6 +12,8 @@ template <typename K, typename T> class BSTNode {
     T value;              // REFERENCE to Value
     BSTNode<K,T>* left;   // Pointer to left (lesser) node
     BSTNode<K,T>* right;  // Pointer to right (greater) node
+
+    String toString(void) const;
 };
 
 template <typename K, typename T> class BST {
@@ -62,6 +66,8 @@ template <typename K, typename T> class BST {
      */
     static BSTNode<K,T>* findMax(BSTNode<K,T>* root);
     BSTNode<K,T>* findMax(void);
+
+    
 };
 
 #include "bst.tpp"

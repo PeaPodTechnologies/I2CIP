@@ -5,7 +5,7 @@ BST [FQA]
 |- Device*
 
 HashTable [const char* ID]
-|- DeviceGroup&
+|- DeviceGroup*
 |  |- Device* devices[]
 |  |- Device Factory
 |  |- Device Handler
@@ -17,8 +17,14 @@ Module
 
 ```
 
+# Destructors
+
+Module -> HashTable -> DeviceGroup -> Device (Removes from BST)
+
 # File Structure
 
 ## FQA
 
-### Definitions
+<!-- TODO -->
+
+## 

@@ -83,10 +83,10 @@ void loop(void) {
     }
 
     // 2. Device IO
-    HashTableEntry<I2CIP::DeviceGroup&>* dg_sht45 = I2CIP::devicegroups["SHT45"];
-    if(dg_sht45 != nullptr && dg_sht45->value.numdevices > 0) {
-      for(uint8_t i = 0; i < dg_sht45->value.numdevices; i++) {
-        Device* d = dg_sht45->value.devices[i];
+    I2CIP::DeviceGroup* dg_sht45 = modules[0]->operator[]("SHT45");
+    if(dg_sht45 != nullptr && dg_sht45->numdevices > 0) {
+      for(uint8_t i = 0; i < dg_sht45->numdevices; i++) {
+        Device* d = dg_sht45->devices[i];
         if(d == nullptr) continue;
         // 2A. Input
         if(d->getInput() != nullptr) {
@@ -121,12 +121,12 @@ void loop(void) {
       // args_7seg.s = &seg_data.f;
 
       // SHT45 - Average and print to LCD
-      HashTableEntry<I2CIP::DeviceGroup&>* dg_sht45 = I2CIP::devicegroups["SHT45"];
-      if(dg_sht45 != nullptr && dg_sht45->value.numdevices > 0) {
+      I2CIP::DeviceGroup* dg_sht45 = modules[MODULE]->operator[]("SHT45");
+      if(dg_sht45 != nullptr && dg_sht45->numdevices > 0) {
         // AVERAGES
         state_sht45_t th = {0.0f, 0.0f}; uint8_t c = 0;
-        for(uint8_t i = 0; i < dg_sht45->value.numdevices; i++) {
-          SHT45* d = (SHT45*)(dg_sht45->value.devices[i]);
+        for(uint8_t i = 0; i < dg_sht45->numdevices; i++) {
+          SHT45* d = (SHT45*)(dg_sht45->devices[i]);
           if(d == nullptr) continue;
 
           i2cip_errorlevel_t errlev_sht45 = modules[MODULE]->operator()<SHT45>(d, true, _i2cip_args_io_default, DebugJsonBreakpoints);
@@ -172,9 +172,9 @@ void loop(void) {
       }
 
       // Nunchuck
-      HashTableEntry<I2CIP::DeviceGroup&>* dg_nunchuck = I2CIP::devicegroups["NUNCHUCK"];
-      if(dg_nunchuck != nullptr && dg_nunchuck->value.numdevices > 0) {
-        Nunchuck* d = (Nunchuck*)(dg_nunchuck->value.devices[0]); // Use first device
+      I2CIP::DeviceGroup* dg_nunchuck = modules[MODULE]->operator[]("NUNCHUCK");
+      if(dg_nunchuck != nullptr && dg_nunchuck->numdevices > 0) {
+        Nunchuck* d = (Nunchuck*)(dg_nunchuck->devices[0]); // Use first device
         if(d != nullptr && d->getInput() != nullptr) {
 
           i2cip_errorlevel_t errlev_nunchuck = modules[MODULE]->operator()<Nunchuck>(d, true, _i2cip_args_io_default, DebugJsonBreakpoints);
@@ -196,9 +196,9 @@ void loop(void) {
         nunchuck_sum = 0.0f;
       }
       
-      HashTableEntry<I2CIP::DeviceGroup&>* dg_rotary = I2CIP::devicegroups["SEESAW"];
-      if(dg_rotary != nullptr && dg_rotary->value.numdevices > 0) {
-        RotaryEncoder* rotary = (RotaryEncoder*)(dg_rotary->value.devices[0]); // Use first device
+      I2CIP::DeviceGroup* dg_rotary = modules[MODULE]->operator[]("SEESAW");
+      if(dg_rotary != nullptr && dg_rotary->numdevices > 0) {
+        RotaryEncoder* rotary = (RotaryEncoder*)(dg_rotary->devices[0]); // Use first device
         if(rotary != nullptr) {
           i2cip_errorlevel_t errlev_rotary = modules[MODULE]->operator()<Seesaw>(rotary, true, _i2cip_args_io_default, DebugJsonBreakpoints);
           if(errlev_rotary == I2CIP_ERR_NONE) {
@@ -217,7 +217,7 @@ void loop(void) {
               flag_debounce = false;
               peapod_out = false;
             }
-            uint32_t angle_ticks =0;
+            uint32_t angle_ticks = 0;
 
             // Toggle also selects PWM control target
             if(peapod_toggle) {

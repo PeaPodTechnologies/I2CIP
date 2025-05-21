@@ -6,6 +6,8 @@
 
 #include <Arduino.h>
 
+#include "debug.h"
+
 inline static uint8_t hash(const char* s) {
   unsigned index;
   for (index = 0; *s != '\0'; s++) {
@@ -16,12 +18,21 @@ inline static uint8_t hash(const char* s) {
 
 // HASH TABLE ENTRY
 
-template <typename T> HashTableEntry<T>::HashTableEntry(const char* key, T value, HashTableEntry<T>* last) : key(key), value(value), next(last) { }
+template <typename T> HashTableEntry<T>::HashTableEntry(const char* key, T* value, HashTableEntry<T>* last) : key(key), value(value), next(last) { }
 
 template <typename T> HashTableEntry<T>::~HashTableEntry() {
+  #ifdef I2CIP_DEBUG_SERIAL
+    DEBUG_DELAY();
+    I2CIP_DEBUG_SERIAL.print(F("~HT['"));
+    I2CIP_DEBUG_SERIAL.print(this->key);
+    I2CIP_DEBUG_SERIAL.println(F("']"));
+    DEBUG_DELAY();
+  #endif
+
   // Free our key then trigger the next entry
-  delete this->key;
-  delete this->next;
+  // delete this->key;
+  delete(this->value);
+  delete(this->next);
 }
 
 // HASH TABLE
@@ -33,19 +44,23 @@ template <typename T> HashTable<T>::HashTable() {
 }
 
 template <typename T> HashTable<T>::~HashTable() {
-  // Free all allocated entries (and their keys) recursively; slots are static
+  // Free all allocated entries
   for (uint8_t i = 0; i < HASHTABLE_SLOTS; i++) {
     delete(this->hashtable[i]);
   }
 }
 
-template <typename T> HashTableEntry<T>* HashTable<T>::operator[](const char* key) {
-  return get(key);
+template <typename T> T* HashTable<T>::operator[](const char* key) {
+  HashTableEntry<T>* entry = get(key);
+  if (entry != nullptr) {
+    return entry->value; /* found */
+  }
+  return nullptr; /* not found */
 }
 
 // Public methods
 
-template <typename T> HashTableEntry<T>* HashTable<T>::set(const char* key, T value, bool overwrite) {
+template <typename T> HashTableEntry<T>* HashTable<T>::set(const char* key, T* value, bool overwrite) {
   HashTableEntry<T>* head = get(key);
 
   // Match found?

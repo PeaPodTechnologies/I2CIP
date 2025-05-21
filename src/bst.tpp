@@ -7,13 +7,31 @@
 #ifndef I2CIP_BST_T_
 #define I2CIP_BST_T_
 
+#include "debug.h"
+
 // BST NODE
 
 template <typename K, typename T> BSTNode<K,T>::BSTNode(K key, T value, BSTNode<K,T>* left, BSTNode<K,T>* right) : key(key), value(value), left(left), right(right) { }
 
 template <typename K, typename T> BSTNode<K,T>::~BSTNode() {
+  #ifdef I2CIP_DEBUG_SERIAL
+    DEBUG_DELAY();
+    I2CIP_DEBUG_SERIAL.print(F("~BST["));
+    I2CIP_DEBUG_SERIAL.print(this->key);
+    I2CIP_DEBUG_SERIAL.println(F("]"));
+    DEBUG_DELAY();
+  #endif
   delete(this->left);
   delete(this->right);
+}
+
+template <typename K, typename T> String BSTNode<K,T>::toString(void) const {
+  String str = "{ \"key\": ";
+  str += this->key;
+  str += ", \"value\": ";
+  str += this->value;
+  str += " }";
+  return str;
 }
 
 // BINARY SEARCH TREE

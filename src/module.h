@@ -67,7 +67,7 @@ namespace I2CIP {
       bool addGroup(Device* devices[], uint8_t numdevices);
       void remove(Device* device);
 
-      void destruct(const uint8_t& wire, const uint8_t& mux);
+      // void destruct(const uint8_t& wire, const uint8_t& mux);
 
       // template <class C, typename std::enable_if<std::is_base_of<Device, C>::value, int>::type = 0> static DeviceGroup* create(i2cip_id_t id);
     public:
@@ -109,9 +109,9 @@ namespace I2CIP {
       // !!! MOVED TO GLOBAL SCOPE - this is fine for a microcontroller - allows for cross-module device-group access
       // Tables/trees are allocated STATICALLY, their entries are dynamic
       // BST<i2cip_fqa_t, Device*> devices_fqabst = BST<i2cip_fqa_t, Device*>();
-      // HashTable<DeviceGroup&> devices_idgroups = HashTable<DeviceGroup&>();
+      HashTable<DeviceGroup> devicegroups = HashTable<DeviceGroup>();
 
-      HashTableEntry<DeviceGroup&>* addEmptyGroup(const char* id);
+      DeviceGroup* addEmptyGroup(const char* id);
 
       bool eeprom_added = false;
       
@@ -179,7 +179,7 @@ namespace I2CIP {
        *  
       */
       DeviceGroup* operator[](i2cip_id_t id);
-      Device* operator[](const i2cip_fqa_t& fqa) const;
+      // Device* operator[](const i2cip_fqa_t& fqa) const;
 
 
 
