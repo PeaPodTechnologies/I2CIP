@@ -6,7 +6,6 @@
 #include <Arduino.h>
 #include <Wire.h>
 
-// #include "guarantee.h"
 #include "device.h"
 #include "interface.h"
 #include "eeprom.h"
@@ -16,14 +15,9 @@
 
 #include "debug.h"
 
-// #define I2CIP_FQA_SUBNET_MATCH(fqa, wire, module) (bool)(I2CIP_FQA_SEG_I2CBUS(fqa) == wire && I2CIP_FQA_SEG_MODULE(fqa) == module)
 #define I2CIP_FQA_SUBNET_MATCH(fqa, _fqa) (bool)((I2CIP_FQA_SEG_I2CBUS(fqa) == I2CIP_FQA_SEG_I2CBUS(_fqa)) && (I2CIP_FQA_SEG_MODULE(fqa) == I2CIP_FQA_SEG_MODULE(_fqa)))
 #define I2CIP_FQA_MODULE_MATCH(fqa, wire, module) (bool)(I2CIP_FQA_SEG_I2CBUS(fqa) == (wire) && I2CIP_FQA_SEG_MODULE(fqa) == (module))
 #define I2CIP_FQA_BUSADR_MATCH(fqa, bus, addr) (bool)(I2CIP_FQA_SEG_MUXBUS(fqa) == (bus) && I2CIP_FQA_SEG_DEVADR(fqa) == (addr))
-
-#ifdef I2CIP_USE_GUARANTEES
-#define I2CIP_GUARANTEE_MODULE 0x4D4F4455 // "MODU"
-#endif
 
 namespace I2CIP { 
   class Module; class DeviceGroup;
@@ -32,10 +26,6 @@ namespace I2CIP {
   extern Module* modules[I2CIP_MUX_COUNT];
   extern i2cip_errorlevel_t errlev[I2CIP_MUX_COUNT];
 };
-
-#ifdef I2CIP_USE_GUARANTEES
-I2CIP_GUARANTEE_DEFINE(Module, I2CIP_GUARANTEE_MODULE);
-#endif
 
 class _NullStream : public Stream {
   // Does nothing. Everything goes nowhere. Bare minimum implementation.
@@ -92,14 +82,7 @@ namespace I2CIP {
       Device* operator()(i2cip_fqa_t fqa);
   };
 
-  class Module
-    #ifdef I2CIP_USE_GUARANTEES
-    : Guarantee<Module>
-    #endif
-    {
-    #ifdef I2CIP_USE_GUARANTEES
-    I2CIP_CLASS_USE_GUARANTEE(Module, I2CIP_GUARANTEE_MODULE);
-    #endif
+  class Module {
     private:
       const uint8_t wire; // I2C Wire Number (Index of `wires[]`)
       const uint8_t mux;  // MUX/Module Number (0x00 - 0x07, address range 0x70 - 0x77)

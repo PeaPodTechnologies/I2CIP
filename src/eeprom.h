@@ -11,11 +11,6 @@
     // SPRT EEPROM address (0x50)
 #define I2CIP_EEPROM_ADDR     80
 #define I2CIP_EEPROM_TIMEOUT  100   // If we're going to crash on a module ping fail, we should wait a bit
-#define I2CIP_GUARANTEE_EEPROM 2432
-
-#ifdef I2CIP_USE_GUARANTEES
-I2CIP_GUARANTEE_DEFINE(EEPROM, I2CIP_GUARANTEE_EEPROM);
-#endif
 
 #define I2CIP_EEPROM_ID       "24LC32"
 #define STR_IMPL_(x) #x      //stringify argument
@@ -47,20 +42,11 @@ namespace I2CIP {
    * S - Setter type: const char* (null-terminated; immutable)
    * B - Setter argument type: uint16_t (max bytes to write)
   */
-  class EEPROM
-    : public Device
-    , public IOInterface<char*, uint16_t, const char*, uint16_t> 
-    #ifdef I2CIP_USE_GUARANTEES
-    , public Guarantee<EEPROM>
-    #endif
-    {
+  class EEPROM : public Device, public IOInterface<char*, uint16_t, const char*, uint16_t> {
     I2CIP_DEVICE_CLASS_BUNDLE(EEPROM, I2CIP_EEPROM_ID);
 
     I2CIP_INPUT_USE_RESET(char*, uint16_t);
     
-    #ifdef I2CIP_USE_GUARANTEES
-    I2CIP_CLASS_USE_GUARANTEE(EEPROM, I2CIP_GUARANTEE_EEPROM);
-    #endif
       // friend Device* I2CIP::eepromFactory(i2cip_fqa_t fqa);
       // friend class ControlSystemsOS::Linker; // Future-Proofing ;)
     private:

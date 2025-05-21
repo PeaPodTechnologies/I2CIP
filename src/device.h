@@ -6,7 +6,6 @@
 
 #include "fqa.h"
 #include "mux.h"
-// #include "guarantee.h"
 
 #define I2CIP_DEVICE_TIMEOUT 10
 
@@ -201,14 +200,7 @@ namespace I2CIP {
 
   // Barebones template-less abstract classes expose voidptr hooks for the device to be used as an input or output
 
-  class InputGetter
-    #ifdef I2CIP_USE_GUARANTEES
-    : public Guarantee<InputGetter>
-    #endif
-    {
-    #ifdef I2CIP_USE_GUARANTEES
-    I2CIP_CLASS_USE_GUARANTEE(InputGetter, I2CIP_GUARANTEE_INPUT);
-    #endif
+  class InputGetter {
     protected:
       static const char failptr_get = '\a';
       unsigned long lastrx = 0; // Set by InputInterface
@@ -231,14 +223,7 @@ namespace I2CIP {
       #endif
   };
 
-  class OutputSetter
-    #ifdef I2CIP_USE_GUARANTEES
-    : public Guarantee<OutputSetter>
-    #endif
-    {
-    #ifdef I2CIP_USE_GUARANTEES
-    I2CIP_CLASS_USE_GUARANTEE(OutputSetter, I2CIP_GUARANTEE_OUTPUT);
-    #endif
+  class OutputSetter {
     protected:
       static const char failptr_set = '\a';
       unsigned long lasttx = 0;
@@ -266,14 +251,7 @@ namespace I2CIP {
 
   typedef i2cip_errorlevel_t (*i2cip_device_begin_t)(const i2cip_fqa_t& fqa, bool setbus);
 
-  class Device
-    #ifdef I2CIP_USE_GUARANTEES
-    : public Guarantee<Device>
-    #endif
-    {
-    #ifdef I2CIP_USE_GUARANTEES
-    I2CIP_CLASS_USE_GUARANTEE(Device, I2CIP_GUARANTEE_DEVICE);
-    #endif
+  class Device {
     private:
       bool _begin(bool setbus);
       // TODO: Rejig member protection
