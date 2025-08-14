@@ -1,10 +1,13 @@
 #ifndef I2CIP_INTERFACE_H_
 #define I2CIP_INTERFACE_H_
 
-#include <device.h>
+#include <Arduino.h>
+
+#include "device.h"
+
+#include "debug.h" // I want interfaces to be debuggable
 
 namespace I2CIP {
-
   /**
    * An I2CIP peripheral used for input/state "getting".
    * @param G type used for "get" variable
@@ -16,6 +19,7 @@ namespace I2CIP {
       A argsA;  // Last passed arguments
 
       bool argsAset = false;
+      
     protected:
       void setCache(G value);
       void setArgsA(A args);
@@ -68,6 +72,7 @@ namespace I2CIP {
       B argsB;  // Last passed arguments
 
       bool argsBset = false;
+      
     protected:
       void setValue(S value);
       void setArgsB(B args);
@@ -125,6 +130,6 @@ namespace I2CIP {
 
 }
 
-#include <interface.tpp>
+#include "interface.tpp"
 
 #endif

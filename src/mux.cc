@@ -1,7 +1,6 @@
-#include <mux.h>
+#include "mux.h"
 
-#include <fqa.h>
-#include <debug.h>
+#include "debug.h"
 
 // #define I2CIP_DEBUG_SERIAL Serial // just this once
 #ifndef DEBUG_DELAY
@@ -17,7 +16,8 @@ I2CIP::i2cip_errorlevel_t resetBusses(uint8_t wire) {
     if(err > errlev) { errlev = err; } 
   }
   _busses_reset = true;
-  return errlev;
+  // return errlev;
+  return I2CIP::I2CIP_ERR_NONE; // We don't really care about the result
 }
 
 #ifdef I2CIP_MUX_BUS_FAKE
@@ -31,7 +31,7 @@ I2CIP::i2cip_errorlevel_t resetBusses(uint8_t wire) {
   }\
 }
 #else
-#define FAKEBUS_BREAK(fqa) { if(I2CIP_FQA_SEG_MUXBUS(fqa) == I2CIP_MUX_BUS_FAKE) { return resetBusses(I2CIP_FQA_SEG_WIRE(fqa)); } }
+#define FAKEBUS_BREAK(fqa) { if(I2CIP_FQA_SEG_MUXBUS(fqa) == I2CIP_MUX_BUS_FAKE) { return resetBusses(I2CIP_FQA_SEG_I2CBUS(fqa)); } }
 #endif
 #endif
 
@@ -46,7 +46,7 @@ I2CIP::i2cip_errorlevel_t resetBusses(uint8_t wire) {
   }\
 }
 #else
-#define FAKEMUX_BREAK(fqa) { if(I2CIP_FQA_SEG_MODULE(fqa) == I2CIP_MUX_NUM_FAKE) { resetBusses(I2CIP_FQA_SEG_WIRE(fqa)); } }
+#define FAKEMUX_BREAK(fqa) { if(I2CIP_FQA_SEG_MODULE(fqa) == I2CIP_MUX_NUM_FAKE) { resetBusses(I2CIP_FQA_SEG_I2CBUS(fqa)); } }
 #endif
 #endif
 
@@ -57,6 +57,9 @@ namespace I2CIP {
       if(wire > I2CIP_NUM_WIRES) return false;
       if(m > I2CIP_MUX_COUNT) return false;
       beginWire(wire);
+
+      if(m == I2CIP_MUX_NUM_FAKE) { resetBusses(wire); return false; } // TODO: Bus reset required here?
+
       #ifdef I2CIP_DEBUG_SERIAL
         I2CIP_DEBUG_SERIAL.print(F("-> MUX "));
         I2CIP_DEBUG_SERIAL.print(m, HEX);
@@ -179,7 +182,9 @@ namespace I2CIP {
       i2cip_fqa_t nofqa = createFQA(wire, m, I2CIP_MUX_BUS_DEFAULT, 0x00);
 
       #ifdef I2CIP_MUX_NUM_FAKE
-        FAKEMUX_BREAK(nofqa);
+        if(m == I2CIP_MUX_NUM_FAKE) {
+          return I2CIP_ERR_NONE;
+        }
       #endif
 
       #ifdef I2CIP_DEBUG_SERIAL

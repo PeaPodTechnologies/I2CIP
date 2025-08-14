@@ -6,6 +6,8 @@
 
 #include <Arduino.h>
 
+#include "debug.h"
+
 inline static uint8_t hash(const char* s) {
   unsigned index;
   for (index = 0; *s != '\0'; s++) {
@@ -16,12 +18,21 @@ inline static uint8_t hash(const char* s) {
 
 // HASH TABLE ENTRY
 
-template <typename T> HashTableEntry<T>::HashTableEntry(const char* key, T value, HashTableEntry<T>* last) : key(key), value(value), next(last) { }
+template <typename T> HashTableEntry<T>::HashTableEntry(const char* key, T* value, HashTableEntry<T>* last) : key(key), value(value), next(last) { }
 
 template <typename T> HashTableEntry<T>::~HashTableEntry() {
+  #ifdef I2CIP_DEBUG_SERIAL
+    DEBUG_DELAY();
+    I2CIP_DEBUG_SERIAL.print(F("~HT['"));
+    I2CIP_DEBUG_SERIAL.print(this->key);
+    I2CIP_DEBUG_SERIAL.println(F("']"));
+    DEBUG_DELAY();
+  #endif
+
   // Free our key then trigger the next entry
-  delete this->key;
-  delete this->next;
+  // delete this->key;
+  delete(this->value);
+  delete(this->next);
 }
 
 // HASH TABLE
@@ -33,24 +44,40 @@ template <typename T> HashTable<T>::HashTable() {
 }
 
 template <typename T> HashTable<T>::~HashTable() {
-  // Free all allocated entries (and their keys) recursively; slots are static
+  // Free all allocated entries
   for (uint8_t i = 0; i < HASHTABLE_SLOTS; i++) {
     delete(this->hashtable[i]);
   }
 }
 
-template <typename T> HashTableEntry<T>* HashTable<T>::operator[](const char* key) {
-  return get(key);
+template <typename T> T* HashTable<T>::operator[](const char* key) {
+  HashTableEntry<T>* entry = get(key);
+  if (entry != nullptr) {
+    return entry->value; /* found */
+  }
+  return nullptr; /* not found */
 }
 
 // Public methods
 
-template <typename T> HashTableEntry<T>* HashTable<T>::set(const char* key, T value, bool overwrite) {
+template <typename T> HashTableEntry<T>* HashTable<T>::set(const char* key, T* value, bool overwrite) {
+  #ifdef I2CIP_DEBUG_SERIAL
+    DEBUG_DELAY();
+    I2CIP_DEBUG_SERIAL.print(F("HashTable Set "));
+    I2CIP_DEBUG_SERIAL.print(key);
+    I2CIP_DEBUG_SERIAL.print(F(" @0x"));
+    I2CIP_DEBUG_SERIAL.println((uintptr_t)value, HEX);
+    DEBUG_DELAY();
+  #endif
+
   HashTableEntry<T>* head = get(key);
 
   // Match found?
   if (head != nullptr) {
-    if (overwrite) head->value = value;
+    if (overwrite) {
+      delete(head->value);
+      head->value = value;
+    }
     return head;
   }
   // No match, allocate new; point "next" to the top entry
@@ -67,6 +94,12 @@ template <typename T> HashTableEntry<T>* HashTable<T>::set(const char* key, T va
 }
 
 template <typename T> HashTableEntry<T>* HashTable<T>::get(const char* key) {
+  #ifdef I2CIP_DEBUG_SERIAL
+    DEBUG_DELAY();
+    I2CIP_DEBUG_SERIAL.print(F("HashTable Get "));
+    I2CIP_DEBUG_SERIAL.println(key);
+    DEBUG_DELAY();
+  #endif
   HashTableEntry<T>* np;
   for (np = hashtable[hash(key)]; np != nullptr; np = np->next) {
     if (strcmp(key, np->key) == 0) {
@@ -77,6 +110,13 @@ template <typename T> HashTableEntry<T>* HashTable<T>::get(const char* key) {
 }
 
 template <typename T> bool HashTable<T>::remove(const char* key) {
+  #ifdef I2CIP_DEBUG_SERIAL
+    DEBUG_DELAY();
+    I2CIP_DEBUG_SERIAL.print(F("HashTable Remove "));
+    I2CIP_DEBUG_SERIAL.println(key);
+    DEBUG_DELAY();
+  #endif
+
   // Find ptr.next.key == key
   uint8_t index = hash(key);
   HashTableEntry<T>* ptr = hashtable[index];

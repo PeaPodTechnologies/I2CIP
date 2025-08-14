@@ -1,18 +1,16 @@
 #ifndef I2CIP_EEPROM_H_
 #define I2CIP_EEPROM_H_
 
-#include <fqa.h>
-#include <device.h>
-#include <interface.h>
+#include <Arduino.h>
+#include <Wire.h>
+
+#include "device.h"
+#include "interface.h"
 
 #define I2CIP_EEPROM_SIZE     100   // EEPROM size in bytes
-#define I2CIP_EEPROM_ADDR     80    // SPRT EEPROM address (0x50)
-#define I2CIP_EEPROM_TIMEOUT  1000   // If we're going to crash on a module ping fail, we should wait a bit
-#define I2CIP_GUARANTEE_EEPROM 2432
-
-#ifdef I2CIP_USE_GUARANTEES
-I2CIP_GUARANTEE_DEFINE(EEPROM, I2CIP_GUARANTEE_EEPROM);
-#endif
+    // SPRT EEPROM address (0x50)
+#define I2CIP_EEPROM_ADDR     80
+#define I2CIP_EEPROM_TIMEOUT  100   // If we're going to crash on a module ping fail, we should wait a bit
 
 #define I2CIP_EEPROM_ID       "24LC32"
 #define STR_IMPL_(x) #x      //stringify argument
@@ -44,20 +42,11 @@ namespace I2CIP {
    * S - Setter type: const char* (null-terminated; immutable)
    * B - Setter argument type: uint16_t (max bytes to write)
   */
-  class EEPROM
-    : public Device
-    , public IOInterface<char*, uint16_t, const char*, uint16_t> 
-    #ifdef I2CIP_USE_GUARANTEES
-    , public Guarantee<EEPROM>
-    #endif
-    {
+  class EEPROM : public Device, public IOInterface<char*, uint16_t, const char*, uint16_t> {
     I2CIP_DEVICE_CLASS_BUNDLE(EEPROM, I2CIP_EEPROM_ID);
 
     I2CIP_INPUT_USE_RESET(char*, uint16_t);
     
-    #ifdef I2CIP_USE_GUARANTEES
-    I2CIP_CLASS_USE_GUARANTEE(EEPROM, I2CIP_GUARANTEE_EEPROM);
-    #endif
       // friend Device* I2CIP::eepromFactory(i2cip_fqa_t fqa);
       // friend class ControlSystemsOS::Linker; // Future-Proofing ;)
     private:
@@ -74,7 +63,9 @@ namespace I2CIP {
 
       ~EEPROM();
 
-      i2cip_errorlevel_t readContents(uint8_t* dest, size_t& num_read, size_t max_read = I2CIP_EEPROM_SIZE);
+      const char* valueToString(void) override { return this->getValue(); }
+
+      i2cip_errorlevel_t readContents(uint8_t* dest, size_t& num_read, size_t max_read = I2CIP_EEPROM_SIZE, bool setbus = true);
 
       i2cip_errorlevel_t writeByte(const uint16_t& bytenum, const uint8_t& value, bool setbus = true);
 

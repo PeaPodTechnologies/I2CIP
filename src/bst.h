@@ -1,18 +1,35 @@
 #ifndef I2CIP_BST_H_
 #define I2CIP_BST_H_
 
+#include <type_traits>
+
+// Basic Binary Search Tree (BST) implementation
+
 template <typename K, typename T> class BSTNode {
   public:
     BSTNode(K key, T value, BSTNode<K,T>* left = nullptr, BSTNode<K,T>* right = nullptr);
     ~BSTNode();
 
-    K key;                // Mutable (copied) key - passed in
-    T value;              // REFERENCE to Value
-    BSTNode<K,T>* left;   // Pointer to left (lesser) node
-    BSTNode<K,T>* right;  // Pointer to right (greater) node
+    K key;
+    T value;
+    BSTNode<K,T>* left;
+    BSTNode<K,T>* right;
+
+    String toString(void) const {
+      String str;
+      if(this->left != nullptr) { 
+        str += this->left->toString();
+      }
+      str += this->key; str += (' ');
+      if(this->right != nullptr) {
+        str += this->right->toString();
+      }
+      return str;
+    }
 };
 
 template <typename K, typename T> class BST {
+  static_assert(std::is_unsigned<K>::value, "BST key <typename K> must be an unsigned integer type.");
   public:
     BST();
 
@@ -62,8 +79,12 @@ template <typename K, typename T> class BST {
      */
     static BSTNode<K,T>* findMax(BSTNode<K,T>* root);
     BSTNode<K,T>* findMax(void);
+
+    String toString(void) const {
+      return this->root == nullptr ? String("BST Empty") : String("BST [") + this->root->toString() + "]";
+    }
 };
 
-#include <bst.tpp>
+#include "bst.tpp"
 
 #endif

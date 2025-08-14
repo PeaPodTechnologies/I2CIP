@@ -1,12 +1,14 @@
-#include <fqa.h>
+#include "fqa.h"
 
-#include <debug.h>
+#include "debug.h"
+
+// #define BEGIN_WIRE_EVERY_TIME 1 // Uncomment to begin wire every time
 
 // Has wire N been wires[N].begin() yet?
 bool wiresBegun[I2CIP_NUM_WIRES] = { false };
 
 i2cip_fqa_t I2CIP::createFQA(uint8_t wire, uint8_t mux, uint8_t bus, uint8_t addr) {
-  if (( wire <= I2CIP_FQA_I2CBUS_MAX ) &&
+  if (( wire <= I2CIP_FQA_I2CBUS_MAX && wire < I2CIP_NUM_WIRES ) &&
       ( mux  <= I2CIP_FQA_MODULE_MAX ) &&
       ( bus  <= I2CIP_FQA_MUXBUS_MAX ) &&
       ( addr <= I2CIP_FQA_DEVADR_MAX )
@@ -16,18 +18,30 @@ i2cip_fqa_t I2CIP::createFQA(uint8_t wire, uint8_t mux, uint8_t bus, uint8_t add
   return (i2cip_fqa_t)(~0);
 }
 
-void I2CIP::beginWire(uint8_t wire) {
-  wires[wire]->begin();
-  if(!wiresBegun[wire]) {
-    wiresBegun[wire] = true;
-    #ifdef I2CIP_DEBUG_SERIAL
+bool I2CIP::beginWire(uint8_t wire) {
+  if(wire > I2CIP_FQA_I2CBUS_MAX || wire >= I2CIP_NUM_WIRES) return false;
+
+  #ifndef BEGIN_WIRE_EVERY_TIME
+    if(!wiresBegun[wire]) {
+  #endif
+  bool r = wires[wire]->begin();
+
+  wiresBegun[wire] = r;
+  #ifdef I2CIP_DEBUG_SERIAL
+    if(r) {
       DEBUG_DELAY();
       I2CIP_DEBUG_SERIAL.print(F("-> I2C WIRE "));
       I2CIP_DEBUG_SERIAL.print(wire);
       I2CIP_DEBUG_SERIAL.println(F(" BEGIN"));
       DEBUG_DELAY();
-    #endif
-  }
+    }
+  #endif
+  #ifndef BEGIN_WIRE_EVERY_TIME
+    }
+    return wiresBegun[wire];
+  #else
+    return r;
+  #endif
 }
 
 String I2CIP::fqaToString(const i2cip_fqa_t& fqa) {
@@ -44,6 +58,7 @@ String I2CIP::fqaToString(const i2cip_fqa_t& fqa) {
     s += ':';
   }
   s += F("0x");
+  if(I2CIP_FQA_SEG_DEVADR(fqa) < 0x10) s += '0';
   s += String(I2CIP_FQA_SEG_DEVADR(fqa) & 0x7F, HEX);
   return s;
 }

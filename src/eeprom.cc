@@ -1,8 +1,6 @@
-#include <eeprom.h>
+#include "eeprom.h"
 
-#include <fqa.h>
-#include <device.h>
-#include <debug.h>
+#include "debug.h"
 
 using namespace I2CIP;
 
@@ -13,7 +11,10 @@ uint16_t EEPROM::_failsafe_b = I2CIP_EEPROM_SIZE;
 I2CIP_DEVICE_INIT_STATIC_ID(EEPROM, I2CIP_EEPROM_ID);
 I2CIP_INPUT_INIT_RESET(EEPROM, char*, nullptr, uint16_t, I2CIP_EEPROM_SIZE);
 
-EEPROM::EEPROM(i2cip_fqa_t fqa, const i2cip_id_t& id) : Device(fqa, id), IOInterface<char*, uint16_t, const char*, uint16_t>((Device*)this) {
+void EEPROM::parseJSONArgs(I2CIP::i2cip_args_io_t& argsDest, JsonVariant argsA, JsonVariant argsS, JsonVariant argsB) { } // TODO: Something other than NOP
+void EEPROM::deleteArgs(I2CIP::i2cip_args_io_t& args) { }
+
+EEPROM::EEPROM(i2cip_fqa_t fqa, const i2cip_id_t& id) : Device(fqa, id, I2CIP_EEPROM_TIMEOUT), IOInterface<char*, uint16_t, const char*, uint16_t>((Device*)this) {
   #ifdef I2CIP_DEBUG_SERIAL
     DEBUG_DELAY();
     I2CIP_DEBUG_SERIAL.print(F("EEPROM Constructed (ID '"));
@@ -55,18 +56,26 @@ EEPROM::~EEPROM() {
 
 // EEPROM::EEPROM(const uint8_t& wire, const uint8_t& module, const uint8_t& addr) : EEPROM(I2CIP_FQA_CREATE(wire, module, I2CIP_MUX_BUS_DEFAULT, addr)) { }
 
-i2cip_errorlevel_t EEPROM::readContents(uint8_t* dest, size_t& num_read, size_t max_read) {
+i2cip_errorlevel_t EEPROM::readContents(uint8_t* dest, size_t& num_read, size_t max_read, bool setbus) {
+  i2cip_errorlevel_t errlev = I2CIP_ERR_NONE;
+  if(setbus) {
+    errlev = MUX::setBus(this->fqa);
+    I2CIP_ERR_BREAK(errlev);
+  }
   size_t bytes_read = max_read;
-  i2cip_errorlevel_t errlev = Device::readRegister(fqa, (uint16_t)0, dest, bytes_read, true, false);
+  errlev = readRegister((uint16_t)0, dest, bytes_read, true, false, true);
+  // i2cip_errorlevel_t errlev = readRegister((uint16_t)0, dest, bytes_read, true, false, false);
   num_read = bytes_read;
   return errlev;
 }
 
 i2cip_errorlevel_t EEPROM::clearContents(bool setbus, uint16_t numbytes) {
-  i2cip_errorlevel_t errlev = pingTimeout(setbus, false);
-  I2CIP_ERR_BREAK(errlev);
-
-  uint8_t zeroes[8] = {0, 0, 0, 0, 0, 0, 0, 0};
+  i2cip_errorlevel_t errlev = I2CIP_ERR_NONE;
+  if(setbus) {
+    errlev = MUX::setBus(this->fqa);
+    I2CIP_ERR_BREAK(errlev);
+  }
+  uint8_t zeroes[numbytes] = {0};
 
   for (uint16_t bytes_written = 0; bytes_written < numbytes; bytes_written+=8) {
     const uint8_t pagelen = min(numbytes - bytes_written, 8);
@@ -87,7 +96,7 @@ i2cip_errorlevel_t EEPROM::clearContents(bool setbus, uint16_t numbytes) {
     #endif
 
     // Note: Timeout ping before each byte write to await completion of last write cycle
-    errlev = pingTimeout(false, false, I2CIP_EEPROM_TIMEOUT);
+    errlev = pingTimeout(false, false);
     I2CIP_ERR_BREAK(errlev);
   }
 
@@ -106,7 +115,7 @@ i2cip_errorlevel_t EEPROM::overwriteContents(const char* contents, bool clear, b
 i2cip_errorlevel_t EEPROM::overwriteContents(uint8_t* buffer, size_t len, bool clear, bool setbus) {
   i2cip_errorlevel_t errlev = I2CIP_ERR_NONE;
   if(clear) {
-    errlev = clearContents(setbus, len);
+    errlev = clearContents(setbus);
   } else if(setbus) {
     errlev = MUX::setBus(this->fqa);
   }
@@ -134,14 +143,18 @@ i2cip_errorlevel_t EEPROM::overwriteContents(uint8_t* buffer, size_t len, bool c
       DEBUG_DELAY();
     #endif
 
+    delayMicroseconds(100);
+
     // Note: Timeout ping before each byte write to await completion of last write cycle
-    errlev = pingTimeout(false, false, I2CIP_EEPROM_TIMEOUT);
+    errlev = pingTimeout(false, false);
     I2CIP_ERR_BREAK(errlev);
 
     #ifdef I2CIP_DEBUG_SERIAL
       I2CIP_DEBUG_SERIAL.println("... ACK'd");
       DEBUG_DELAY();
     #endif
+
+    delayMicroseconds(100);
 
     if(buffer[bytes_written] == '\0') {
       // Null terminator
@@ -175,7 +188,7 @@ i2cip_errorlevel_t EEPROM::get(char*& dest, const uint16_t& args) {
     DEBUG_DELAY();
   #endif
 
-  i2cip_errorlevel_t errlev = readRegister((uint16_t)0, buffer, len, true);
+  i2cip_errorlevel_t errlev = readContents(buffer, len, I2CIP_EEPROM_SIZE, true);
   I2CIP_ERR_BREAK(errlev);
 
   #ifdef I2CIP_DEBUG_SERIAL
@@ -231,12 +244,16 @@ i2cip_errorlevel_t EEPROM::set(const char * const& value, const uint16_t& args) 
   #endif
 
   // Write register
-  size_t len = args;
-  i2cip_errorlevel_t errlev = writeRegister((uint16_t)0, (uint8_t*)value, len);
+  uint8_t msg[I2CIP_EEPROM_SIZE+1] = {0};
+  size_t len = I2CIP_EEPROM_SIZE;
+  for(size_t i = 0; i < args; i++) {
+    msg[i] = (uint8_t)value[i];
+  }
+  i2cip_errorlevel_t errlev = overwriteContents(msg, args, true, true);
   I2CIP_ERR_BREAK(errlev);
 
-  // Pre-caching Cleanup
-  if(this->getValue() != value && this->getValue() != nullptr && this->getValue()) { delete this->getValue(); }
+  // Pre-caching Cleanup - commented out for now
+  // if(this->getValue() != value && this->getValue() != nullptr && this->getValue()) { delete this->getValue(); }
 
   // if((uint16_t)len != args) return I2CIP_ERR_SOFT;
   return errlev;
@@ -287,6 +304,7 @@ void EEPROM::resetFailsafe(void) {
     _failsafe[len] = '\0';
 
     _failsafe_b = len;
+
     _failsafe_set = true;
 
     #ifdef I2CIP_DEBUG_SERIAL

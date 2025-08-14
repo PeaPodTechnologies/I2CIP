@@ -3,28 +3,44 @@
 
 // Constants
 #define HASHTABLE_OFFSET 31
-#define HASHTABLE_SLOTS  16    // Number of unique ID slots to include in the hashtable (for optimization purposes)
+#define HASHTABLE_SLOTS  8    // Number of unique ID slots to include in the hashtable (for optimization purposes)
 
-// Hash table entry
-template <typename T> class HashTableEntry {
-  public:
-    HashTableEntry(const char* key, T value, HashTableEntry<T>* last);
-    ~HashTableEntry();
+// Basic Hash Table implementation.
 
-    const char* key;                // Pointer to the IMMUTABLE (copied) key - de/allocated on de/construction
-    T value;                 // REFERENCE to the value - passed in
-    HashTableEntry<T>* next;  // Pointer to the previous entry - passed in
+namespace I2CIP {
+  class Module;
 };
 
-// TODO: Class 'HashTableEntry < DeviceGroup & >' does not have a copy constructor which is recommended since it has dynamic memory/resource allocation(s).
-// TODO: Class 'HashTableEntry < DeviceGroup & >' does not have a operator= which is recommended since it has dynamic memory/resource allocation(s).
-
-// A hash table. Yup.
-template <typename T> class HashTable {
+template <typename T> class HashTableEntry {
   public:
-    // Slots are static, entries are dynamic
-    HashTableEntry<T>* hashtable[HASHTABLE_SLOTS] = { nullptr }; // FIXED POINTER to the entries - de/allocated on de/construction
+    HashTableEntry(const char* key, T* value, HashTableEntry<T>* last);
+    ~HashTableEntry();
 
+    const char* key;
+    T* value;
+    HashTableEntry<T>* next;
+
+    String toString(void) const {
+      String str;
+      str += "{ ";
+      str += this->key;
+      str += " : ";
+      str += String((uintptr_t)this->value, HEX);
+      str += " }";
+      if(this->next != nullptr) {
+        str += " : ";
+        str += this->next->toString();
+      }
+      return str;
+    }
+};
+
+template <typename T> class HashTable {
+  friend class I2CIP::Module; // Give Module direct access to the hashtable for destruction
+  private:
+    HashTableEntry<T>* hashtable[HASHTABLE_SLOTS] = { nullptr };
+
+  public:
     HashTable();
     ~HashTable();
 
@@ -35,7 +51,7 @@ template <typename T> class HashTable {
      * @param overwrite Overwrite existing value if found? Default: `true`
      * @return Pointer to the new entry
      */
-    HashTableEntry<T>* set(const char* key, T value, bool overwrite = true);
+    HashTableEntry<T>* set(const char* key, T* value, bool overwrite = true);
 
     /**
      * Look at the index for that key, down the chain until either key=key or next = nullptr
@@ -45,15 +61,31 @@ template <typename T> class HashTable {
     HashTableEntry<T>* get(const char* key);
 
     /**
-     * Index operator by key.
+     * Index operator by key. Shorthand for get(key)->value
      * @param key
-     * @return Pointer to entry
+     * @return Pointer to entry's value
      */
-    HashTableEntry<T>* operator[](const char* key);
+    T* operator[](const char* key);
 
     bool remove(const char* key);
+
+    String toString(void) const {
+      String str = "HashTable [";
+      bool content = false;
+      for (uint8_t i = 0; i < HASHTABLE_SLOTS; i++) {
+        if (this->hashtable[i] != nullptr) {
+          if(content) str += " ; ";
+          content = true;
+          str += this->hashtable[i]->toString();
+        }
+      }
+      if(!content) {
+        str += "Empty";
+      }
+      return str + "]";
+    }
 };
 
-#include <hashtable.tpp>
+#include "hashtable.tpp"
 
 #endif

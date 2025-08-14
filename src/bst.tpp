@@ -7,11 +7,20 @@
 #ifndef I2CIP_BST_T_
 #define I2CIP_BST_T_
 
+#include "debug.h"
+
 // BST NODE
 
 template <typename K, typename T> BSTNode<K,T>::BSTNode(K key, T value, BSTNode<K,T>* left, BSTNode<K,T>* right) : key(key), value(value), left(left), right(right) { }
 
 template <typename K, typename T> BSTNode<K,T>::~BSTNode() {
+  #ifdef I2CIP_DEBUG_SERIAL
+    DEBUG_DELAY();
+    I2CIP_DEBUG_SERIAL.print(F("~BST["));
+    I2CIP_DEBUG_SERIAL.print(this->key);
+    I2CIP_DEBUG_SERIAL.println(F("]"));
+    DEBUG_DELAY();
+  #endif
   delete(this->left);
   delete(this->right);
 }
@@ -26,6 +35,12 @@ template <typename K, typename T> BST<K,T>::~BST() {
 
 template <typename K, typename T> BSTNode<K,T>* BST<K,T>::insert(K key, T value, BSTNode<K,T>*& root, bool overwrite) {
   // Node empty? Allocate new. Otherwise, insert recursively
+  #ifdef I2CIP_DEBUG_SERIAL
+    DEBUG_DELAY();
+    I2CIP_DEBUG_SERIAL.print(F("BST Insert "));
+    I2CIP_DEBUG_SERIAL.println(key);
+    DEBUG_DELAY();
+  #endif
   if(root == nullptr) {
     root = new BSTNode<K,T>(key, value);
   } else if(key < root->key) {
@@ -44,6 +59,12 @@ template <typename K, typename T> BSTNode<K,T>* BST<K,T>::insert(K key, T value,
 }
 
 template <typename K, typename T> BSTNode<K,T>* BST<K,T>::remove(K key, BSTNode<K,T>*& root) {
+  #ifdef I2CIP_DEBUG_SERIAL
+    DEBUG_DELAY();
+    I2CIP_DEBUG_SERIAL.print(F("BST Remove "));
+    I2CIP_DEBUG_SERIAL.println(key);
+    DEBUG_DELAY();
+  #endif
   BSTNode<K,T>* const match = find(key, root);
   if(match == nullptr) {
     // Match not found
