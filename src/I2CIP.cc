@@ -185,7 +185,7 @@ bool JsonModule::parseEEPROMContents(const char* buffer) {
             I2CIP_DEBUG_SERIAL.print(_F("-> Factory Success! (Adding)\n"));
             DEBUG_DELAY();
           #endif
-          bool r = this->add(*d);
+          bool r = this->add(d);
           if(!r) {
             #ifdef I2CIP_DEBUG_SERIAL
               DEBUG_DELAY();
@@ -210,4 +210,53 @@ bool JsonModule::parseEEPROMContents(const char* buffer) {
     DEBUG_DELAY();
   #endif
   return true;
+}
+
+void I2CIP::commandRouter(JsonObject command, Print& out) {
+  // if(command.containsKey("rebuild") {
+  if(command["rebuild"].is<bool>()) {
+    // Rebuild device tree
+    bool update = command["rebuild"].as<bool>();
+
+    #ifdef I2CIP_DEBUG_SERIAL
+      DEBUG_DELAY();
+      I2CIP_DEBUG_SERIAL.println(_F("-> Gathering Device Tree..."));
+      DEBUG_DELAY();
+    #endif
+
+    I2CIP::rebuildTree(out, update);
+  } else if(command["fqa"].is<int>()) {
+    int i = command["fqa"].as<int>();
+    if(i < 0) {
+      return;
+    }
+    i2cip_fqa_t fqa = (i2cip_fqa_t)i;
+    uint8_t m = fqa == I2CIP::sevenSegmentFQA ? 0 : I2CIP_FQA_SEG_MODULE(fqa);
+    if(I2CIP::modules[m] != nullptr) {
+      #ifdef I2CIP_DEBUG_SERIAL
+        DEBUG_DELAY();
+        I2CIP_DEBUG_SERIAL.print(_F("-> Routing Command for FQA "));
+        I2CIP_DEBUG_SERIAL.print(fqaToString(fqa));
+        I2CIP_DEBUG_SERIAL.print(_F(" to Module "));
+        I2CIP_DEBUG_SERIAL.print(m, HEX);
+        I2CIP_DEBUG_SERIAL.println(_F("..."));
+        DEBUG_DELAY();
+      #endif
+      I2CIP::modules[m]->handleCommand(command, out);
+    }
+  }
+}
+
+void I2CIP::rebuildTree(Print& out, bool update) {
+  JsonDocument tree;
+  tree["type"] = "tree";
+  tree["timestamp"] = millis();
+  JsonArray arr = tree["data"].to<JsonArray>();
+  for(uint8_t m = 0; m < I2CIP_MUX_COUNT; m++) {
+    JsonObject obj = arr.add<JsonObject>();
+    if(I2CIP::modules[m] != nullptr) {
+      I2CIP::modules[m]->toJSON(obj, update);
+    }
+  }
+  DebugJson::jsonPrintln(tree, out);
 }

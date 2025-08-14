@@ -74,7 +74,10 @@ template <typename T> HashTableEntry<T>* HashTable<T>::set(const char* key, T* v
 
   // Match found?
   if (head != nullptr) {
-    if (overwrite) head->value = value;
+    if (overwrite) {
+      delete(head->value);
+      head->value = value;
+    }
     return head;
   }
   // No match, allocate new; point "next" to the top entry

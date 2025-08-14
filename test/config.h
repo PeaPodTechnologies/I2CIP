@@ -2,12 +2,14 @@
 #define I2CIP_TESTS_TEST_H_
 
 #include "../src/debug.h"
+#include <DebugJson.h>
 #include <I2CIP.hpp>
 #include <SHT45.h>
 #include <HT16K33.h>
 #include <PCA9685.h>
 #include <JHD1313.h>
 #include <Seesaw.h>
+#include <MCP23017.h>
 #include <Nunchuck.h>
 
 // TESTING PARAMETERS
@@ -22,7 +24,7 @@
 #define I2CIP_TEST_EEPROM_OVERWRITE 1 // Uncomment to enable EEPROM overwrite test
 
 // #define EEPROM_JSON_CONTENTS_TEST I2CIP_EEPROM_DEFAULT
-#define EEPROM_JSON_CONTENTS_TEST {"[{\"24LC32\":[80],\"SHT45\":[" STR(I2CIP_SHT45_ADDRESS) "],\"SEESAW\":[" STR(I2CIP_SEESAW_ADDRESS) "]},{\"PCA9685\":[" STR(I2CIP_PCA9685_ADDRESS) "],\"JHD1313\":[" STR(I2CIP_JHD1313_ADDRESS) "]}]"}
+#define EEPROM_JSON_CONTENTS_TEST {"[{\"24LC32\":[80],\"SHT45\":[" STR(I2CIP_SHT45_ADDRESS) "],\"SEESAW\":[" STR(I2CIP_SEESAW_ADDRESS) "]},{\"PCA9685\":[" STR(I2CIP_PCA9685_ADDRESS) "],\"JHD1313\":[" STR(I2CIP_JHD1313_ADDRESS) "]},{\"MCP23017\":[" STR(I2CIP_MCP23017_ADDRESS) "]}]"}
 
 // #ifdef ESP32
 //   SET_LOOP_TASK_STACK_SIZE( 32*1024 ); // Thanks to: https://community.platformio.org/t/esp32-stack-configuration-reloaded/20994/8; https://github.com/espressif/arduino-esp32/pull/5173
@@ -45,17 +47,118 @@ class TestModule : public JsonModule {
       dg = DeviceGroup::create<JHD1313>(id);
       if(dg != nullptr) return dg;
       dg = DeviceGroup::create<RotaryEncoder>(id);
+      if(dg != nullptr) return dg;
+      dg = DeviceGroup::create<MCP23017>(id);
+      if(dg != nullptr) return dg;
+      dg = DeviceGroup::create<Nunchuck>(id);
       return dg;
     }
   public:
     TestModule(const uint8_t wirenum, const uint8_t modulenum) : JsonModule(wirenum, modulenum) { }
+
+    void handleCommand(JsonObject command, Print& out) override { 
+      JsonDocument doc;
+      doc["timestamp"] = millis();
+      
+      i2cip_fqa_t fqa = command["fqa"].as<i2cip_fqa_t>();
+      
+      Device** dptr = I2CIP::devicetree[fqa];
+      if(dptr != nullptr && *dptr != nullptr) {
+
+        Device* d = *dptr;
+
+        DeviceGroup* dg = this->operator[](d->getID());
+
+        if(dg != nullptr && dg->handler != nullptr) {
+          i2cip_args_io_t args = _i2cip_args_io_default;
+    
+          JsonVariant argsG = command["g"];
+          JsonVariant argsA = command["a"];
+          JsonVariant argsS = command["s"];
+          JsonVariant argsB = command["b"];
+          
+          dg->handler(args, argsA, argsS, argsB);
+
+          // DebugJson::StringWriter sw;
+          // i2cip_errorlevel_t errlev = this->operator()(d, true, args, sw);
+          unsigned long start = millis();
+          String msg = String(d->getID()) + ' ' + fqaToString(fqa) + ' ';
+          bool spacer = false;
+
+          i2cip_errorlevel_t errlev = MUX::setBus(fqa);
+          if(errlev == I2CIP_ERR_NONE) {
+            if(d->getOutput() != nullptr && !argsS.isNull()) {
+              errlev = d->set(args.s, args.b);
+
+              // Print output cache
+              msg += "OUTSET ";
+              msg += d->getOutput()->valueToString();
+              spacer = true;
+            }
+            if(errlev == I2CIP_ERR_NONE && d->getInput() != nullptr && !argsG.isNull()) {
+              errlev = d->get(args.a);
+
+              // Print input cache
+              if(spacer) msg += "; ";
+              else spacer = true;
+              msg += "INPGET ";
+              msg += d->getInput()->printCache();
+
+              if(errlev == I2CIP_ERR_NONE) {
+                DebugJson::telemetryJsonString(d->getInput()->getLastRX(), d->getInput()->cacheToString());
+              }
+            }
+            if(errlev == I2CIP_ERR_NONE && argsG.isNull() && argsS.isNull()) {
+              errlev = d->pingTimeout(false, true);
+              msg = "PING";
+            }
+          }
+
+          dg->cleanup(args);
+
+          msg += " DELTA ";
+          msg += String(millis() - start);
+          msg += "ms";
+
+          msg += errlev == I2CIP_ERR_NONE ? " OK" : (errlev == I2CIP_ERR_SOFT ? " EINVAL" : " EIO");
+
+
+          // TODO: Print to out with sw, errlev, timestamp
+          doc["type"] = "info";
+          doc["id"] = d->getID();
+          doc["fqa"] = d->getFQA();
+          doc["errlev"] = errlev;
+          // doc["msg"] = sw.operator String();
+          doc["msg"] = msg;
+        } else {
+          doc["type"] = "error";
+          doc["msg"] = "LIBRARY ENOENT";
+          doc["errlev"] = I2CIP_ERR_SOFT;
+        }
+      } else {
+        doc["type"] = "error";
+        doc["msg"] = "DEVICE ENOENT";
+        doc["errlev"] = I2CIP_ERR_SOFT;
+      }
+
+      DebugJson::jsonPrintln(doc, out);
+    }
+
+    void handleConfig(JsonObject config, Print& out) override { 
+      #ifdef I2CIP_DEBUG_SERIAL
+        I2CIP_DEBUG_SERIAL.println(F("TestModule: handleConfig() called, but not implemented."));
+      #endif
+    }
+
+    
 };
 
 /** FOR MAIN **/
 
 // #define MAIN_DEBUG_SERIAL Serial
 #define MAIN_DEBUG_SERIAL DebugJsonOut
-#define CYCLE_DELAY 20 // Max FPS 100Hz
+#define CYCLE_DELAY 10 // Max FPS 100Hz
+#define HEARTBEAT_DELAY 1000 // Max FPS 1Hz
 #define EPSILON_TEMPERATURE 0.5f
 #define EPSILON_HUMIDITY 2.0f // 0.11f
 #define LCD_REFRESH_MAX 1000
@@ -90,13 +193,6 @@ bool peapod_out = false; // Pin 32
 bool flag_debounce = false; // Used to debounce for toggles
 
 HT16K33 *ht16k33 = nullptr;
-
-#ifdef FSM_STATE_H_
-// PeaPod Finite State Machine Flags
-FSM::Variable cycle(FSM::Number(0, false, false), "cycle");
-FSM::Flag watering(false);
-// FSM::Flag lighting(false);
-#endif
 
 bool pinModeSet[255] = { false };
 

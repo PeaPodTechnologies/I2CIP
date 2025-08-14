@@ -4,6 +4,9 @@
 
 using namespace I2CIP;
 
+// Globals
+i2cip_args_io_t I2CIP::_i2cip_args_io_default = { nullptr, nullptr, nullptr };
+
 i2cip_errorlevel_t Device::requestFromRegister(const i2cip_fqa_t& fqa, size_t& len, const uint8_t& reg, bool sendStop) {
   // send internal address; this mode allows sending a repeated start to access
   // some devices' internal registers. This function is executed by the hardware
@@ -188,7 +191,7 @@ i2cip_errorlevel_t Device::set(const void* value, const void* args) {
     I2CIP_DEBUG_SERIAL.print(' ');
   #endif
   if(!this->ready && !this->_begin(true)) { return I2CIP_ERR_SOFT; }
-  i2cip_errorlevel_t errlev = (args == nullptr) ? this->output->failSet(value) : this->output->set(value, args);
+  i2cip_errorlevel_t errlev = (value == nullptr) ? this->output->reset(args) : ((args == nullptr) ? this->output->failSet(value) : this->output->set(value, args));
   if(errlev != I2CIP_ERR_NONE) {
     this->ready = false;
     MUX::resetBus(this->fqa); // Attempt; might be lost

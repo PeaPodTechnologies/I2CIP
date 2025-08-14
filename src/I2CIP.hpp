@@ -17,6 +17,8 @@
 
 #include "debug.h"
 
+#define I2CIP_REVISION 0
+
 namespace I2CIP {
 
   class JsonModule : public Module {
@@ -29,6 +31,11 @@ namespace I2CIP {
 
       // NOTE: Still virtual; need to implement deviceGroupFactory
   };
+
+  void commandRouter(JsonObject command, Print& out);
+  void rebuildTree(Print& out, bool update = false);
+
+  const i2cip_fqa_t sevenSegmentFQA = createFQA(0, I2CIP_MUX_NUM_FAKE, I2CIP_MUX_BUS_FAKE, 119);
 
 };
 

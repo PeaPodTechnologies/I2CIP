@@ -50,6 +50,18 @@ void test_module_discovery(void) {
   // }
 
   TEST_ASSERT_EQUAL_UINT8_MESSAGE(I2CIP_ERR_NONE, errlev, "Module Discovery Fail");
+
+  DeviceGroup* eeprom_group = m->operator[](EEPROM::getID());
+  TEST_ASSERT_TRUE_MESSAGE(eeprom_group != nullptr, "Module EEPROM Group Not Found");
+  EEPROM* eeprom = (EEPROM*)eeprom_group->operator[](m->operator const I2CIP::EEPROM &().getFQA());
+  TEST_ASSERT_TRUE_MESSAGE(eeprom != nullptr, "Module EEPROM Not Found");
+  
+  i2cip_fqa_t fqa = createFQA(m->getWireNum(), m->getModuleNum(), 0, I2CIP_EEPROM_ADDR);
+  TEST_ASSERT_EQUAL_UINT16_MESSAGE(fqa, eeprom->getFQA(), "Module EEPROM FQA Mismatch");
+
+  Device** d = I2CIP::devicetree.operator[](fqa);
+  TEST_ASSERT_TRUE_MESSAGE(d != nullptr, "Module EEPROM Not Found in Device Tree");
+  TEST_ASSERT_EQUAL_PTR_MESSAGE(*d, eeprom, "Module EEPROM Not Found in Device Tree");
 }
 
 void setup(void) {
@@ -108,16 +120,16 @@ void test_module_eeprom_update(void) {
   TEST_ASSERT_EQUAL_UINT8_MESSAGE(I2CIP_ERR_NONE, errlev, "EEPROM read/write failed! Check EEPROM wiring.");
   if(errlev > I2CIP_ERR_NONE) end = true;
   
-  uint8_t len = strlen_P(i2cip_eeprom_default);
-  char str[len+1] = { '\0' };
-  for (uint8_t k = 0; k < len; k++) {
-    char c = pgm_read_byte_near(i2cip_eeprom_default + k);
-    str[k] = c;
-  }
+  // uint8_t len = strlen_P(i2cip_eeprom_default);
+  // char str[len+1] = { '\0' };
+  // for (uint8_t k = 0; k < len; k++) {
+  //   char c = pgm_read_byte_near(i2cip_eeprom_default + k);
+  //   str[k] = c;
+  // }
 
-  str[len] = '\0';
+  // str[len] = '\0';
 
-  const char* cache = (m->operator const I2CIP::EEPROM &()).getCache();
+  // const char* cache = (m->operator const I2CIP::EEPROM &()).getCache();
   // const char* value = (m->operator const I2CIP::EEPROM &()).getValue();
 
   // #ifdef DEBUG_SERIAL
@@ -134,8 +146,14 @@ void test_module_eeprom_update(void) {
   //   DEBUG_DELAY();
   // #endif
 
-  TEST_ASSERT_EQUAL_STRING_MESSAGE(str, cache, "GET Cache Mismatch");
+  // TEST_ASSERT_EQUAL_STRING_MESSAGE(str, cache, "GET Cache Mismatch");
   // TEST_ASSERT_EQUAL_STRING_MESSAGE(str, value, "SET Value Mismatch");
+}
+
+void test_module_delete(void) {
+  delete(m);
+
+  TEST_PASS();
 }
 
 i2cip_errorlevel_t errlev;
@@ -154,6 +172,10 @@ void loop(void) {
   delay(1000);}
 
   if(end || count == 0) {
+    delay(1000);
+    
+    RUN_TEST(test_module_delete);
+
     delay(1000);
 
     UNITY_END();

@@ -26,16 +26,35 @@
  **/
 #define OVERWRITE_BITS(existing, data, lsb, bits) (((existing) & ~(((1 << (bits)) - 1) << (lsb))) | (((data) & ((1 << (bits)) - 1)) << (lsb)))
 
-namespace I2CIP { class Device; }
+namespace I2CIP { 
+  class Device;
+
+  extern struct i2cip_args_io_s {
+    void* a;
+    void* s;
+    void* b;
+  } _i2cip_args_io_default;
+
+  typedef struct i2cip_args_io_s i2cip_args_io_t;
+
+  class Module;
+  template <typename G, typename A> class InputInterface;
+  template <typename S, typename B> class OutputInterface;
+}
 
 #define I2CIP_DEVICES_PER_GROUP ((size_t)8)
 #define I2CIP_ID_SIZE ((size_t)10)
-#define I2CIP_INPUT_CACHEBUFFER_SIZE 32
-#define I2CIP_INPUT_PRINTBUFFER_SIZE 64
+#define I2CIP_INPUT_CACHEBUFFER_SIZE 64
+#define I2CIP_INPUT_PRINTBUFFER_SIZE 128
 
 #define I2CIP_DEVICE_USE_FACTORY(CLASS, ...) \
   public:\
     static Device* factory(i2cip_fqa_t fqa, const i2cip_id_t& id) { return (Device*)(new CLASS(fqa, id)); }
+
+#define I2CIP_DEVICE_USE_JSONHANDLER(CLASS, ...) \
+  public:\
+    static void parseJSONArgs(I2CIP::i2cip_args_io_t& argsDest, JsonVariant argsA, JsonVariant argsS, JsonVariant argsB);\
+    static void deleteArgs(I2CIP::i2cip_args_io_t& args);
 
 #define VALUE_IFNOT_TEST(...) __VA_ARGS__
 #define VALUE_IFNOT_TEST0(...) __VA_ARGS__
@@ -107,7 +126,8 @@ namespace I2CIP { class Device; }
 #define I2CIP_DEVICE_CLASS_BUNDLE(CLASS, ...) \
   I2CIP_DEVICE_USE_STATIC_ID();\
   I2CIP_DEVICE_USE_FACTORY(CLASS  __VA_OPT__(,) __VA_ARGS__);\
-  I2CIP_DEVICE_USE_SFACTORY(CLASS  __VA_OPT__(,) __VA_ARGS__);
+  I2CIP_DEVICE_USE_SFACTORY(CLASS  __VA_OPT__(,) __VA_ARGS__);\
+  I2CIP_DEVICE_USE_JSONHANDLER(CLASS);
 
 // ARGS is implied to be JSON-friendly
 #define I2CIP_INPUTS_USE_TOSTRING true // uncomment to disable input cache toString/print macros
@@ -183,18 +203,6 @@ public:\
 typedef enum { PIN_OFF = LOW, PIN_ON = HIGH, PIN_UNDEF } i2cip_state_pin_t;
 
 namespace I2CIP {
-
-  extern struct i2cip_args_io_s {
-    const void* a;
-    const void* s;
-    const void* b;
-  } _i2cip_args_io_default;
-
-  typedef struct i2cip_args_io_s i2cip_args_io_t;
-
-  class Module;
-  template <typename G, typename A> class InputInterface;
-  template <typename S, typename B> class OutputInterface;
 
   // typedef enum { I2CIP_ITYPE_NULL = 0b00, I2CIP_ITYPE_INPUT = 0b01, I2CIP_ITYPE_OUTPUT = 0b10, I2CIP_ITYPE_IO = 0b11 } i2cip_itype_t;
 

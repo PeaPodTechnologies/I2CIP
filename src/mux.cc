@@ -57,6 +57,9 @@ namespace I2CIP {
       if(wire > I2CIP_NUM_WIRES) return false;
       if(m > I2CIP_MUX_COUNT) return false;
       beginWire(wire);
+
+      if(m == I2CIP_MUX_NUM_FAKE) { resetBusses(wire); return false; } // TODO: Bus reset required here?
+
       #ifdef I2CIP_DEBUG_SERIAL
         I2CIP_DEBUG_SERIAL.print(F("-> MUX "));
         I2CIP_DEBUG_SERIAL.print(m, HEX);

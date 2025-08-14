@@ -11,6 +11,9 @@ uint16_t EEPROM::_failsafe_b = I2CIP_EEPROM_SIZE;
 I2CIP_DEVICE_INIT_STATIC_ID(EEPROM, I2CIP_EEPROM_ID);
 I2CIP_INPUT_INIT_RESET(EEPROM, char*, nullptr, uint16_t, I2CIP_EEPROM_SIZE);
 
+void EEPROM::parseJSONArgs(I2CIP::i2cip_args_io_t& argsDest, JsonVariant argsA, JsonVariant argsS, JsonVariant argsB) { } // TODO: Something other than NOP
+void EEPROM::deleteArgs(I2CIP::i2cip_args_io_t& args) { }
+
 EEPROM::EEPROM(i2cip_fqa_t fqa, const i2cip_id_t& id) : Device(fqa, id, I2CIP_EEPROM_TIMEOUT), IOInterface<char*, uint16_t, const char*, uint16_t>((Device*)this) {
   #ifdef I2CIP_DEBUG_SERIAL
     DEBUG_DELAY();

@@ -5,13 +5,12 @@
 #include <Arduino.h>
 
 #include <DebugJson.h> // Debugging JSON Serial Outputs (Breakpoints, Telemetry, etc.)
-// #include <chrono.h> // Uncomment for Finite State Machine (w/ Timer)
 
 #include "../test/config.h"
 
 using namespace I2CIP;
 
-#define HARDSTART 1 // Uncomment to enable hardcoded startup
+// #define HARDSTART 1 // Uncomment to enable hardcoded startup
 
 #ifdef HARDSTART
   i2cip_fqa_t fqa_sht45 = createFQA(WIRENUM, MODULE, 0, I2CIP_SHT45_ADDRESS);
@@ -19,6 +18,13 @@ using namespace I2CIP;
   i2cip_fqa_t fqa_lcd = createFQA(WIRENUM, MODULE, 1, I2CIP_JHD1313_ADDRESS);
   i2cip_fqa_t fqa_rotary = createFQA(WIRENUM, MODULE, 0, I2CIP_SEESAW_ADDRESS);
   i2cip_fqa_t fqa_nunchuck = createFQA(WIRENUM, MODULE, 0, I2CIP_NUNCHUCK_ADDRESS);
+#endif
+
+#ifdef FSM_STATE_H_
+// PeaPod Finite State Machine Flags
+FSM::Variable cycle(FSM::Number(0, false, false), "cycle");
+// FSM::Flag watering(false);
+// FSM::Flag lighting(false);
 #endif
 
 void setup(void) {
@@ -32,31 +38,33 @@ void setup(void) {
     modules[MODULE] = new TestModule(WIRENUM, MODULE);
 
     // NOTE: module.eeprom == nullptr; and module["eeprom"] == nullptr
-    ht16k33 = new HT16K33(WIRENUM, I2CIP_MUX_NUM_FAKE, I2CIP_MUX_BUS_FAKE, "SEVENSEG");
+    
 
     // Each operator() call adds the Device to I2CIP::devicegroups and I2CIP::devicetree
-    modules[MODULE]->operator()<HT16K33>(ht16k33, true, _i2cip_args_io_default, DebugJsonBreakpoints);
+    modules[MODULE]->operator()<HT16K33>(ht16k33->getFQA(), true, _i2cip_args_io_default, DebugJsonBreakpoints);
     // modules[MODULE]->operator()<PCA9685>(fqa_pca9685, false, _i2cip_args_io_default, DebugJsonBreakpoints);
     modules[MODULE]->operator()<SHT45>(fqa_sht45, true, _i2cip_args_io_default, DebugJsonBreakpoints);
     modules[MODULE]->operator()<JHD1313>(fqa_lcd, true, _i2cip_args_io_default, DebugJsonBreakpoints);
     modules[MODULE]->operator()<Seesaw>(fqa_rotary, true, _i2cip_args_io_default, DebugJsonBreakpoints);
   #endif
 
-  #ifdef FSM_STATE_H_
-    // PeaPod Stuff - Finite State Machine Conditionals and Chronograph Flag-Set Events & Intervals
-    // lighting.addLatchingConditional(true, false, controlLights); // Latching Flag Conditional - Call on toggle
-    // FSM::Chronos.addEventFlag(1000, &lighting); // Timer Flag Event - Lighting ON (No-Invert; Delayed 1s)
-    // FSM::Chronos.addEventFlag(DURATION_LIGHTING, &lighting, true); // Timer Flag Event - Lighting OFF (Inverted)
+  // #ifdef FSM_STATE_H_
+  //   // PeaPod Stuff - Finite State Machine Conditionals and Chronograph Flag-Set Events & Intervals
+  //   // lighting.addLatchingConditional(true, false, controlLights); // Latching Flag Conditional - Call on toggle
+  //   // FSM::Chronos.addEventFlag(1000, &lighting); // Timer Flag Event - Lighting ON (No-Invert; Delayed 1s)
+  //   // FSM::Chronos.addEventFlag(DURATION_LIGHTING, &lighting, true); // Timer Flag Event - Lighting OFF (Inverted)
 
-    watering.addLatchingConditional(true, false, controlPin<PIN_WATERING>); // Latching Flag Conditional - Call on toggle
-    FSM::Chronos.addIntervalFlag(PERIOD_WATERING, &watering); // Timer Flag Interval - Watering ON (No-Invert)
-    FSM::Chronos.addIntervalFlag(PERIOD_WATERING, DURATION_WATERING, &watering, true); // Timer Flag Interval - Watering OFF (Invert)
-  #endif
+  //   watering.addLatchingConditional(true, false, controlPin<PIN_WATERING>); // Latching Flag Conditional - Call on toggle
+  //   FSM::Chronos.addIntervalFlag(PERIOD_WATERING, &watering); // Timer Flag Interval - Watering ON (No-Invert)
+  //   FSM::Chronos.addIntervalFlag(PERIOD_WATERING, DURATION_WATERING, &watering, true); // Timer Flag Interval - Watering OFF (Invert)
+  // #endif
 }
 
 // LOOP GLOBALS
 unsigned long last = 0;
+unsigned long lastHeartbeat = 0;
 uint32_t fps = 0; // Something other than zero
+bool revision = false;
 
 void loop(void) {
   last = millis();
@@ -64,37 +72,86 @@ void loop(void) {
     FSM::Chronos.set(last); // Update chronograph and do event/interval conditionals & callbacks(?)
   #endif
 
+  if(millis() - lastHeartbeat >= HEARTBEAT_DELAY) {
+    DebugJson::heartbeat(millis(), Serial);
+    DebugJson::revision(I2CIP_REVISION, Serial);
+    lastHeartbeat = millis();
+  }
+
+  DebugJson::update(Serial, I2CIP::commandRouter);
   
   #ifndef HARDSTART
     // 1. MUX & EEPROM: Ping and load devices
-    for(uint8_t m = 0; m < 1; m++) {// I2CIP_MUX_COUNT; m++)  {
-      if(modules[m] == nullptr || errlev[m] == I2CIP_ERR_HARD) {
-        if(I2CIP::MUX::pingMUX(WIRENUM, m)) {
-          modules[m] = new TestModule(WIRENUM, m);
-        }
-      }
-      if(modules[m] != nullptr && errlev[m] != I2CIP_ERR_HARD) {
-        errlev[m] = modules[m]->operator()(); // First-Time EEPROM Self-Registration and Discovery; Ping MUX && EEPROM
-        // DebugJson Heartbeat
-        if(errlev[m] == I2CIP_ERR_NONE) {
-          DebugJson::revision(m, Serial); // sends revision
-        }
-      }
-    }
+    // for(uint8_t m = 0; m < 1; m++) {// I2CIP_MUX_COUNT; m++)  {
+    //   if(I2CIP::modules[m] == nullptr || I2CIP::errlev[m] == I2CIP_ERR_HARD) {
+    //     if(I2CIP::MUX::pingMUX(WIRENUM, m)) {
+    //       modules[m] = new TestModule(WIRENUM, m);
+    //     }
+    //   }
+    //   if(modules[m] != nullptr && errlev[m] != I2CIP_ERR_HARD) {
+    //     errlev[m] = modules[m]->operator()(); // First-Time EEPROM Self-Registration and Discovery; Ping MUX && EEPROM
+    //     // DebugJson Heartbeat
+    //     if(errlev[m] == I2CIP_ERR_NONE) {
+    //       I2CIP::rebuildTree(Serial);
+    //     }
+    //   }
+    // }
 
-    // 2. Device IO
-    I2CIP::DeviceGroup* dg_sht45 = modules[0]->operator[]("SHT45");
-    if(dg_sht45 != nullptr && dg_sht45->numdevices > 0) {
-      for(uint8_t i = 0; i < dg_sht45->numdevices; i++) {
-        Device* d = dg_sht45->devices[i];
-        if(d == nullptr) continue;
-        // 2A. Input
-        if(d->getInput() != nullptr) {
-          i2cip_errorlevel_t errlev = d->getInput()->get();
-          if(errlev != I2CIP_ERR_NONE) {
-            DebugJson::telemetryJsonString(d->getInput()->getLastRX(), d->getInput()->cacheToString());
+    // // 2. Device IO
+    // I2CIP::DeviceGroup* dg_sht45 = modules[0]->operator[]("SHT45");
+    // if(dg_sht45 != nullptr && dg_sht45->getNumDevices() > 0) {
+    //   for(uint8_t i = 0; i < dg_sht45->getNumDevices(); i++) {
+    //     Device* d = dg_sht45->getDevice(i);
+    //     if(d == nullptr) continue;
+    //     // 2A. Input
+    //     if(d->getInput() != nullptr) {
+    //       i2cip_errorlevel_t errlev = d->getInput()->get();
+    //       if(errlev != I2CIP_ERR_NONE) {
+    //         DebugJson::telemetryJsonString(d->getInput()->getLastRX(), d->getInput()->cacheToString());
+    //       }
+    //     }
+    //   }
+    // }
+
+    for(uint8_t m = 0; m < I2CIP_MUX_COUNT; m++) {
+      if(I2CIP::MUX::pingMUX(WIRENUM, m)) {
+        if(I2CIP::modules[m] == nullptr) {
+          I2CIP::modules[m] = new TestModule(WIRENUM, m);
+
+          if(m == 0) {
+            // First Module - Add HT16K33
+            I2CIP::modules[m]->operator()<HT16K33>(I2CIP::sevenSegmentFQA, true, _i2cip_args_io_default, NullStream);
           }
         }
+
+        I2CIP::errlev[m] = I2CIP::modules[m]->operator()();
+        // if(I2CIP::errlev[m] == I2CIP_ERR_NONE) {
+        //   if(!revision) {
+        //     DebugJson::revision(I2CIP_REVISION, Serial); // sends revision
+        //     revision = true; // Revision sent
+        //   }
+        // } else {
+        //   revision = false; // No revision sent
+        // }
+      } else {
+        I2CIP::errlev[m] = I2CIP_ERR_HARD;
+      }
+
+      #ifdef I2CIP_DEBUG_SERIAL
+        // Debug Serial Output
+        DEBUG_DELAY();
+        I2CIP_DEBUG_SERIAL.print(F("-> Module "));
+        I2CIP_DEBUG_SERIAL.print(m);
+        I2CIP_DEBUG_SERIAL.print(": ");
+        I2CIP_DEBUG_SERIAL.println(I2CIP::modules[m] == nullptr ? "Null" : ("0x" + String(I2CIP::errlev[m], HEX)));
+        DEBUG_DELAY();
+      #endif
+    }
+
+    for(uint8_t m = 0; m < I2CIP_MUX_COUNT; m++) {
+      if(I2CIP::modules[m] != nullptr && I2CIP::errlev[m] == I2CIP_ERR_HARD) {
+        delete I2CIP::modules[m];
+        I2CIP::modules[m] = nullptr;
       }
     }
   #else
@@ -111,6 +168,14 @@ void loop(void) {
       DebugJson::revision(0, Serial); // sends revision
       seg_mode = SEG_UINT;
 
+      #ifdef I2CIP_DEBUG_SERIAL
+        // Debug Serial Output
+        DEBUG_DELAY();
+        I2CIP_DEBUG_SERIAL.println(I2CIP::devicetree.toString());
+        I2CIP_DEBUG_SERIAL.println(modules[MODULE]->toString());
+        DEBUG_DELAY();
+      #endif
+
       // 3. Prep Args: LCD
       String msg = String(fps) + "Hz I2CIP\n"; // Further append will be on second line
       i2cip_jhd1313_args_t rgb = JHD1313::randomRGBLCD();
@@ -122,14 +187,14 @@ void loop(void) {
 
       // SHT45 - Average and print to LCD
       I2CIP::DeviceGroup* dg_sht45 = modules[MODULE]->operator[]("SHT45");
-      if(dg_sht45 != nullptr && dg_sht45->numdevices > 0) {
+      if(dg_sht45 != nullptr && dg_sht45->getNumDevices() > 0) {
         // AVERAGES
         state_sht45_t th = {0.0f, 0.0f}; uint8_t c = 0;
-        for(uint8_t i = 0; i < dg_sht45->numdevices; i++) {
-          SHT45* d = (SHT45*)(dg_sht45->devices[i]);
+        for(uint8_t i = 0; i < dg_sht45->getNumDevices(); i++) {
+          SHT45* d = (SHT45*)(dg_sht45->getDevice(i));
           if(d == nullptr) continue;
 
-          i2cip_errorlevel_t errlev_sht45 = modules[MODULE]->operator()<SHT45>(d, true, _i2cip_args_io_default, DebugJsonBreakpoints);
+          i2cip_errorlevel_t errlev_sht45 = modules[MODULE]->operator()<SHT45>(d->getFQA(), true, _i2cip_args_io_default, DebugJsonBreakpoints);
           if(errlev_sht45 != I2CIP_ERR_NONE) continue;
 
           th.temperature += d->getCache().temperature;
@@ -173,11 +238,11 @@ void loop(void) {
 
       // Nunchuck
       I2CIP::DeviceGroup* dg_nunchuck = modules[MODULE]->operator[]("NUNCHUCK");
-      if(dg_nunchuck != nullptr && dg_nunchuck->numdevices > 0) {
-        Nunchuck* d = (Nunchuck*)(dg_nunchuck->devices[0]); // Use first device
+      if(dg_nunchuck != nullptr && dg_nunchuck->getNumDevices() > 0) {
+        Nunchuck* d = (Nunchuck*)(dg_nunchuck->getDevice(0)); // Use first device
         if(d != nullptr && d->getInput() != nullptr) {
 
-          i2cip_errorlevel_t errlev_nunchuck = modules[MODULE]->operator()<Nunchuck>(d, true, _i2cip_args_io_default, DebugJsonBreakpoints);
+          i2cip_errorlevel_t errlev_nunchuck = modules[MODULE]->operator()<Nunchuck>(d->getFQA(), true, _i2cip_args_io_default, DebugJsonBreakpoints);
 
           if(errlev_nunchuck != I2CIP_ERR_NONE) {
             nunchuck_sum += ((float)(d->getCache().x) - 127.f) / 255.f; // += cache.y;
@@ -197,10 +262,10 @@ void loop(void) {
       }
       
       I2CIP::DeviceGroup* dg_rotary = modules[MODULE]->operator[]("SEESAW");
-      if(dg_rotary != nullptr && dg_rotary->numdevices > 0) {
-        RotaryEncoder* rotary = (RotaryEncoder*)(dg_rotary->devices[0]); // Use first device
+      if(dg_rotary != nullptr && dg_rotary->getNumDevices() > 0) {
+        RotaryEncoder* rotary = (RotaryEncoder*)(dg_rotary->getDevice(0)); // Use first device
         if(rotary != nullptr) {
-          i2cip_errorlevel_t errlev_rotary = modules[MODULE]->operator()<Seesaw>(rotary, true, _i2cip_args_io_default, DebugJsonBreakpoints);
+          i2cip_errorlevel_t errlev_rotary = modules[MODULE]->operator()<Seesaw>(rotary->getFQA(), true, _i2cip_args_io_default, DebugJsonBreakpoints);
           if(errlev_rotary == I2CIP_ERR_NONE) {
             i2cip_rotaryencoder_t cache = rotary->getCache();
 
@@ -239,13 +304,13 @@ void loop(void) {
               }
             }
 
-            DebugJson::telemetry(rotary->getLastRX(), cache.encoder, "encoder");
+            // DebugJson::telemetry(rotary->getLastRX(), cache.encoder, "encoder");
             DebugJson::telemetry(rotary->getLastRX(), position, "position");
             DebugJson::telemetry(rotary->getLastRX(), cache.button, "button");
-            DebugJson::telemetry(rotary->getLastRX(), ((float)peapod_pwm1 / 255), "peapod_pwm1");
-            DebugJson::telemetry(rotary->getLastRX(), ((float)peapod_pwm2 / 255), "peapod_pwm2");
-            DebugJson::telemetry(rotary->getLastRX(), peapod_toggle, "peapod_toggle");
-            DebugJson::telemetry(rotary->getLastRX(), peapod_out, "peapod_out");
+            // DebugJson::telemetry(rotary->getLastRX(), ((float)peapod_pwm1 / 255), "peapod_pwm1");
+            // DebugJson::telemetry(rotary->getLastRX(), ((float)peapod_pwm2 / 255), "peapod_pwm2");
+            // DebugJson::telemetry(rotary->getLastRX(), peapod_toggle, "peapod_toggle");
+            // DebugJson::telemetry(rotary->getLastRX(), peapod_out, "peapod_out");
             
             // Overwrite 7Seg Args
             seg_mode = SEG_UINT;
@@ -270,7 +335,7 @@ void loop(void) {
       seg_mode = SEG_SNAKE;
     }
     // 7SEG: Off-Module (MCU Featherwing/Shield) Multi-Status Display: Rotary, else SHT45, else Snake
-    i2cip_errorlevel_t errlev_7seg = modules[MODULE]->operator()<HT16K33>(ht16k33, true, args_7seg, DebugJsonOut);
+    i2cip_errorlevel_t errlev_7seg = modules[MODULE]->operator()<HT16K33>(ht16k33->getFQA(), true, args_7seg, DebugJsonOut);
 
     // PeaPod Stuff
     controlPin<PEAPOD_PIN_TOGGLE>(peapod_toggle);
