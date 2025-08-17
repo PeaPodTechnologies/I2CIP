@@ -72,13 +72,16 @@ void loop(void) {
     FSM::Chronos.set(last); // Update chronograph and do event/interval conditionals & callbacks(?)
   #endif
 
+  while(Serial.available() > 0) { // With baud 115200, this should not block
+    DebugJson::update(Serial, I2CIP::commandRouter);
+  }
+
   if(millis() - lastHeartbeat >= HEARTBEAT_DELAY) {
     DebugJson::heartbeat(millis(), Serial);
     DebugJson::revision(I2CIP_REVISION, Serial);
+    DebugJson::telemetry(millis(), fps, "fps", Serial);
     lastHeartbeat = millis();
   }
-
-  DebugJson::update(Serial, I2CIP::commandRouter);
   
   #ifndef HARDSTART
     // 1. MUX & EEPROM: Ping and load devices
