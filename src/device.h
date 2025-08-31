@@ -4,6 +4,8 @@
 #include <Arduino.h>
 #include <Wire.h>
 
+#include <ArduinoJson.h>
+
 #include "fqa.h"
 #include "mux.h"
 

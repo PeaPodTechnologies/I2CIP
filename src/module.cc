@@ -146,6 +146,7 @@ void DeviceGroup::remove(Device* device) {
 bool DeviceGroup::contains(Device* device) const {
   if(device == nullptr || (device->getID() != this->key && strcmp(device->getID(), this->key) != 0)) return false;
   for(int i = 0; i < this->numdevices; i++) {
+    if(this->devices[i] == nullptr) continue;
     if(this->devices[i] == device || this->devices[i]->getFQA() == device->getFQA()) return true;
   }
   return false;
@@ -433,7 +434,7 @@ DeviceGroup* Module::addEmptyGroup(const char* id) {
   #endif
 
   // Insert into HashTable
-  HashTableEntry<DeviceGroup>* entry = this->devicegroups.set(id, group);
+  HashTableEntry<DeviceGroup>* entry = this->devicegroups.set(group->key, group);
   return entry != nullptr ? entry->value : nullptr;
 }
 
@@ -1094,7 +1095,7 @@ i2cip_errorlevel_t I2CIP::Module::operator()(Device* d, bool update, i2cip_args_
     I2CIP_ERR_BREAK(errlev); // Critical
 
     // Do Output, then Input
-    if(d->getOutput() != nullptr && args.s != nullptr) {
+    if(d->getOutput() != nullptr && (args.s != nullptr || args.b != nullptr)) {
       // #ifdef I2CIP_DEBUG_SERIAL
       //   DEBUG_DELAY();
       //   I2CIP_DEBUG_SERIAL.print(F("Output Set:\n"));

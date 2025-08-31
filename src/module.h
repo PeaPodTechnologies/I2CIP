@@ -6,6 +6,8 @@
 #include <Arduino.h>
 #include <Wire.h>
 
+#include <ArduinoJson.h>
+
 #include "device.h"
 #include "interface.h"
 #include "eeprom.h"

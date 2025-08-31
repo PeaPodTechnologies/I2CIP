@@ -22,9 +22,11 @@ template <typename T> class HashTableEntry {
 
     String toString(void) const {
       String str;
-      str += "{ ";
+      str += "{ '";
       str += this->key;
-      str += " : ";
+      str += "' @0x";
+      str += String((uintptr_t)this->key, HEX);
+      str += " : 0x";
       str += String((uintptr_t)this->value, HEX);
       str += " }";
       if(this->next != nullptr) {

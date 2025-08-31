@@ -9,6 +9,12 @@
       "name": "Wire"
     }
   ],
+  "build": {
+    "srcFilter": [
+      "+<*>",
+      "-<main.cc>"
+    ]
+  },
   "frameworks": ["arduino"],
   "platforms": ["espressif32", "atmelavr"]
 }

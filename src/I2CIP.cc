@@ -1,6 +1,6 @@
 #include "I2CIP.hpp"
 
-#include <ArduinoJson.h>
+#include <DebugJson.h>
 
 using namespace I2CIP;
 
@@ -199,7 +199,9 @@ bool JsonModule::parseEEPROMContents(const char* buffer) {
 
       #ifdef I2CIP_DEBUG_SERIAL
         DEBUG_DELAY();
-        I2CIP_DEBUG_SERIAL.print(_F("-> Group Complete!\n"));
+        I2CIP_DEBUG_SERIAL.print(_F("-> Group Complete! "));
+        I2CIP_DEBUG_SERIAL.print(dg->getNumDevices());
+        I2CIP_DEBUG_SERIAL.println(_F(" Devices Saved"));
         DEBUG_DELAY();
       #endif
     }
