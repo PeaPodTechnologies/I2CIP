@@ -1,6 +1,6 @@
 #include "mux.h"
 
-#include "debug.h"
+#include "debug_i2cip.h"
 
 // #define I2CIP_DEBUG_SERIAL Serial // just this once
 #ifndef DEBUG_DELAY

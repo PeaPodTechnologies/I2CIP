@@ -1,10 +1,14 @@
 #ifndef I2CIP_TESTS_TEST_H_
 #define I2CIP_TESTS_TEST_H_
 
-#include "../src/debug.h"
+#include <Arduino.h>
+
 #include <DebugJson.h>
+
 #include <I2CIP.hpp>
+
 #include <SHT45.h>
+#include <K30.h>
 #include <HT16K33.h>
 #include <PCA9685.h>
 #include <JHD1313.h>
@@ -15,7 +19,7 @@
 // TESTING PARAMETERS
 #define WIRENUM 0x00
 #define MODULE  0x00
-#define I2CIP_TEST_BUFFERSIZE 100 // Need to limit this, or else crash; I think Unity takes up a lot of stack space
+#define I2CIP_TEST_BUFFERSIZE 256 // Need to limit this, or else crash; I think Unity takes up a lot of stack space
 
 #define I2CIP_TEST_EEPROM_BYTE0  '[' // This should be the first character of ANY valid SPRT EEPROM
 #define I2CIP_TEST_EEPROM_BYTE1 '{'
@@ -24,7 +28,7 @@
 #define I2CIP_TEST_EEPROM_OVERWRITE 1 // Uncomment to enable EEPROM overwrite test
 
 // #define EEPROM_JSON_CONTENTS_TEST I2CIP_EEPROM_DEFAULT
-#define EEPROM_JSON_CONTENTS_TEST {"[{\"24LC32\":[80],\"SHT45\":[" STR(I2CIP_SHT45_ADDRESS) "],\"SEESAW\":[" STR(I2CIP_SEESAW_ADDRESS) "]},{\"PCA9685\":[" STR(I2CIP_PCA9685_ADDRESS) "],\"JHD1313\":[" STR(I2CIP_JHD1313_ADDRESS) "]},{\"MCP23017\":[" STR(I2CIP_MCP23017_ADDRESS) "]}]"}
+#define EEPROM_JSON_CONTENTS_TEST {"[{\"24LC32\":[80],\"SHT45\":[" STR(I2CIP_SHT45_ADDRESS) "],\"SEESAW\":[" STR(I2CIP_SEESAW_ADDRESS) "]},{\"PCA9685\":[" STR(I2CIP_PCA9685_ADDRESS) "],\"JHD1313\":[" STR(I2CIP_JHD1313_ADDRESS) "],\"K30\":[" STR(I2CIP_K30_ADDRESS) "]},{\"MCP23017\":[" STR(I2CIP_MCP23017_ADDRESS) "]}]"}
 
 // #ifdef ESP32
 //   SET_LOOP_TASK_STACK_SIZE( 32*1024 ); // Thanks to: https://community.platformio.org/t/esp32-stack-configuration-reloaded/20994/8; https://github.com/espressif/arduino-esp32/pull/5173
@@ -39,6 +43,8 @@ class TestModule : public JsonModule {
       DeviceGroup* dg = DeviceGroup::create<EEPROM>(id);
       if(dg != nullptr) return dg;
       dg = DeviceGroup::create<SHT45>(id);
+      if(dg != nullptr) return dg;
+      dg = DeviceGroup::create<K30>(id);
       if(dg != nullptr) return dg;
       dg = DeviceGroup::create<HT16K33>(id);
       if(dg != nullptr) return dg;
@@ -157,7 +163,7 @@ class TestModule : public JsonModule {
 
 // #define MAIN_DEBUG_SERIAL Serial
 #define MAIN_DEBUG_SERIAL DebugJsonOut
-#define CYCLE_DELAY 10 // Max FPS 100Hz
+#define CYCLE_DELAY 1000 // Max FPS 100Hz
 #define HEARTBEAT_DELAY 1000 // Max FPS 1Hz
 #define EPSILON_TEMPERATURE 0.5f
 #define EPSILON_HUMIDITY 2.0f // 0.11f

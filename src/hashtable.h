@@ -3,7 +3,7 @@
 
 // Constants
 #define HASHTABLE_OFFSET 31
-#define HASHTABLE_SLOTS  8    // Number of unique ID slots to include in the hashtable (for optimization purposes)
+#define HASHTABLE_SLOTS  16    // Number of unique ID slots to include in the hashtable (for optimization purposes)
 
 // Basic Hash Table implementation.
 
@@ -75,11 +75,11 @@ template <typename T> class HashTable {
       String str = "HashTable [";
       bool content = false;
       for (uint8_t i = 0; i < HASHTABLE_SLOTS; i++) {
-        if (this->hashtable[i] != nullptr) {
-          if(content) str += " ; ";
-          content = true;
-          str += this->hashtable[i]->toString();
-        }
+        if (this->hashtable[i] == nullptr) continue;
+
+        if(content) str += " ; ";
+        content = true;
+        str += this->hashtable[i]->toString();
       }
       if(!content) {
         str += "Empty";

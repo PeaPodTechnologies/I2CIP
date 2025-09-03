@@ -7,7 +7,7 @@
 #ifndef I2CIP_BST_T_
 #define I2CIP_BST_T_
 
-#include "debug.h"
+#include "debug_i2cip.h"
 
 // BST NODE
 

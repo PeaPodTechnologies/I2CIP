@@ -1,6 +1,6 @@
 #include "device.h"
 
-#include "debug.h"
+#include "debug_i2cip.h"
 
 using namespace I2CIP;
 

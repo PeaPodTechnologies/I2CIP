@@ -17,8 +17,6 @@
 #include "hashtable.h"
 #include "module.h"
 
-#include "debug.h"
-
 #define I2CIP_REVISION 0
 
 namespace I2CIP {

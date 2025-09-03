@@ -1,6 +1,6 @@
 #include "fqa.h"
 
-#include "debug.h"
+#include "debug_i2cip.h"
 
 // #define BEGIN_WIRE_EVERY_TIME 1 // Uncomment to begin wire every time
 

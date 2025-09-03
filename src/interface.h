@@ -5,8 +5,6 @@
 
 #include "device.h"
 
-#include "debug.h" // I want interfaces to be debuggable
-
 namespace I2CIP {
   /**
    * An I2CIP peripheral used for input/state "getting".

@@ -2,7 +2,7 @@
 #include <unity.h>
 
 #include "../config.h"
-#include <debug.h>
+#include <debug_i2cip.h>
 
 #include <eeprom.h>
 

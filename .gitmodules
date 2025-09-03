@@ -25,3 +25,6 @@
 [submodule "lib/I2CIP-MCP23017"]
 	path = lib/I2CIP-MCP23017
 	url = https://github.com/PeaPodTechnologies/I2CIP-MCP23017
+[submodule "lib/I2CIP-K30"]
+	path = lib/I2CIP-K30
+	url = https://github.com/PeaPodTechnologies/I2CIP-K30

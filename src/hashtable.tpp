@@ -6,9 +6,9 @@
 
 #include <Arduino.h>
 
-#include "debug.h"
+#include "debug_i2cip.h"
 
-inline static uint8_t hash(const char* s) {
+inline static uint8_t _hash_function(const char* s) {
   unsigned index;
   for (index = 0; *s != '\0'; s++) {
     index = *s + HASHTABLE_OFFSET * index;
@@ -32,6 +32,7 @@ template <typename T> HashTableEntry<T>::~HashTableEntry() {
   // Free our key then trigger the next entry
   // delete this->key;
   delete(this->value);
+  this->value = nullptr;
   delete(this->next);
 }
 
@@ -47,6 +48,7 @@ template <typename T> HashTable<T>::~HashTable() {
   // Free all allocated entries
   for (uint8_t i = 0; i < HASHTABLE_SLOTS; i++) {
     delete(this->hashtable[i]);
+    this->hashtable[i] = nullptr;
   }
 }
 
@@ -81,7 +83,7 @@ template <typename T> HashTableEntry<T>* HashTable<T>::set(const char* key, T* v
     return head;
   }
   // No match, allocate new; point "next" to the top entry
-  uint8_t index = hash(key);
+  uint8_t index = _hash_function(key);
   head = new HashTableEntry<T>(key, value, hashtable[index]);
 
   // If allocation was successful:
@@ -100,12 +102,17 @@ template <typename T> HashTableEntry<T>* HashTable<T>::get(const char* key) {
     I2CIP_DEBUG_SERIAL.println(key);
     DEBUG_DELAY();
   #endif
-  HashTableEntry<T>* np;
-  for (np = hashtable[hash(key)]; np != nullptr; np = np->next) {
+  if(key == nullptr) return nullptr;
+  uint8_t index = _hash_function(key);
+  if(index >= HASHTABLE_SLOTS) return nullptr;
+  HashTableEntry<T>* np = this->hashtable[index];
+  do {
+    if (np == nullptr || np->key == nullptr) break;
     if (strcmp(key, np->key) == 0) {
       return np; /* found */
     }
-  }
+    np = np->next;
+  } while (np != nullptr);
   return nullptr; /* not found */
 }
 
@@ -118,8 +125,10 @@ template <typename T> bool HashTable<T>::remove(const char* key) {
   #endif
 
   // Find ptr.next.key == key
-  uint8_t index = hash(key);
+  uint8_t index = _hash_function(key);
   HashTableEntry<T>* ptr = hashtable[index];
+
+  if(ptr == nullptr) return false;
 
   // Check top-level
   if (strcmp(key, ptr->key) == 0) {

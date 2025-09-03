@@ -102,7 +102,7 @@ bool JsonModule::parseEEPROMContents(const char* buffer) {
         break;
       }
 
-      uint8_t numfqas = kv.value().size();
+      uint8_t numfqas = kv.value().as<JsonArray>().size();
       if(numfqas == 0) {
         #ifdef I2CIP_DEBUG_SERIAL
           DEBUG_DELAY();
@@ -130,6 +130,7 @@ bool JsonModule::parseEEPROMContents(const char* buffer) {
           DEBUG_DELAY();
         #endif
         fqas[i] = createFQA(this->getWireNum(), this->getModuleNum(), (uint8_t)busnum, address);
+        i++;
       }
 
       #ifdef I2CIP_DEBUG_SERIAL

@@ -7,7 +7,7 @@
 #include "device.h"
 #include "interface.h"
 
-#define I2CIP_EEPROM_SIZE     100   // EEPROM size in bytes
+#define I2CIP_EEPROM_SIZE     256   // EEPROM size in bytes
     // SPRT EEPROM address (0x50)
 #define I2CIP_EEPROM_ADDR     80
 #define I2CIP_EEPROM_TIMEOUT  100   // If we're going to crash on a module ping fail, we should wait a bit

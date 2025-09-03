@@ -6,7 +6,7 @@
 #ifndef I2CIP_MODULE_T_
 #define I2CIP_MODULE_T_
 
-#include "debug.h"
+#include "debug_i2cip.h"
 
 template <class C, typename std::enable_if<std::is_base_of<Device, C>::value, int>::type> I2CIP::DeviceGroup* I2CIP::DeviceGroup::create(i2cip_id_t id) { 
   #ifdef I2CIP_DEBUG_SERIAL

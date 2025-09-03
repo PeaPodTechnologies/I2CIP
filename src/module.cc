@@ -1,6 +1,6 @@
 #include "module.h"
 
-#include "debug.h"
+#include "debug_i2cip.h"
 
 // #ifndef I2CIP_MODULE_T_FIX
 // #define I2CIP_MODULE_T_FIX
