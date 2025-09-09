@@ -116,7 +116,7 @@ namespace I2CIP {
         I2CIP_DEBUG_SERIAL.print(F("-> MUX "));
         I2CIP_DEBUG_SERIAL.print(m, HEX);
         I2CIP_DEBUG_SERIAL.print(F(" SET BUS "));
-        I2CIP_DEBUG_SERIAL.print(bus, BIN);
+        I2CIP_DEBUG_SERIAL.print(bus);
         I2CIP_DEBUG_SERIAL.print(F(" WRITE {0x"));
         I2CIP_DEBUG_SERIAL.print(I2CIP_MODULE_TO_MUXADDR(m), HEX);
         I2CIP_DEBUG_SERIAL.print(F(", 0b"));

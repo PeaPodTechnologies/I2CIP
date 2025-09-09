@@ -174,7 +174,7 @@ namespace I2CIP {
 
       uint8_t getWireNum(void) const { return this->wire; }
       uint8_t getModuleNum(void) const { return this->mux; }
-      inline operator const EEPROM&() const { return *this->eeprom; }
+      inline operator EEPROM&() const { return *this->eeprom; }
 
       String toString(void) const { return this->devicegroups.toString(); }
       void toJSON(JsonObject obj, bool pingFilter = false) const;

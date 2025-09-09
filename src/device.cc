@@ -5,7 +5,7 @@
 using namespace I2CIP;
 
 // Globals
-i2cip_args_io_t I2CIP::_i2cip_args_io_default = { nullptr, nullptr, nullptr };
+i2cip_args_io_t I2CIP::_i2cip_args_io_default = { true, nullptr, nullptr, nullptr };
 
 i2cip_errorlevel_t Device::requestFromRegister(const i2cip_fqa_t& fqa, size_t& len, const uint8_t& reg, bool sendStop) {
   // send internal address; this mode allows sending a repeated start to access
@@ -773,18 +773,18 @@ i2cip_errorlevel_t Device::readRegister(const i2cip_fqa_t& fqa, const uint16_t& 
 
 i2cip_errorlevel_t Device::ping(bool resetbus, bool setbus) { i2cip_errorlevel_t errlev = Device::ping(this->fqa, resetbus, setbus); if(errlev == I2CIP_ERR_HARD) { this->unready(); } return errlev; }
 i2cip_errorlevel_t Device::pingTimeout(bool setbus, bool resetbus) { i2cip_errorlevel_t errlev = Device::pingTimeout(this->fqa, setbus, resetbus, this->timeout); if(errlev == I2CIP_ERR_HARD) { this->unready(); } return errlev; }
-i2cip_errorlevel_t Device::writeByte(const uint8_t& value, bool setbus, bool resetbus)  { return Device::writeByte(this->fqa, value, setbus, resetbus); }
-i2cip_errorlevel_t Device::write(const uint8_t* buffer, size_t len, bool setbus, bool resetbus) { return Device::write(this->fqa, buffer, len, setbus, resetbus); }
-i2cip_errorlevel_t Device::writeRegister(const uint8_t& reg, const uint8_t& value, bool setbus, bool resetbus) { return Device::writeRegister(this->fqa, reg, value, setbus, resetbus); }
-i2cip_errorlevel_t Device::writeRegister(const uint16_t& reg, const uint8_t& value, bool setbus, bool resetbus) { return Device::writeRegister(this->fqa, reg, value, setbus, resetbus); }
-i2cip_errorlevel_t Device::writeRegister(const uint8_t& reg, uint8_t* buffer, size_t len, bool setbus, bool resetbus) { return Device::writeRegister(this->fqa, reg, buffer, len, setbus, resetbus); }
-i2cip_errorlevel_t Device::writeRegister(const uint16_t& reg, uint8_t* buffer, size_t len, bool setbus, bool resetbus) { return Device::writeRegister(this->fqa, reg, buffer, len, setbus, resetbus); }
-i2cip_errorlevel_t Device::read(uint8_t* dest, size_t& len, bool nullterminate, bool resetbus, bool setbus) { return Device::read(this->fqa, dest, len, nullterminate, resetbus, setbus); }
-i2cip_errorlevel_t Device::readByte(uint8_t& dest, bool resetbus, bool setbus) { return Device::readByte(this->fqa, dest, resetbus, setbus); }
-i2cip_errorlevel_t Device::readWord(uint16_t& dest, bool resetbus, bool setbus) { return Device::readWord(this->fqa, dest, resetbus, setbus); }
-i2cip_errorlevel_t Device::readRegister(const uint8_t& reg, uint8_t* dest, size_t& len, bool nullterminate, bool resetbus, bool setbus) { return Device::readRegister(this->fqa, reg, dest, len, nullterminate, resetbus, setbus); }
-i2cip_errorlevel_t Device::readRegister(const uint16_t& reg, uint8_t* dest, size_t& len, bool nullterminate, bool resetbus, bool setbus) { return Device::readRegister(this->fqa, reg, dest, len, nullterminate, resetbus, setbus); }
-i2cip_errorlevel_t Device::readRegisterByte(const uint8_t& reg, uint8_t& dest, bool resetbus, bool setbus) { return Device::readRegisterByte(this->fqa, reg, dest, resetbus, setbus); }
-i2cip_errorlevel_t Device::readRegisterByte(const uint16_t& reg, uint8_t& dest, bool resetbus, bool setbus) { return Device::readRegisterByte(this->fqa, reg, dest, resetbus, setbus); }
-i2cip_errorlevel_t Device::readRegisterWord(const uint8_t& reg, uint16_t& dest, bool resetbus, bool setbus) { return Device::readRegisterWord(this->fqa, reg, dest, resetbus, setbus);  }
-i2cip_errorlevel_t Device::readRegisterWord(const uint16_t& reg, uint16_t& dest, bool resetbus, bool setbus) { return Device::readRegisterWord(this->fqa, reg, dest, resetbus, setbus); }
+i2cip_errorlevel_t Device::writeByte(const uint8_t& value, bool setbus, bool resetbus) const { return Device::writeByte(this->fqa, value, setbus, resetbus); }
+i2cip_errorlevel_t Device::write(const uint8_t* buffer, size_t len, bool setbus, bool resetbus) const { return Device::write(this->fqa, buffer, len, setbus, resetbus); }
+i2cip_errorlevel_t Device::writeRegister(const uint8_t& reg, const uint8_t& value, bool setbus, bool resetbus) const { return Device::writeRegister(this->fqa, reg, value, setbus, resetbus); }
+i2cip_errorlevel_t Device::writeRegister(const uint16_t& reg, const uint8_t& value, bool setbus, bool resetbus) const { return Device::writeRegister(this->fqa, reg, value, setbus, resetbus); }
+i2cip_errorlevel_t Device::writeRegister(const uint8_t& reg, uint8_t* buffer, size_t len, bool setbus, bool resetbus) const { return Device::writeRegister(this->fqa, reg, buffer, len, setbus, resetbus); }
+i2cip_errorlevel_t Device::writeRegister(const uint16_t& reg, uint8_t* buffer, size_t len, bool setbus, bool resetbus) const { return Device::writeRegister(this->fqa, reg, buffer, len, setbus, resetbus); }
+i2cip_errorlevel_t Device::read(uint8_t* dest, size_t& len, bool nullterminate, bool resetbus, bool setbus) const { return Device::read(this->fqa, dest, len, nullterminate, resetbus, setbus); }
+i2cip_errorlevel_t Device::readByte(uint8_t& dest, bool resetbus, bool setbus) const { return Device::readByte(this->fqa, dest, resetbus, setbus); }
+i2cip_errorlevel_t Device::readWord(uint16_t& dest, bool resetbus, bool setbus) const { return Device::readWord(this->fqa, dest, resetbus, setbus); }
+i2cip_errorlevel_t Device::readRegister(const uint8_t& reg, uint8_t* dest, size_t& len, bool nullterminate, bool resetbus, bool setbus) const { return Device::readRegister(this->fqa, reg, dest, len, nullterminate, resetbus, setbus); }
+i2cip_errorlevel_t Device::readRegister(const uint16_t& reg, uint8_t* dest, size_t& len, bool nullterminate, bool resetbus, bool setbus) const { return Device::readRegister(this->fqa, reg, dest, len, nullterminate, resetbus, setbus); }
+i2cip_errorlevel_t Device::readRegisterByte(const uint8_t& reg, uint8_t& dest, bool resetbus, bool setbus) const { return Device::readRegisterByte(this->fqa, reg, dest, resetbus, setbus); }
+i2cip_errorlevel_t Device::readRegisterByte(const uint16_t& reg, uint8_t& dest, bool resetbus, bool setbus) const { return Device::readRegisterByte(this->fqa, reg, dest, resetbus, setbus); }
+i2cip_errorlevel_t Device::readRegisterWord(const uint8_t& reg, uint16_t& dest, bool resetbus, bool setbus) const { return Device::readRegisterWord(this->fqa, reg, dest, resetbus, setbus);  }
+i2cip_errorlevel_t Device::readRegisterWord(const uint16_t& reg, uint16_t& dest, bool resetbus, bool setbus) const { return Device::readRegisterWord(this->fqa, reg, dest, resetbus, setbus); }

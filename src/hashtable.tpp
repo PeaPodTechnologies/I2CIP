@@ -1,3 +1,10 @@
+#ifndef I2CIP_HASHTABLE_H_
+#error __FILE__ should only be included AFTER <hashtable.h>
+// #include <comparators.h>
+#endif
+
+#ifdef I2CIP_HASHTABLE_H_
+
 #ifndef I2CIP_HASHTABLE_T_
 #define I2CIP_HASHTABLE_T_
 
@@ -152,5 +159,7 @@ template <typename T> bool HashTable<T>::remove(const char* key) {
   // Not found
   return false;
 }
+
+#endif
 
 #endif

@@ -947,7 +947,9 @@ void Module::unready(void) {
   for(uint8_t g = 0; g < HASHTABLE_SLOTS; g++) {
     HashTableEntry<DeviceGroup>* entry = this->devicegroups.hashtable[g];
     do {
-      if(entry != nullptr && entry->value->numdevices > 0) {
+      if(entry == nullptr) break;
+      if(entry->value == nullptr) { entry = entry->next; continue; }
+      if(entry->value->numdevices > 0) {
         #ifdef I2CIP_DEBUG_SERIAL
           DEBUG_DELAY();
           I2CIP_DEBUG_SERIAL.print(F("-> Unreadying DeviceGroup '"));
@@ -1088,6 +1090,9 @@ i2cip_errorlevel_t I2CIP::Module::operator()(Device* d, bool update, i2cip_args_
   String m = fqaToString(fqa);
   m += " '"; m += d->getID(); m += "' ";
 
+  bool doOutput = (d->getOutput() != nullptr) && (args.s != nullptr || args.b != nullptr);
+  bool doInput = (d->getInput() != nullptr) && args.g;
+
   unsigned long now = millis();
   i2cip_errorlevel_t errlev = I2CIP_ERR_NONE;
   if(update) {
@@ -1095,7 +1100,7 @@ i2cip_errorlevel_t I2CIP::Module::operator()(Device* d, bool update, i2cip_args_
     I2CIP_ERR_BREAK(errlev); // Critical
 
     // Do Output, then Input
-    if(d->getOutput() != nullptr && (args.s != nullptr || args.b != nullptr)) {
+    if(doOutput) {
       // #ifdef I2CIP_DEBUG_SERIAL
       //   DEBUG_DELAY();
       //   I2CIP_DEBUG_SERIAL.print(F("Output Set:\n"));
@@ -1103,7 +1108,7 @@ i2cip_errorlevel_t I2CIP::Module::operator()(Device* d, bool update, i2cip_args_
       // #endif
       errlev = d->set(args.s, args.b);
     }
-    if(errlev == I2CIP_ERR_NONE && (d->getInput() != nullptr)) {
+    if(errlev == I2CIP_ERR_NONE && doInput) {
       // #ifdef I2CIP_DEBUG_SERIAL
       //   DEBUG_DELAY();
       //   I2CIP_DEBUG_SERIAL.print(F("Input Get:\n"));
@@ -1132,13 +1137,13 @@ i2cip_errorlevel_t I2CIP::Module::operator()(Device* d, bool update, i2cip_args_
   m += ('s');
 
   if(update && errlev == I2CIP_ERR_NONE) {
-    if(d->getInput() != nullptr) {
+    if(doInput) {
       m += (F(" INPGET ")); 
       #ifdef I2CIP_INPUTS_USE_TOSTRING
         m += (d->getInput()->printCache());
       #endif
     }
-    if(d->getOutput() != nullptr) {
+    if(doOutput) {
       m += (F(" OUTSET "));
       #ifdef I2CIP_OUTPUTS_USE_TOSTRING
         m += ((args.s == nullptr) ? "NULL" : (d->getOutput()->valueToString()));
