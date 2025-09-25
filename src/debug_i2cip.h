@@ -4,7 +4,7 @@
 
 #ifndef DEBUG
 // Uncomment to enable debug
-#define DEBUG 1
+// #define DEBUG 1
 #endif
 
 // CROSS-LIBRARY DEBUG COMPATIBILITY
