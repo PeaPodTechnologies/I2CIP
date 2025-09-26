@@ -28,3 +28,6 @@
 [submodule "lib/I2CIP-K30"]
 	path = lib/I2CIP-K30
 	url = https://github.com/PeaPodTechnologies/I2CIP-K30
+[submodule "lib/I2CIP-ADS1115"]
+	path = lib/I2CIP-ADS1115
+	url = https://github.com/PeaPodTechnologies/I2CIP-ADS1115
