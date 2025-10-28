@@ -166,7 +166,7 @@ The I\textsuperscript{2}C Specification can be imagined as an incomplete analogu
 
 A number of useful definitions have emerged from the above scoping:
 \begin{enumerate}
-    \item \textbf{Switch}: An I\textsuperscript{2}C target device that acts as a repeater for bitwise multiplexed output busses.
+    \item \textbf{Switch}: An I\textsuperscript{2}C target device that acts as a repeater for bitwise-multiplexed output busses.
     \item \textbf{Subnetwork}: A specific output bus of a specific switch.
     \item \textbf{Intra-Network}: A general term referring to all routable targets (not including switches) on all subnetworks across all of a controller's I\textsuperscript{2}C busses.
     \item \textbf{Fully-Qualified Address (FQA)}: A unique intra-network routing location identifier, encoding: a specific I\textsuperscript{2}C bus, and; a specific subnetwork (i.e. switch and bus), and; a target's I\textsuperscript{2}C address.
@@ -180,7 +180,7 @@ A number of useful definitions have emerged from the above scoping:
 
 \subsection{Problem Statement}\label{sec:opportunity}
 
-
+Formulate a hardware design specification for a bus-switched intra-network of hot-swap modules of I\textsuperscript{2}C targets, and a software library of intra-network communications protocols for fully-qualified addressing and Quality-of-Service 2 packet delivery, including dedicated routing EEPROM targets for module lifecycle management and configuration.
 
 \subsection{Solution Requirements}\label{sec:requirements}
 
