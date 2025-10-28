@@ -16,7 +16,7 @@
 
 % Headers
 \pagestyle{fancy}
-\lhead{I${}^2$CIP - Requirements}
+\lhead{I\textsuperscript{2}CIP - Requirements}
 \rhead{PeaPod Technologies Inc.}
 
 % Metric counter, referencing commands
@@ -32,11 +32,11 @@
     \begin{center}
         \vspace*{1.2cm}
 
-        \textbf{\large{I${}^2$CIP: Inter-Integrated Circuit Intra-networking Protocols}}
+        \textbf{\large{I\textsuperscript{2}CIP: Inter-Integrated Circuit Intra-networking Protocols}}
 
         \vspace{0.5cm}
 
-        Requirements for: a Hardware Design Specification for Bus-Switched Hot-Swap Modules of I${}^2$C Targets, and; a Software Library of Intra-Network Communications Protocols for Rapid Implementation of Plug-and-Play Embedded Systems\\
+        Requirements for a Hardware Design Specification for a Bus-Switched Intra-Network of Hot-Swap Modules of I\textsuperscript{2}C Targets and a Software Library of Intra-Network Communications Protocols for Rapid Implementation of Plug-and-Play Embedded Systems\\
 
         \vfill
         \scriptsize{
@@ -60,75 +60,91 @@
 \newpage
 
 \section{Introduction}\label{sec:intro}
+\setstretch{1.25}
 
 \subsection{Purpose}\label{sec:purpose}
 
 The purpose of this document is to two-fold:
 
-Outline the categorical requirements (Section \ref{sec:requirements}) of an intra-network design specification for hot-swap bus-switched modules of plug-and-play I${}^2$C devices, and a software library for communications protocols
+\begin{enumerate}
+    \item Outline the categorical requirements (Section \ref{sec:requirements}) of an intra-network design specification for hot-swap bus-switched modules of plug-and-play I\textsuperscript{2}C devices, and a software library for communications protocols
 
-Detail the scoped requirements (Section \ref{sec:scope}) for the design and protocols as-proposed by PeaPod Technologies Inc., namely \textbf{I${}^2$CIP}.
+    \item Detail the scoped requirements (Section \ref{sec:scope}) for the design and protocols as-proposed by PeaPod Technologies Inc., namely \textbf{I\textsuperscript{2}CIP}.
+\end{enumerate}
 
 % conditions:
 
 % - Dynamic Routing: ***.*** This enables physical “plug-and-play” functionality.
 % - Modularity: ***.*** This enables lifecycle management for physical collections of devices, and informs dynamic routing.
 
-\subsection{Design Paradigm}\label{sec:structure}
+\clearpage
+
+\subsection{Design Paradigm}\label{sec:paradigm}
 
 \input{../tex/DesignParadigm.tex}
 
 \clearpage
 
-
 \subsection{Scope and Justification}\label{sec:scope}
 
-\subsubsection{I${}^2$C Specification}
+\subsubsection{I\textsuperscript{2}C Specification}
 
-From the I${}^2$C Specification Version 7 (2021, \textit{NXP Semiconductors}): 8-bit-oriented one-ended (controller-driven) bidirectional (read \& write) serial communication over a 2-wire bus (data "SDA" \& clock "SCL") for integrated circuit "devices" ("targets"), including (but not limited to):
+From the I\textsuperscript{2}C Specification Version 7 (2021, \textit{NXP Semiconductors}): an 8-bit-oriented one-ended (``controller''-driven) bidirectional (read \& write) serial communication over a 2-wire bus (data ``SDA'' \& clock ``SCL'') for integrated circuit devices (``targets''), including (but not limited to):
 
 \begin{itemize}
-    \item \textbf{Remote Multi-Channel Ports}: GPIO banks, internal-clock PWM drivers, A/D and D/A converters, etc.
-    \item \textbf{System Devices}: real-time clocks, LCD screens, etc.
+    \item \textbf{Remote Multi-Channel Ports}: GPIO banks, internal-clock PWM drivers, Analog-to-Digital and Digital-to-Analog converters, etc.
+    \item \textbf{System Devices}: real-time clocks, LCD screens, microcontrollers, etc.
     \item \textbf{Data Storage Devices}: EEPROM, SRAM, FRAM, etc.
-    \item \textbf{Digital Sensors}: temperature, light, speed, pressure, etc.
+    \item \textbf{Digital Sensors}: temperature, humidity, light, acceleration, pressure, etc.
 \end{itemize}
 
-The I${}^2$C Specification can be imagined as an incomplete analogue to the Internet's OSI Model, with the following layers defined:
+\subsubsection{OSI Model Analogue for I\textsuperscript{2}C}
+
+The I\textsuperscript{2}C Specification can be imagined as an incomplete analogue to the Internet's OSI Model, with the following layers defined:
 
 \begin{enumerate}[label=SC\arabic*., ref=SC\arabic*]
-    \item\label{sc:1} \textbf{Physical Layer} - Compare to RJ45
+    \item\label{sc:1} \textbf{Physical Layer}
     \begin{enumerate}[ref=SC1\alph*]
-        \item\label{sc:1a} \textbf{VDD \& GND} - +5 VDC
-        \item\label{sc:1b} \textbf{SDA \& SCL} - Pull-Up Bias Resistors (10 k$\Omega$)
+        \item\label{sc:1a} \textbf{VDD \& GND}: +5 VDC
+        \item\label{sc:1b} \textbf{SDA \& SCL}: Pull-Up Bias Resistors (e.g. 10 k$\Omega$)
     \end{enumerate}
-    \item\label{sc:2} \textbf{Data Link Layer} - Compare to Ethernet
+    \item\label{sc:2} \textbf{Data Link Layer}
     \begin{enumerate}[ref=SC2\alph*]
-        \item\label{sc:2a} \textbf{Controller} - Bus Speed Control, Start \& Stop Conditions, Multi-Controller Arbitration
-        \item\label{sc:2b} \textbf{Targets} - 7-bit Device Addressing, Acknowledgement ("ACK")
-        \item\label{sc:2c} \textbf{Packet Structure} Read \& Write Flags, 8-/16-bit Register Addressing, Byte-Stream Data
+        \item\label{sc:2a} \textbf{Controller}: Bus Speed Control, Start \& Stop Conditions, Multi-Controller Arbitration
+        \item\label{sc:2b} \textbf{Targets}: 7-bit Device Addressing, Acknowledgement (``ACK'')
+        \item\label{sc:2c} \textbf{Packet Structure}: ``Read'' \& ``Write'' Flags, 8-/16-bit Register Addressing, Byte-Stream Data
     \end{enumerate}
 \end{enumerate}
 
-The \textbf{Network} (data routing), \textbf{Transport} (data delivery), and \textbf{Session} (transmission context) layers of the OSI model analogy are not defined by the I${}^2$C Specification. The following proposed extensions to the I${}^2$C Specification, the focus of the \textbf{I${}^2$CIP} design, are intended to fill this gap, enabling \textbf{Presentation} and \textbf{Application} layer functionality to be rapidly implemented by developers for embedded systems.
+\hspace{24pt} The \textbf{Network} (data routing), \textbf{Transport} (data delivery), and \textbf{Session} (transmission context) layers of the OSI model analogy are not defined by the I\textsuperscript{2}C Specification. The following proposed extensions to the I\textsuperscript{2}C Specification, the focus of the \textbf{I\textsuperscript{2}CIP} design, are intended to fill this gap, enabling \textbf{Presentation} and \textbf{Application} layer functionality to be rapidly implemented by developers for embedded systems (e.g. control systems).
 
 % TODO: WHy modules?
 % TODO: Use for control systems
 
+\clearpage
+
 \subsubsection{Switched-Bus Intra-Networking}
 
-Suppose an I${}^2$C target device $D$ with $N$ possible unique addresses. An I${}^2$C bus controller can communicate with $N$ uniquely-addressed instantiations of $D$ on one bus without conflict or modification to connections.
+\hspace{24pt} Suppose an I\textsuperscript{2}C target device $D$ with $N$ possible unique addresses. A standard I\textsuperscript{2}C bus controller $C$ can communicate with $N$ uniquely-addressed instantiations of $D$ on each I\textsuperscript{2}C bus without modification to connections or encountering conflict.
 
-Suppose an I${}^2$C target device with $M$ possible unique addresses that acts as a multiplexer and repeater ("switch") for $B$ bitwise-enabled output busses ("subnets"). An I${}^2$C bus controller can communicate with $M * B * N$ independently-addressable instantiations of $D$ across $M * B$ subnets by setting ONE active output bus on each of the $M$ switches (and disabling ALL on the remaining $M - 1$).
+\hspace{24pt} Suppose a type of I\textsuperscript{2}C target device $X$ with $M$ possible unique addresses that acts as a multiplexer and repeater ("switch") for $B$ bitwise-enabled output busses ("subnetworks"). Using this switch device $X$, the I\textsuperscript{2}C bus controller $C$ can communicate with $M * B * N$ independently-addressable instantiations of the target device $D$ across $M * B$ subnetworks by setting ONE active output bus on each of the $M$ switches (and disabling ALL on the remaining $M - 1$).
 
-Example: For $M = 8$ switches with $B = 8$ subnets each, the total number of uniquely-addressable instantiations of $D$ on an I${}^2$CIP intra-network is $8 * 8 * N = 64N$, effectively enabling a 64-fold increase in independently-addressable targets of all types by a single controller.
+\subsubsection{Extended OSI Model for I\textsuperscript{2}CIP}
+
+\hspace{24pt} Supposing $M = 8$ switches with $B = 8$ subnetworks each, the total number of uniquely-addressable instantiations of $D$ on an I\textsuperscript{2}CIP intra-network is $8 * 8 * N = 64N$, effectively enabling a 64-fold increase in independently-addressable targets of all types by a single controller.
+
+\hspace{24pt} For the purposes of effective intra-network communication across switched subnetworks, it is proposed that a ``fully-qualified address'' be implemented at the controller level, comprising routing information that encodes the I\textsuperscript{2}C bus, switch address, and subnetwork number, alongside the target device address, for each target device.
+
+\hspace{24pt} Suppose a dedicated target device $E$ consisting of EEPROM memory containing routing information for all devices on all subnetworks of one switch. If this EEPROM device $E$ is granted a fixed address on a consistent subnetwork on each switch, the controller can reliably retrieve routing information for all devices on all subnetworks of any switch by querying each switch's dedicated EEPROM device.
+
+\hspace{24pt} Together, the EEPROM device $E$, the switch device $X$, and all devices on all subnetworks of the switch $X$ comprise a \textbf{Module}.
 
 % Module = switch + routing table
 
 \begin{enumerate}[label=SC\arabic*., ref=SC\arabic*, resume]
-    \item\label{sc:3} \textbf{Network Layer} - Fully-Qualified Addressing ("FQA") - Compare to IP Addressing
-    \item\label{sc:4} \textbf{Transport Layer} - Switch \& Target Ping and Target Control with Quality-of-Service 2 ("only-once" delivery) via ACK - Compare to TCP
-    \item\label{sc:5} \textbf{Session Layer} - Target Discovery \& Module Configuration via Dedicated EEPROM Target
+    \item\label{sc:3} \textbf{Network Layer}: Fully-Qualified Addressing (``FQA'')
+    \item\label{sc:4} \textbf{Transport Layer}: Switch \& Target Ping Prior to Target Control with Quality-of-Service 2 (``only-once'' delivery) via ACK
+    \item\label{sc:5} \textbf{Session Layer}: Target Discovery \& Module Configuration via Dedicated EEPROM Target
 \end{enumerate}
 
 % Electrical Isolation (\textit{ISO1540})
@@ -144,15 +160,17 @@ Example: For $M = 8$ switches with $B = 8$ subnets each, the total number of uni
 % Eight modules, eight busses per module
 % "DISABLED" Bus - prevents cross-talk
 
+\clearpage
+
 \subsection{Definitions}\label{sec:definitions}
 
 A number of useful definitions have emerged from the above scoping:
 \begin{enumerate}
-    \item \textbf{Switch} - An I${}^2$C target device that acts as a repeater for bitwise multiplexed output busses.
-    \item \textbf{Subnet} - A specific output bus of a specific switch.
-    \item \textbf{Intra-Network} - A general term referring to ALL routable targets (not including switches) on ALL subnets across ALL of a controller's I${}^2$C busses (in the case of multiple controller busses).
-    \item \textbf{Fully-Qualified Address (FQA)} - A unique intra-network routing location identifier, encoding: a specific I${}^2$C bus (in the case of multiple controller busses), and; a specific Subnet, and; a target's address.
-    \item \textbf{Module} - A switch, and; a physical collection of targets located on the switch's subnets, and; a data storage target with a predetermined address with all routing information for all targets on this switch's subnets.
+    \item \textbf{Switch}: An I\textsuperscript{2}C target device that acts as a repeater for bitwise multiplexed output busses.
+    \item \textbf{Subnetwork}: A specific output bus of a specific switch.
+    \item \textbf{Intra-Network}: A general term referring to all routable targets (not including switches) on all subnetworks across all of a controller's I\textsuperscript{2}C busses.
+    \item \textbf{Fully-Qualified Address (FQA)}: A unique intra-network routing location identifier, encoding: a specific I\textsuperscript{2}C bus, and; a specific subnetwork (i.e. switch and bus), and; a target's I\textsuperscript{2}C address.
+    \item \textbf{Module}: A switch, and; a physical collection of targets located on the switch's subnetworks, and; a data storage target with a predetermined address with all routing information for all targets on this switch's subnetworks.
 \end{enumerate}
 
 \clearpage
