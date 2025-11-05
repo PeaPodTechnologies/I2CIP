@@ -39,17 +39,15 @@
         Requirements for a Hardware Design Specification for a Bus-Switched Intra-Network of Hot-Swap Modules of I\textsuperscript{2}C Targets and a Software Library of Intra-Network Communications Protocols for Rapid Implementation of Plug-and-Play Embedded Systems\\
 
         \vfill
-        \scriptsize{
-            \textbf{Jayden Lefebvre - Founder \& CEO, Lead Engineer}\\
-            Northumberland County, ON, Canada\\
-        }
+        \textbf{Jayden Lefebvre - Founder \& CEO, Lead Engineer}\\
+        Northumberland County, ON, Canada\\
         \vspace{.75cm}
         Primary Contact Email: \uline{contact@peapodtech.com}
         \vspace{1.25cm}
 
         Revision 1.0\\
         PeaPod Technologies Inc.\\
-        July 26th, 2024
+        November 2025
 
     \end{center}
 \end{titlepage}
@@ -67,7 +65,7 @@
 The purpose of this document is to two-fold:
 
 \begin{enumerate}
-    \item Outline the categorical requirements (Section \ref{sec:requirements}) of an intra-network design specification for hot-swap bus-switched modules of plug-and-play I\textsuperscript{2}C devices, and a software library for communications protocols
+    \item Outline the categorical requirements (Section \ref{sec:requirements}) of an intra-network design specification for hot-swap bus-switched modules of plug-and-play I\textsuperscript{2}C devices.
 
     \item Detail the scoped requirements (Section \ref{sec:scope}) for the design and protocols as-proposed by PeaPod Technologies Inc., namely \textbf{I\textsuperscript{2}CIP}.
 \end{enumerate}
@@ -105,7 +103,7 @@ The I\textsuperscript{2}C Specification can be imagined as an incomplete analogu
 \begin{enumerate}[label=SC\arabic*., ref=SC\arabic*]
     \item\label{sc:1} \textbf{Physical Layer}
     \begin{enumerate}[ref=SC1\alph*]
-        \item\label{sc:1a} \textbf{VDD \& GND}: +5 VDC
+        \item\label{sc:1a} \textbf{VDD \& GND}: e.g. +5 VDC
         \item\label{sc:1b} \textbf{SDA \& SCL}: Pull-Up Bias Resistors (e.g. 10 k$\Omega$)
     \end{enumerate}
     \item\label{sc:2} \textbf{Data Link Layer}
@@ -131,7 +129,7 @@ The I\textsuperscript{2}C Specification can be imagined as an incomplete analogu
 
 \subsubsection{Extended OSI Model for I\textsuperscript{2}CIP}
 
-\hspace{24pt} Supposing $M = 8$ switches with $B = 8$ subnetworks each, the total number of uniquely-addressable instantiations of $D$ on an I\textsuperscript{2}CIP intra-network is $8 * 8 * N = 64N$, effectively enabling a 64-fold increase in independently-addressable targets of all types by a single controller.
+% \hspace{24pt} Supposing $M = 8$ switches with $B = 8$ subnetworks each, the total number of uniquely-addressable instantiations of $D$ on an I\textsuperscript{2}CIP intra-network is $8 * 8 * N = 64N$, effectively enabling a 64-fold increase in independently-addressable targets of all types by a single controller.
 
 \hspace{24pt} For the purposes of effective intra-network communication across switched subnetworks, it is proposed that a ``fully-qualified address'' be implemented at the controller level, comprising routing information that encodes the I\textsuperscript{2}C bus, switch address, and subnetwork number, alongside the target device address, for each target device.
 
@@ -170,7 +168,7 @@ A number of useful definitions have emerged from the above scoping:
     \item \textbf{Subnetwork}: A specific output bus of a specific switch.
     \item \textbf{Intra-Network}: A general term referring to all routable targets (not including switches) on all subnetworks across all of a controller's I\textsuperscript{2}C busses.
     \item \textbf{Fully-Qualified Address (FQA)}: A unique intra-network routing location identifier, encoding: a specific I\textsuperscript{2}C bus, and; a specific subnetwork (i.e. switch and bus), and; a target's I\textsuperscript{2}C address.
-    \item \textbf{Module}: A switch, and; a physical collection of targets located on the switch's subnetworks, and; a data storage target with a predetermined address with all routing information for all targets on this switch's subnetworks.
+    \item \textbf{Module}: A switch, and; a physical collection of targets located on the switch's subnetworks, and; a data storage target at a predetermined location with all routing information for all targets on this switch's subnetworks.
 \end{enumerate}
 
 \clearpage
@@ -180,25 +178,31 @@ A number of useful definitions have emerged from the above scoping:
 
 \subsection{Problem Statement}\label{sec:opportunity}
 
-Formulate a hardware design specification for a bus-switched intra-network of hot-swap modules of I\textsuperscript{2}C targets, and a software library of intra-network communications protocols for fully-qualified addressing and Quality-of-Service 2 packet delivery, including dedicated routing EEPROM targets for module lifecycle management and configuration.
+\hspace{24pt} Formulate a hardware design specification for a bus-switched intra-network of hot-swap modules of I\textsuperscript{2}C targets, and a software library of intra-network communications protocols for fully-qualified addressing and Quality-of-Service 2 packet delivery for all targets, including dedicated routing EEPROM targets for modular target lifecycle management and configuration.
 
 \subsection{Solution Requirements}\label{sec:requirements}
-
-
-
 
 % Justify:
 % I2CIP MUST provide the context for the implementation for Module lifecycle management
 % I2CIP MUST provide the context for the implementation for Module configuration via EEPROM
 % I2CIP DOES NOT provide the implementation of Module data parsing or formatting or conversion (i.e. data is passed as-is as bytes)
 
-
-The following are the overall challenge requirements compiled from A, B, and an excerpt from C:
+The following are the overall requirements implied from scoping (Section \ref{sec:scope}) and definitions (Section \ref{sec:definitions}) of the I\textsuperscript{2}CIP design:
 \begin{enumerate}[label=R\arabic*., ref=R\arabic*]
-    \item\label{r:1} \textbf{Must} lorem ipsum dolor sit amet, consectetur adipiscing elit:
+    \item\label{r:1} \textbf{Must} include a hardware design specification of an I\textsuperscript{2}C intra-network that:
     \begin{enumerate}[ref=R1\alph*]
-        \item\label{r:1a} \textbf{Should} lorem ipsum dolor sit amet, consectetur adipiscing elit;
+        \item\label{r:1a} \textbf{Must} implement switching of output bus subnetworks while preventing cross-talk;
+        \item\label{r:1b} \textbf{Must} implement hot-swap capability;
+        \item\label{r:1c} \textbf{Must} implement dedicated routing EEPROM targets;
     \end{enumerate}
+    \item\label{r:2} \textbf{Must} include a software library for operating the I\textsuperscript{2}C intra-network that:
+    \begin{enumerate}[ref=R2\alph*]
+        \item\label{r:2a} \textbf{Must} implement fully-qualified addressing encoding routing information for any target on any subnetworks across all I\textsuperscript{2}C busses;
+        \item\label{r:2b} \textbf{Must} implement Quality-of-Service 2 packet delivery for all communications across the intra-network;
+        \item\label{r:2c} \textbf{Must} implement plug-and-play modular target lifecycle management via dedicated routing EEPROM targets;
+    \end{enumerate}
+    \item\label{r:3} \textbf{Should} support multiple I\textsuperscript{2}C bus controllers.
+    \item\label{r:4} \textbf{Should} implement electrical isolation for all targets on all subnetworks.
 \end{enumerate}
 
 % Change line spacing for the more list-heavy sections
@@ -206,30 +210,30 @@ The following are the overall challenge requirements compiled from A, B, and an 
 \subsection{Stakeholders and Values}\label{sec:stakeholders}
 
 \begin{enumerate}[label=S\arabic*., ref=S\arabic*]
-    \item\label{s:1} A - Values, etc.
-    \item\label{s:2} B - DfX, etc.
+    \item\label{s:1} Embedded Systems Designers - Modularity, Scalability
+    \item\label{s:2} System End-Users - Reliability, Maintainability
+    \item \label{s:3} Hobbyists, Makers, Educators - Accessibility
 \end{enumerate}
 
 \clearpage
-
 
 \subsection{Problem-Solving Goals}\label{sec:goals}
 
 % High-Level
 \begin{multicols}{2}[]
     \begin{enumerate}[label=HL\arabic*., ref=HL\arabic*]
-        \item\label{hl:output} Goal ABC \hfill (\ref{s:1},~\ref{r:1},~\ref{r:1a})
+        \item\label{hl:modularity} Modularity, Scalability \hfill (\ref{s:1},~\ref{r:1a})
+        \item\label{hl:stability} Reliability, Stability \hfill (\ref{s:2},~\ref{r:1a},~\ref{r:1b},~\ref{r:2b},~\ref{r:2c})
     \end{enumerate}
 \end{multicols}
 
 \subsection{Solution Objectives}\label{sec:objectives}
 
-% I2CIP DOES provide the the context for the implementation of Device parsing (but not formatting or conversion), as exemplified in the classes `EEPROM' (i.e. implementations of virtual functions inherited from Device and IOInterface<Get: char* readRegistersFromZero(uint16_t lenUntilNull), Set: const char* writeRegistersFromZero(uint16_t lenUntilNull)>)
-
 % Low-Level
 \begin{multicols}{2}[]
     \begin{enumerate}[label=LL\arabic*., ref=LL\arabic*]
-        \item\label{ll:output_variety} Objective ABC \hfill (\ref{hl:output})
+        \item\label{ll:hotswap} Hot-Swappability \hfill (\ref{hl:modularity})
+        \item\label{ll:plugandplay} Plug-and-Play \hfill (\ref{hl:modularity},~\ref{s:3},~\ref{r:2c})
     \end{enumerate}
 \end{multicols}
 
@@ -242,12 +246,10 @@ The following are the overall challenge requirements compiled from A, B, and an 
     \hline
     \multicolumn{1}{| @{\makebox[2.4em][c]{\textbf{\#}}} | l |}{\textbf{Metric}} & \textbf{Units}\\ 
     \hline
-    Metric ABC \mlabel{m:constraint} \hfill (\ref{ll:output_variety}) & Yes/No \\
-    Metric XYZ \mlabel{m:criteria} \hfill (\ref{ll:output_variety}) & 0 - 100\% \\
+    Targets Hot-Swappable \mlabel{m:hotswap} \hfill (\ref{ll:hotswap}) & Yes/No \\
+    Modules Plug-and-Play \mlabel{m:plugandplay} \hfill (\ref{ll:plugandplay}) & Yes/No \\
     \hline
 \end{tabular}
-
-\clearpage
 
 
 \subsection{Constraints}\label{sec:constraints}
@@ -256,8 +258,8 @@ The following are the overall challenge requirements compiled from A, B, and an 
     \hline
     \textbf{Metric} & \textbf{Constraint \hfill Justification} \\
     \hline
-    \mref{m:constraint} & Yes \hfill (\ref{s:1})\\
-    \hline
+    \mref{m:hotswap} & Yes \hfill (\ref{r:1b})\\ \hline
+    \mref{m:plugandplay} & Yes \hfill (\ref{r:2c})\\ \hline
 \end{tabular}
 
 \subsection{Criteria}\label{sec:criteria}
@@ -266,7 +268,7 @@ The following are the overall challenge requirements compiled from A, B, and an 
     \hline
     \textbf{Metric} & \textbf{Criteria \hfill Justification} \\
     \hline
-    \mref{m:criteria} & Should Maximize \hfill (\ref{r:1a}) \\
+    % \mref{m:criteria} & Should Maximize \hfill (\ref{r:1a}) \\
     \hline
 \end{tabular}
 

@@ -1,0 +1,129 @@
+\documentclass{../tex/report}
+\usepackage{setspace} % Setting line spacing
+\usepackage{ulem} % Underline
+\usepackage{caption} % Captioning figures
+\usepackage{subcaption} % Subfigures
+\usepackage{geometry} % Page layout
+\usepackage{multicol} % Columned pages
+\usepackage{array,etoolbox}
+\usepackage{fancyhdr}
+\usepackage{enumitem}
+\usepackage[toc,page]{appendix}
+
+% Page layout (margins, size, line spacing)
+\geometry{letterpaper, left=1in, right=1in, bottom=1in, top=1in}
+\setstretch{1.5}
+
+% Headers
+\pagestyle{fancy}
+\lhead{I\textsuperscript{2}CIP - Design Report}
+\rhead{PeaPod Technologies Inc.}
+
+\begin{document}
+
+\begin{titlepage}
+    \begin{center}
+        \vspace*{1.2cm}
+
+        \textbf{\large{I\textsuperscript{2}CIP: Inter-Integrated Circuit Intra-networking Protocols}}
+
+        \vspace{0.5cm}
+
+        Design Report\\
+
+        \vfill
+        \textbf{Jayden Lefebvre - Founder \& CEO, Lead Engineer}\\
+        Northumberland County, ON, Canada\\
+        \vspace{.75cm}
+        Primary Contact Email: \uline{contact@peapodtech.com}
+        \vspace{1.25cm}
+
+        Revision 1.0\\
+        PeaPod Technologies Inc.\\
+        November 2025
+
+    \end{center}
+\end{titlepage}
+
+\thispagestyle{plain}
+
+\tableofcontents
+\newpage
+
+\section{Design Abstract}\label{sec:abstract}
+\setstretch{1.25}
+
+% Please provide a brief summary description of the proposed technology. The abstract may answer some of the following questions: What is your proposed solution? What is novel and innovative about your proposed solution?
+
+\hspace{24pt} The Intra-Integrated Circuit Intra-networking Protocols (I\textsuperscript{2}CIP) is a hardware design specification and communications protocols suite that enables hot-swappable, plug-and-play modular components for embedded systems. By leveraging existing I\textsuperscript{2}C components and enhancing them with a bus-switching architecture and dynamic communication protocols, I\textsuperscript{2}CIP allows for rapid prototyping and deployment of embedded systems with minimal configuration. Through this approach, I\textsuperscript{2}CIP aims to revolutionize the way embedded systems are designed and implemented, providing a flexible and scalable solution for developers and engineers.
+
+\clearpage
+
+\section{Design Description}\label{sec:description}
+
+% Please provide a more fulsome description of your technology. Your description needs to include information about what the technology is, what it does, how it functions, and how the stakeholders will interact with it. Be sure to also provide any descriptions of major hardware components and processes in relation to your technology.
+
+\hspace{24pt} The I\textsuperscript{2}CIP technology is designed to facilitate seamless communication and interoperability between various I\textsuperscript{2}C devices in a modular embedded system environment. It achieves this by defining a set of hardware and software standards that enable hot-swapping of components, dynamic routing of data, and efficient management of device resources.
+
+\clearpage
+
+\subsection{Hardware Specification}
+
+\begin{itemize}
+    \item \textbf{Electrical Isolator}: Prevents ground loops and protects sensitive components (\textbf{ISO1540}).
+    \item \textbf{Level Shifters}: Allows communication between devices operating at different voltage levels.
+    \item \textbf{Modules}: A physical collection of one or more I\textsuperscript{2}C devices connected to a common switch, including one SPRT EEPROM and the switch itself.
+    \begin{itemize}
+        \item \textbf{Switching Multiplexer} (MUX): A bus-switching multiplexer (\textbf{TCA9548A}). Eight possible MUX addresses (0x70-0x77) enables the instantiation of up to 8 modules per I\textsuperscript{2}C bus.
+        \item \textbf{SPRT EEPROM}: A non-volatile memory device (\textbf{24LC32}) located on MUX bus 0 at default address 0x50. Stores a Static Partial Routing Table (SPRT) encoding intra-network location information for all devices on one switch's subnetworks.
+        \item \textbf{Stuck-Bus Buffer}: A buffer that holds the I\textsuperscript{2}C bus state during module hot-swapping (\textbf{TCA4307}).
+    \end{itemize}
+\end{itemize}
+
+\clearpage
+
+\subsection{Software Protocols}
+
+\begin{itemize}
+    \item \textbf{Fully-Qualified Addressing} (FQA): Enables unique identification of each device in the network. Encodes I\textsuperscript{2}C bus (3 bits; MSB 0-2), module number (3 bits; MSB 3-5), multiplexer bus (3 bits; MSB 6-8), and device address (7 bits; MSB 9-15) into a single 16-bit address.
+    \item \textbf{Quality-of-Service Protocol} (QSP): Pings devices prior to and after any transmission, including multiplexers. Ensures transmission integrity and device availability using acknowledgments and retries with timeouts. Provides error level feedback to the Dynamic Routing Protocol (DRP).
+    \item \textbf{Bus Switching Protocol} (BSP): Multiplexer control protocol that manages switching between multiple I\textsuperscript{2}C buses on a single module.
+    \item \textbf{Device Lookup Protocol} (DLP): Enables groups of device FQAs to be looked up by ID.
+    \item \textbf{Reverse Device Lookup Protocol} (RDLP): Enables devices' IDs to be looked up by their FQA.
+    \item \textbf{Intra-network Discovery Protocol} (IDP): Reads SPRT EEPROMs to build two parallel working maps of the intra-network topology: a hash table for DLP and a binary tree for RDLP.
+    \item \textbf{Dynamic Routing Protocol} (DRP): Utilizes the working maps generated by IDP and the error level feedback from QSP to inform routing decisions for data transmissions; i.e. if a module is unreachable, DRP will remove the module's devices from the working maps.
+\end{itemize}
+
+\clearpage
+
+\section{Design Operations}\label{sec:operations}
+
+% Please describe the basic operations concept of the technology. In your response, describe assumptions required of operation.
+
+\hspace{24pt} 
+
+\clearpage
+
+\section{Design Requirements}\label{sec:requirements}
+
+\hspace{24pt} 
+
+\clearpage
+
+\section{Design Performance}\label{sec:performance}
+
+\hspace{24pt}
+
+\clearpage
+
+\section{Design Potential}\label{sec:potential}
+
+\hspace{24pt}
+
+\clearpage
+
+% % References
+\bibliographystyle{IEEEtran}
+\bibliography{references}
+
+\end{document}
