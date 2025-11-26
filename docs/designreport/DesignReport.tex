@@ -57,8 +57,6 @@
 
 \hspace{24pt} The Intra-Integrated Circuit Intra-networking Protocols (I\textsuperscript{2}CIP) is a hardware design specification and communications protocols suite that enables hot-swappable, plug-and-play modular components for embedded systems. By leveraging existing I\textsuperscript{2}C components and enhancing them with a bus-switching architecture and dynamic communication protocols, I\textsuperscript{2}CIP allows for rapid prototyping and deployment of embedded systems with minimal configuration. Through this approach, I\textsuperscript{2}CIP aims to revolutionize the way embedded systems are designed and implemented, providing a flexible and scalable solution for developers and engineers.
 
-\clearpage
-
 \section{Design Description}\label{sec:description}
 
 % Please provide a more fulsome description of your technology. Your description needs to include information about what the technology is, what it does, how it functions, and how the stakeholders will interact with it. Be sure to also provide any descriptions of major hardware components and processes in relation to your technology.
@@ -80,6 +78,13 @@
     \end{itemize}
 \end{itemize}
 
+\begin{figure}[h!]
+\centering
+    \includegraphics[width=0.8\textwidth]{../assets/module.png}
+    \caption{I\textsuperscript{2}CIP Hardware Architecture Diagram}
+    \label{fig:module}
+\end{figure}
+
 \clearpage
 
 \subsection{Software Protocols}
@@ -100,7 +105,53 @@
 
 % Please describe the basic operations concept of the technology. In your response, describe assumptions required of operation.
 
+
+% Device drivers
+\hspace{24pt} For each type of device connected to an I\textsuperscript{2}CIP network, a corresponding device driver must be implemented within the host system's software stack. These drivers are responsible for managing communication with their respective devices, interpreting data, and providing a standardized interface for higher-level applications. These classes inherit from a common \texttt{Device} base class (which contains the FQA data and implements the QSP and BSP protocols) as well as inheriting from either a \texttt{InputInterface} or \texttt{OutputInterface} (or \texttt{IOInterface}) abstract class, depending on the device's functionality. The \texttt{Interface} classes provide a templated set of methods for caching data read from input devices and , while standardizing argument types and return types across all device drivers.
+
+\hspace{24pt} For example, the \texttt{EEPROM} class (the device driver for the 24LC32 IC) inherits from the \texttt{Device} base class and the \texttt{IOInterface} abstract class, with template parameters \texttt{<char*, uint16\_t, char*, uint16\_t>}. In this order, these template parameters represent the input buffer type, input argument (read length), output buffer type, and output argument (write length), respectively.
+
+Assumptions for operation of the I\textsuperscript{2}CIP technology include:
+\begin{itemize}
+    \item All devices are contained within modules that adhere to the I\textsuperscript{2}CIP hardware specification.
+    \item Each module contains a properly formatted SPRT EEPROM with accurate device information.
+    \item All SPRT entries contain device IDs that correspond to actual device types for which a corresponding driver exists.
+\end{itemize}
+
 \hspace{24pt} 
+
+\clearpage
+
+\subsection{Static Partial Routing Table}
+
+\hspace{24pt} The Static Partial Routing Table (SPRT) is a critical component of the I\textsuperscript{2}CIP technology, serving as a non-volatile memory storage for intra-network location information of all devices connected to a module's switch. Each module contains one SPRT EEPROM that holds the FQAs and IDs of its connected devices, allowing for efficient device discovery and routing within the network. The SPRT contents are UTF-8 encoded JSON, structured as an array of objects representing each multiplexer bus:
+
+\begin{verbatim}
+// Example SPRT JSON Contents
+[
+    // Array of MUX buses
+    {
+        // MUX bus 0
+        "24LC32" : [ 80 ],    // Decimal encoding of device address 0x50
+        "SHT31" : [ 68, 69 ], // Two SHT31 devices on MUX bus 0, 0x44 and 0x45
+        "MCP23017" : [ 32 ],  // Another example device, 0x20
+        // etc.
+    },
+    // Up to MUX bus 7
+    { },
+    {
+        "24LC32" : [ 80, 81 ], // E.g. two more different EEPROM devices on MUX bus 2
+    },
+    { }, { }, { }, { }, { }
+]
+\end{verbatim}
+
+\begin{figure}[h!]
+    \centering
+    \includegraphics[width=0.7\textwidth]{../assets/example.png}
+    \caption{Graphical Representation of Example SPRT Module}
+    \label{fig:example}
+\end{figure}
 
 \clearpage
 
@@ -112,18 +163,25 @@
 
 \section{Design Performance}\label{sec:performance}
 
-\hspace{24pt}
+\hspace{24pt} 
 
 \clearpage
 
 \section{Design Potential}\label{sec:potential}
 
-\hspace{24pt}
+% Plug-and-Play:
+% Control Systems
+% Modular Robotics
+% IoT Devices
+% Wearable Technology
+% Education
+
+\hspace{24pt} 
 
 \clearpage
 
 % % References
-\bibliographystyle{IEEEtran}
-\bibliography{references}
+% \bibliographystyle{IEEEtran}
+% \bibliography{references}
 
 \end{document}
