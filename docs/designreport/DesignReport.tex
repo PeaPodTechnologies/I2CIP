@@ -109,23 +109,29 @@
 
 
 % Device drivers
-\hspace{24pt} For each type of device connected to an I\textsuperscript{2}CIP network, a corresponding device driver must be implemented within the host system's software stack. These drivers are responsible for managing communication with their respective devices, interpreting data, and providing a standardized interface for higher-level applications. These classes inherit from a common \texttt{Device} base class (which contains the FQA data and implements the QSP and BSP protocols during communications subroutines) as well as inheriting from either a \texttt{InputInterface} or \texttt{OutputInterface} (or \texttt{IOInterface}) abstract class, depending on the device's functionality. 
-
-\hspace{24pt} The \texttt{Interface} classes provide a templated set of methods for caching data read from input devices and writing data to output devices, while standardizing argument and return passing across all device drivers. The template parameter schema \texttt{<G, A, S, B>} represents the input buffer type (`G' for ``get''), input argument type (`A'), output buffer type (`S' for ``set''), and output argument type (`B'), respectively.
+\hspace{24pt} For each type of device connected to an I\textsuperscript{2}CIP network, a corresponding device driver must be implemented within the host system's software stack. These drivers are responsible for managing communication with their respective devices, interpreting data, and providing a standardized interface for higher-level applications. These classes inherit from a common \texttt{Device} base class (which contains the \textbf{FQA} data and implements the \textbf{QSP} and \textbf{BSP} protocols during communications subroutines) as well as inheriting from either a \texttt{InputInterface} or \texttt{OutputInterface} (or \texttt{IOInterface}) abstract class, depending on the device's functionality. The \texttt{Interface} classes provide a templated set of methods for caching data read from input devices and writing data to output devices, while standardizing argument and return passing across all device drivers. The template parameter schema \texttt{<G, A, S, B>} represents the input buffer type (`G' for ``get''), input argument type (`A'), output buffer type (`S' for ``set''), and output argument type (`B'), respectively.
 
 \hspace{24pt} For example, the \texttt{EEPROM} class (the device driver for the 24LC32 IC) inherits from the \texttt{Device} base class and the \texttt{IOInterface} abstract class, with template parameters \texttt{<char*, uint16\_t, char*, uint16\_t>}. In this order, these template parameters represent the input buffer type (character array), input argument (read length), output buffer type (character array), and output argument (write length), respectively.
 
 \subsection{State Management}
 
-\hspace{24pt} The fundamental building block of abstraction in I\textsuperscript{2}CIP state management is the \texttt{DeviceGroup} class, which represents a collection of I\textsuperscript{2}C devices of identical type. Each \texttt{DeviceGroup} contains an array of device driver instances, a factory (function pointer) for instantiating new devices, a handler (function pointer) for parsing JSON arguments into device-specific argument structures, and a cleanup (function pointer) for releasing those argument structures. The function pointers are passed to the \texttt{DeviceGroup} constructor from each device driver class, which defines them as static methods. This is achieved through a templated static method in the \texttt{DeviceGroup} class which takes one template parameter (the device driver class type) and returns a pointer to a newly instantiated \texttt{DeviceGroup} of that type.
+\hspace{24pt} The fundamental building block of abstraction in I\textsuperscript{2}CIP state management is the \texttt{DeviceGroup} class, which represents a collection of I\textsuperscript{2}C devices of identical type. Each \texttt{DeviceGroup} contains an array of device driver instances, a factory (function pointer) for instantiating new devices, a handler (function pointer) for parsing JSON arguments into device-specific argument structures, and a cleanup (function pointer) for releasing those argument structures. The function pointers are passed to the \texttt{DeviceGroup} constructor from each device driver class, which defines them as static methods. This is achieved through a templated static factory method in the \texttt{DeviceGroup} class which takes one template parameter (the device driver class type) and returns a pointer to a newly instantiated \texttt{DeviceGroup} of that type.
 
-\hspace{24pt} Rather than managing \texttt{DeviceGroup} instances directly, they are grouped together within a higher-level \texttt{Module} class, which represents a physical I\textsuperscript{2}CIP module. Each \texttt{Module} instance contains an hash table of \texttt{DeviceGroup} instances (by ID).
+\hspace{24pt} Rather than managing \texttt{DeviceGroup} instances directly, they are grouped together within a higher-level \texttt{Module} class, which represents a physical I\textsuperscript{2}CIP module. Each \texttt{Module} instance contains an hash table of \texttt{DeviceGroup} instances (by ID), implementing \textbf{DLP}. A single global-scope binary search tree is maintained by all \texttt{Module} instances, implementing \textbf{RDLP}.
 
 \clearpage
 
 \subsection{Modular Networking}
 
-\hspace{24pt}
+\hspace{24pt} The \texttt{Module} class is the primary abstraction for managing I\textsuperscript{2}CIP modules and devices within the host system's software stack. It defines three call operators: one taking an FQA and one taking a device ID, each updating a device's internal state based on the provided arguments, and one with no arguments that performs a module self-test that attempts to ping the MUX and rediscover the SPRT EEPROM. The method \texttt{discoverEEPROM} attempts to ping the SPRT EEPROM, adds it to the module's internal hash table of \texttt{DeviceGroup} instances (as well as the global binary search tree), and calls \texttt{parseEEPROMContents} (see below).
+
+\hspace{24pt} The \texttt{Module} class is a virtual class, with several virtual methods that must be implemented in a derived class. These methods include:
+
+\begin{itemize}
+\item \texttt{protected deviceGroupFactory}, which takes a device ID and returns a pointer to a newly instantiated \texttt{DeviceGroup} of the corresponding type (or \texttt{nullptr} if the ID is unrecognized) - allows the user to link custom device drivers into the I\textsuperscript{2}CIP framework.
+\item \texttt{public parseEEPROMContents}, which takes the contents of the SPRT EEPROM - for example, implementing \textbf{IDP} (as defined in the \texttt{JSONModule} derived class).
+\item \texttt{public handleCommand} and \texttt{handleConfig}, which take \texttt{JSONObject} instances representing commands and configuration data, respectively - allows the user to define custom commands and configuration options for their specific module implementation.
+\end{itemize}
 
 \clearpage
 
