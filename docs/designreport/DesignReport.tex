@@ -105,20 +105,27 @@
 
 % Please describe the basic operations concept of the technology. In your response, describe assumptions required of operation.
 
+\subsection{Device Drivers}
+
 
 % Device drivers
-\hspace{24pt} For each type of device connected to an I\textsuperscript{2}CIP network, a corresponding device driver must be implemented within the host system's software stack. These drivers are responsible for managing communication with their respective devices, interpreting data, and providing a standardized interface for higher-level applications. These classes inherit from a common \texttt{Device} base class (which contains the FQA data and implements the QSP and BSP protocols) as well as inheriting from either a \texttt{InputInterface} or \texttt{OutputInterface} (or \texttt{IOInterface}) abstract class, depending on the device's functionality. The \texttt{Interface} classes provide a templated set of methods for caching data read from input devices and , while standardizing argument types and return types across all device drivers.
+\hspace{24pt} For each type of device connected to an I\textsuperscript{2}CIP network, a corresponding device driver must be implemented within the host system's software stack. These drivers are responsible for managing communication with their respective devices, interpreting data, and providing a standardized interface for higher-level applications. These classes inherit from a common \texttt{Device} base class (which contains the FQA data and implements the QSP and BSP protocols during communications subroutines) as well as inheriting from either a \texttt{InputInterface} or \texttt{OutputInterface} (or \texttt{IOInterface}) abstract class, depending on the device's functionality. 
 
-\hspace{24pt} For example, the \texttt{EEPROM} class (the device driver for the 24LC32 IC) inherits from the \texttt{Device} base class and the \texttt{IOInterface} abstract class, with template parameters \texttt{<char*, uint16\_t, char*, uint16\_t>}. In this order, these template parameters represent the input buffer type, input argument (read length), output buffer type, and output argument (write length), respectively.
+\hspace{24pt} The \texttt{Interface} classes provide a templated set of methods for caching data read from input devices and writing data to output devices, while standardizing argument and return passing across all device drivers. The template parameter schema \texttt{<G, A, S, B>} represents the input buffer type (`G' for ``get''), input argument type (`A'), output buffer type (`S' for ``set''), and output argument type (`B'), respectively.
 
-Assumptions for operation of the I\textsuperscript{2}CIP technology include:
-\begin{itemize}
-    \item All devices are contained within modules that adhere to the I\textsuperscript{2}CIP hardware specification.
-    \item Each module contains a properly formatted SPRT EEPROM with accurate device information.
-    \item All SPRT entries contain device IDs that correspond to actual device types for which a corresponding driver exists.
-\end{itemize}
+\hspace{24pt} For example, the \texttt{EEPROM} class (the device driver for the 24LC32 IC) inherits from the \texttt{Device} base class and the \texttt{IOInterface} abstract class, with template parameters \texttt{<char*, uint16\_t, char*, uint16\_t>}. In this order, these template parameters represent the input buffer type (character array), input argument (read length), output buffer type (character array), and output argument (write length), respectively.
 
-\hspace{24pt} 
+\subsection{State Management}
+
+\hspace{24pt} The fundamental building block of abstraction in I\textsuperscript{2}CIP state management is the \texttt{DeviceGroup} class, which represents a collection of I\textsuperscript{2}C devices of identical type. Each \texttt{DeviceGroup} contains an array of device driver instances, a factory (function pointer) for instantiating new devices, a handler (function pointer) for parsing JSON arguments into device-specific argument structures, and a cleanup (function pointer) for releasing those argument structures. The function pointers are passed to the \texttt{DeviceGroup} constructor from each device driver class, which defines them as static methods. This is achieved through a templated static method in the \texttt{DeviceGroup} class which takes one template parameter (the device driver class type) and returns a pointer to a newly instantiated \texttt{DeviceGroup} of that type.
+
+\hspace{24pt} Rather than managing \texttt{DeviceGroup} instances directly, they are grouped together within a higher-level \texttt{Module} class, which represents a physical I\textsuperscript{2}CIP module. Each \texttt{Module} instance contains an hash table of \texttt{DeviceGroup} instances (by ID).
+
+\clearpage
+
+\subsection{Modular Networking}
+
+\hspace{24pt}
 
 \clearpage
 
@@ -155,6 +162,17 @@ Assumptions for operation of the I\textsuperscript{2}CIP technology include:
 
 \clearpage
 
+\subsection{Operational Assumptions}
+
+Assumptions for operation of the I\textsuperscript{2}CIP technology include:
+\begin{itemize}
+    \item All devices are contained within modules that adhere to the I\textsuperscript{2}CIP hardware specification.
+    \item Each module contains a properly formatted SPRT EEPROM with accurate device information.
+    \item All SPRT entries contain device IDs that correspond to actual device types for which a corresponding driver exists.
+\end{itemize}
+
+\clearpage
+
 \section{Design Requirements}\label{sec:requirements}
 
 \hspace{24pt} 
@@ -181,7 +199,7 @@ Assumptions for operation of the I\textsuperscript{2}CIP technology include:
 \clearpage
 
 % % References
-% \bibliographystyle{IEEEtran}
-% \bibliography{references}
+\bibliographystyle{IEEEtran}
+\bibliography{references}
 
 \end{document}
