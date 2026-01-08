@@ -86,6 +86,31 @@ template <typename T> class HashTable {
       }
       return str + "]";
     }
+
+    uint8_t size(void) const {
+      uint8_t count = 0;
+      for (uint8_t i = 0; i < HASHTABLE_SLOTS; i++) {
+        HashTableEntry<T>* entry = this->hashtable[i];
+        while(entry != nullptr) {
+          count++;
+          entry = entry->next;
+        }
+      }
+      return count;
+    }
+
+    String* keys(void) const {
+      String* arr = new String[this->size()];
+      uint16_t index = 0;
+      for (uint8_t i = 0; i < HASHTABLE_SLOTS; i++) {
+        HashTableEntry<T>* entry = this->hashtable[i];
+        while(entry != nullptr) {
+          arr[index++] = String(entry->key);
+          entry = entry->next;
+        }
+      }
+      return arr;
+    }
 };
 
 #include "hashtable.tpp"
