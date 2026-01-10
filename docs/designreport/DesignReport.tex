@@ -29,7 +29,7 @@
 
         \vspace{0.5cm}
 
-        Design Report\\
+        Design Report for a Hardware Design Specification for a Bus-Switched Intra-Network of Hot-Swap Modules of I\textsuperscript{2}C Targets and a Software Library of Intra-Network Communications Protocols for Rapid Implementation of Plug-and-Play Embedded Systems\\
 
         \vfill
         \textbf{Jayden Lefebvre - Founder \& CEO, Lead Engineer}\\
@@ -57,11 +57,30 @@
 
 \hspace{24pt} The Intra-Integrated Circuit Intra-networking Protocols (I\textsuperscript{2}CIP) is a hardware design specification and communications protocols suite that enables hot-swappable, plug-and-play modular components for embedded systems. By leveraging existing I\textsuperscript{2}C components and enhancing them with a bus-switching architecture and dynamic communication protocols, I\textsuperscript{2}CIP allows for rapid prototyping and deployment of embedded systems with minimal configuration. Through this approach, I\textsuperscript{2}CIP aims to revolutionize the way embedded systems are designed and implemented, providing a flexible and scalable solution for developers and engineers.
 
+\input{../tex/Specification.tex}
+
+\hspace{24pt}It is advantageous to view a collection of devices on an I2C bus as an intra-network, analogous to the Internet, under certain conditions:
+
+\begin{itemize}
+    \item \textbf{Dynamic Routing}: \textit{Device reachability is subject to change.} This enables physical “plug-and-play” functionality.
+    \item \textbf{Modularity}: \textit{Devices can be added to the network as physical collections.} This enables lifecycle management for physical collections of devices, and informs dynamic routing.
+\end{itemize}
+
+\hspace{24pt}In order to achieve an intra-network of I2C devices, we propose a suite of protocols built on top of I2C which together form the I2C Intranet Protocol, along with a compatible hardware specification.
+
+\clearpage
+
+\input{../tex/OSI.tex}
+
+\clearpage
+
 \section{Design Description}\label{sec:description}
 
 % Please provide a more fulsome description of your technology. Your description needs to include information about what the technology is, what it does, how it functions, and how the stakeholders will interact with it. Be sure to also provide any descriptions of major hardware components and processes in relation to your technology.
 
 \hspace{24pt} The I\textsuperscript{2}CIP technology is designed to facilitate seamless communication and interoperability between various I\textsuperscript{2}C devices in a modular embedded system environment. It achieves this by defining a set of hardware and software standards that enable hot-swapping of components, dynamic routing of data, and efficient management of device resources.
+
+\input{../tex/Extension.tex}
 
 \clearpage
 
@@ -167,6 +186,34 @@
 \end{figure}
 
 \clearpage
+
+\subsection{User Interaction}
+
+\begin{itemize}
+    \item \textbf{MUX API}: Users can control multiplexers through a dedicated static API:
+    \begin{itemize}
+        \item \texttt{pingMUX}: Attempts to communicate (ACK) with a specified MUX (wire \& module number OR FQA).
+        \item \texttt{setBus}: Pings and switches a specified MUX to a specified MUX bus (wire \& module number \& MUX bus OR FQA).
+        \item \texttt{resetBus}: Pings and resets a specified MUX to deselect all MUX busses (wire \& module number OR FQA).
+    \end{itemize}
+    \item \textbf{Device API}: Users interact with I\textsuperscript{2}CIP devices through the instance API:
+    \begin{itemize}
+        \item \texttt{ping} and \texttt{pingTimeout}: Sets MUX bus and attempts to communicate (ACK) with the device (with optional timeout retries).
+        \item \texttt{writeByte} and \texttt{write}: Sets MUX bus and writes one or more bytes (\texttt{uint8\_t} OR \texttt{uint8\_t*} with \texttt{size\_t}) to the device.
+        \item \texttt{writeRegister}: Sets MUX bus and writes one or more bytes (\texttt{uint8\_t} OR \texttt{uint8\_t*} with \texttt{size\_t}) to a specified device register. Register size is specified as either 8-bit or 16-bit using argument overloading (\texttt{uint8\_t} OR \texttt{uint16\_t}).
+        \item \texttt{readByte} and \texttt{readWord} and \texttt{read}: Sets MUX bus and requests one or more bytes (\texttt{uint8\_t} OR \texttt{uint16\_t} OR \texttt{uint8\_t*} with \texttt{size\_t}) from the device. Note: for \texttt{read} the \texttt{size\_t} argument is passed by reference, the actual number of bytes read is returned through this argument.
+        \item \texttt{readRegisterByte} and \texttt{readRegisterWord} and \texttt{readRegister}: Sets MUX bus and requests one or more bytes (\texttt{uint8\_t} OR \texttt{uint8\_t*} with \texttt{size\_t}) from a specified device register. Register size is specified as either 8-bit or 16-bit using argument overloading (\texttt{uint8\_t} OR \texttt{uint16\_t}). Note: for \texttt{readRegister} the \texttt{size\_t} argument is passed by reference, the actual number of bytes read is returned through this argument.
+    \end{itemize}
+    \clearpage
+    \item \textbf{Module API}: Users manage I\textsuperscript{2}CIP modules through the instance API:
+    \begin{itemize}
+        \item \texttt{parseEEPROMContents}: Virtual. Ideally, implements \textbf{IDP} by parsing the contents of the SPRT EEPROM and populating the module's internal hash table of \texttt{DeviceGroup} instances (as well as the global binary search tree).
+        \item \texttt{discoverEEPROM}: Attempts to ping and rediscover the SPRT EEPROM on the module. Note: within EEPROM discovery, \texttt{parseEEPROMContents} is the only supported way to add devices to the module.
+        \item Self-Test \texttt{operator()}: Performs a module self-test that attempts to ping the MUX and rediscover the SPRT EEPROM.
+        \item Device Update \texttt{operator()}: Templated by device driver class. Takes a device FQA and performs \textbf{DLP} to ping the device. Optionally updates the device based on arguments (struct of void pointers) parsed from JSON by the device group's handler function.
+        \item \texttt{handleCommand} and \texttt{handleConfig}: Virtual. Ideally, implements custom handling of \texttt{JSONObject} instances to manage and modify module behaviour (i.e. control devices).
+    \end{itemize}
+\end{itemize}
 
 \subsection{Operational Assumptions}
 

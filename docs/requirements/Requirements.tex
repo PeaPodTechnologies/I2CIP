@@ -87,34 +87,11 @@ The purpose of this document is to two-fold:
 
 \subsubsection{I\textsuperscript{2}C Specification}
 
-From the I\textsuperscript{2}C Specification Version 7 (2021, \textit{NXP Semiconductors}): an 8-bit-oriented one-ended (``controller''-driven) bidirectional (read \& write) serial communication over a 2-wire bus (data ``SDA'' \& clock ``SCL'') for integrated circuit devices (``targets''), including (but not limited to):
-
-\begin{itemize}
-    \item \textbf{Remote Multi-Channel Ports}: GPIO banks, internal-clock PWM drivers, Analog-to-Digital and Digital-to-Analog converters, etc.
-    \item \textbf{System Devices}: real-time clocks, LCD screens, microcontrollers, etc.
-    \item \textbf{Data Storage Devices}: EEPROM, SRAM, FRAM, etc.
-    \item \textbf{Digital Sensors}: temperature, humidity, light, acceleration, pressure, etc.
-\end{itemize}
+\input{../tex/Specification.tex}
 
 \subsubsection{OSI Model Analogue for I\textsuperscript{2}C}
 
-The I\textsuperscript{2}C Specification can be imagined as an incomplete analogue to the Internet's OSI Model, with the following layers defined:
-
-\begin{enumerate}[label=SC\arabic*., ref=SC\arabic*]
-    \item\label{sc:1} \textbf{Physical Layer}
-    \begin{enumerate}[ref=SC1\alph*]
-        \item\label{sc:1a} \textbf{VDD \& GND}: e.g. +5 VDC
-        \item\label{sc:1b} \textbf{SDA \& SCL}: Pull-Up Bias Resistors (e.g. 10 k$\Omega$)
-    \end{enumerate}
-    \item\label{sc:2} \textbf{Data Link Layer}
-    \begin{enumerate}[ref=SC2\alph*]
-        \item\label{sc:2a} \textbf{Controller}: Bus Speed Control, Start \& Stop Conditions, Multi-Controller Arbitration
-        \item\label{sc:2b} \textbf{Targets}: 7-bit Device Addressing, Acknowledgement (``ACK'')
-        \item\label{sc:2c} \textbf{Packet Structure}: ``Read'' \& ``Write'' Flags, 8-/16-bit Register Addressing, Byte-Stream Data
-    \end{enumerate}
-\end{enumerate}
-
-\hspace{24pt} The \textbf{Network} (data routing), \textbf{Transport} (data delivery), and \textbf{Session} (transmission context) layers of the OSI model analogy are not defined by the I\textsuperscript{2}C Specification. The following proposed extensions to the I\textsuperscript{2}C Specification, the focus of the \textbf{I\textsuperscript{2}CIP} design, are intended to fill this gap, enabling \textbf{Presentation} and \textbf{Application} layer functionality to be rapidly implemented by developers for embedded systems (e.g. control systems).
+\input{../tex/OSI.tex}
 
 % TODO: WHy modules?
 % TODO: Use for control systems
@@ -131,23 +108,9 @@ The I\textsuperscript{2}C Specification can be imagined as an incomplete analogu
 
 % \hspace{24pt} Supposing $M = 8$ switches with $B = 8$ subnetworks each, the total number of uniquely-addressable instantiations of $D$ on an I\textsuperscript{2}CIP intra-network is $8 * 8 * N = 64N$, effectively enabling a 64-fold increase in independently-addressable targets of all types by a single controller.
 
-\hspace{24pt} For the purposes of effective intra-network communication across switched subnetworks, it is proposed that a ``fully-qualified address'' be implemented at the controller level, comprising routing information that encodes the I\textsuperscript{2}C bus, switch address, and subnetwork number, alongside the target device address, for each target device.
-
-\hspace{24pt} Suppose a dedicated target device $E$ consisting of EEPROM memory containing routing information for all devices on all subnetworks of one switch. If this EEPROM device $E$ is granted a fixed address on a consistent subnetwork on each switch, the controller can reliably retrieve routing information for all devices on all subnetworks of any switch by querying each switch's dedicated EEPROM device.
-
-\hspace{24pt} Together, the EEPROM device $E$, the switch device $X$, and all devices on all subnetworks of the switch $X$ comprise a \textbf{Module}.
-
-% Module = switch + routing table
-
-\begin{enumerate}[label=SC\arabic*., ref=SC\arabic*, resume]
-    \item\label{sc:3} \textbf{Network Layer}: Fully-Qualified Addressing (``FQA'')
-    \item\label{sc:4} \textbf{Transport Layer}: Switch \& Target Ping Prior to Target Control with Quality-of-Service 2 (``only-once'' delivery) via ACK
-    \item\label{sc:5} \textbf{Session Layer}: Target Discovery \& Module Configuration via Dedicated EEPROM Target
-\end{enumerate}
+\input{../tex/Extension.tex}
 
 % Electrical Isolation (\textit{ISO1540})
-
-
 
 % Unimplemented, but considered for future development:
 % \begin{enumerate}[label=SC\arabic*., ref=SC\arabic*, resume]

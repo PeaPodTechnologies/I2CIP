@@ -1,0 +1,13 @@
+\hspace{24pt} For the purposes of effective intra-network communication across switched subnetworks, it is proposed that a ``fully-qualified address'' be implemented at the controller level, comprising routing information that encodes the I\textsuperscript{2}C bus, switch address, and subnetwork number, alongside the target device address, for each target device.
+
+\hspace{24pt} Suppose a dedicated target device $E$ consisting of EEPROM memory containing routing information for all devices on all subnetworks of one switch. If this EEPROM device $E$ is granted a fixed address on a consistent subnetwork on each switch, the controller can reliably retrieve routing information for all devices on all subnetworks of any switch by querying each switch's dedicated EEPROM device.
+
+\hspace{24pt} Together, the EEPROM device $E$, the switch device $X$, and all devices on all subnetworks of the switch $X$ comprise a \textbf{Module}.
+
+% Module = switch + routing table
+
+\begin{enumerate}[label=SC\arabic*., ref=SC\arabic*, resume]
+    \item\label{sc:3} \textbf{Network Layer}: Fully-Qualified Addressing (``FQA'')
+    \item\label{sc:4} \textbf{Transport Layer}: Switch \& Target Ping Prior to Target Control with Quality-of-Service 2 (``only-once'' delivery) via ACK
+    \item\label{sc:5} \textbf{Session Layer}: Target Discovery \& Module Configuration via Dedicated EEPROM Target
+\end{enumerate}

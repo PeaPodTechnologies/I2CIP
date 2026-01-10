@@ -1,0 +1,17 @@
+The I\textsuperscript{2}C Specification can be imagined as an incomplete analogue to the Internet's OSI Model, with the following layers defined:
+
+\begin{enumerate}[label=SC\arabic*., ref=SC\arabic*]
+    \item\label{sc:1} \textbf{Physical Layer}
+    \begin{enumerate}[ref=SC1\alph*]
+        \item\label{sc:1a} \textbf{VDD \& GND}: e.g. +5 VDC
+        \item\label{sc:1b} \textbf{SDA \& SCL}: Pull-Up Bias Resistors (e.g. 10 k$\Omega$)
+    \end{enumerate}
+    \item\label{sc:2} \textbf{Data Link Layer}
+    \begin{enumerate}[ref=SC2\alph*]
+        \item\label{sc:2a} \textbf{Controller}: Bus Speed Control, Start \& Stop Conditions, Multi-Controller Arbitration
+        \item\label{sc:2b} \textbf{Targets}: 7-bit Device Addressing, Acknowledgement (``ACK'')
+        \item\label{sc:2c} \textbf{Packet Structure}: ``Read'' \& ``Write'' Flags, 8-/16-bit Register Addressing, Byte-Stream Data
+    \end{enumerate}
+\end{enumerate}
+
+\hspace{24pt} The \textbf{Network} (data routing), \textbf{Transport} (data delivery), and \textbf{Session} (transmission context) layers of the OSI model analogy are not defined by the I\textsuperscript{2}C Specification. The following proposed extensions to the I\textsuperscript{2}C Specification, the focus of the \textbf{I\textsuperscript{2}CIP} design, are intended to fill this gap, enabling \textbf{Presentation} and \textbf{Application} layer functionality to be rapidly implemented by developers for embedded systems (e.g. control systems).
