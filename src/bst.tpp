@@ -139,12 +139,43 @@ template <typename K, typename T> BSTNode<K,T>* BST<K,T>::findMax(BSTNode<K,T>* 
   if(root == nullptr || root->right == nullptr) {
     return root;
   } else {
-    return findMin(root->right);
+    return findMax(root->right);
   }
 }
 
 template <typename K, typename T> BSTNode<K,T>* BST<K,T>::findMax(void) {
   return findMax(this->root);
+}
+
+template <typename K, typename T> uint16_t BST<K,T>::size(BSTNode<K,T>* root) {
+  if(root == nullptr) {
+    return 0;
+  } else {
+    return 1 + size(root->left) + size(root->right);
+  }
+}
+
+template <typename K, typename T> uint16_t BST<K,T>::size(void) const {
+  return size(this->root);
+}
+
+template <typename K, typename T> T* BST<K,T>::getByIndex(uint16_t index, BSTNode<K,T>* root) {
+  // Depth-first
+  if(root == nullptr) {
+    return nullptr;
+  } else if(index == 0) {
+    return &(root->value);
+  } else {
+    uint16_t leftSize = size(root->left);
+    if(index <= leftSize) {
+      return getByIndex(index-1, root->left);
+    } else {
+      return getByIndex(index-1-leftSize, root->right);
+    }
+  } 
+}
+template <typename K, typename T> T* BST<K,T>::getByIndex(uint16_t index) const {
+  return getByIndex(index, this->root);
 }
 
 #endif

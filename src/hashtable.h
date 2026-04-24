@@ -111,6 +111,21 @@ template <typename T> class HashTable {
       }
       return arr;
     }
+
+    T* getByFirstOccurrence(uint8_t index) const {
+      uint8_t count = 0;
+      for (uint8_t i = 0; i < HASHTABLE_SLOTS; i++) {
+        HashTableEntry<T>* entry = this->hashtable[i];
+        while(entry != nullptr) {
+          if(count == index) {
+            return entry->value;
+          }
+          count++;
+          entry = entry->next;
+        }
+      }
+      return nullptr;
+    }
 };
 
 #include "hashtable.tpp"

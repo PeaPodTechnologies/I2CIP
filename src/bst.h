@@ -83,6 +83,12 @@ template <typename K, typename T> class BST {
     String toString(void) const {
       return this->root == nullptr ? String("BST Empty") : String("BST [") + this->root->toString() + "]";
     }
+
+    static uint16_t size(BSTNode<K,T>* root);
+    uint16_t size(void) const;
+
+    static T* getByIndex(uint16_t index, BSTNode<K,T>* root);
+    T* getByIndex(uint16_t index) const;
 };
 
 #include "bst.tpp"
