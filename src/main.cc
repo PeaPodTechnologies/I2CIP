@@ -1,4 +1,5 @@
 #ifndef UNIT_TEST
+#ifndef IS_MAIN
 #define UNIT_TEST 1
 #define IS_MAIN 1
 
@@ -111,4 +112,5 @@ void loop(void) {
   fps /= 2;
 }
 
+#endif
 #endif
