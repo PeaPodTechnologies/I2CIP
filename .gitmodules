@@ -31,3 +31,6 @@
 [submodule "lib/I2CIP-ADS1115"]
 	path = lib/I2CIP-ADS1115
 	url = https://github.com/PeaPodTechnologies/I2CIP-ADS1115
+[submodule "lib/I2CIP-LCD-MCP23008"]
+	path = lib/I2CIP-LCD-MCP23008
+	url = https://github.com/PeaPodTechnologies/I2CIP-LCD-MCP23008.git
