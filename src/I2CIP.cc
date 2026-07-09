@@ -129,7 +129,7 @@ bool JsonModule::parseEEPROMContents(const char* buffer) {
           I2CIP_DEBUG_SERIAL.print(address, HEX);
           DEBUG_DELAY();
         #endif
-        fqas[i] = createFQA(this->getWireNum(), this->getModuleNum(), (uint8_t)busnum, address);
+        fqas[i] = createFQA((uint8_t)busnum, address);
         i++;
       }
 

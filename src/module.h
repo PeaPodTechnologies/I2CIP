@@ -179,6 +179,8 @@ namespace I2CIP {
       String toString(void) const { return this->devicegroups.toString(); }
       void toJSON(JsonObject obj, bool pingFilter = false) const;
 
+      inline i2cip_fqa_t createFQA(const uint8_t& bus, const uint8_t& addr) const { return I2CIP::createFQA(this->wire, this->mux, bus, addr); }
+
       /**
        * DeviceGroup Lookup
        * @note If not found, create and add using `addEmptyGroup()`.

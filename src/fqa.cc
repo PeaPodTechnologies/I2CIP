@@ -2,8 +2,6 @@
 
 #include "debug_i2cip.h"
 
-// #define BEGIN_WIRE_EVERY_TIME 1 // Uncomment to begin wire every time
-
 // Has wire N been wires[N].begin() yet?
 bool wiresBegun[I2CIP_NUM_WIRES] = { false };
 
@@ -21,10 +19,14 @@ i2cip_fqa_t I2CIP::createFQA(uint8_t wire, uint8_t mux, uint8_t bus, uint8_t add
 bool I2CIP::beginWire(uint8_t wire) {
   if(wire > I2CIP_FQA_I2CBUS_MAX || wire >= I2CIP_NUM_WIRES) return false;
 
-  #ifndef BEGIN_WIRE_EVERY_TIME
+  #ifndef I2CIP_BEGIN_WIRE_EVERY_TIME
     if(!wiresBegun[wire]) {
   #endif
   bool r = wires[wire]->begin();
+
+  #ifdef I2CIP_FASTMODE
+    if (r) wires[wire]->setClock(400000); // Set to 400kHz for fast mode
+  #endif
 
   wiresBegun[wire] = r;
   #ifdef I2CIP_DEBUG_SERIAL
@@ -36,7 +38,7 @@ bool I2CIP::beginWire(uint8_t wire) {
       DEBUG_DELAY();
     }
   #endif
-  #ifndef BEGIN_WIRE_EVERY_TIME
+  #ifndef I2CIP_BEGIN_WIRE_EVERY_TIME
     }
     return wiresBegun[wire];
   #else

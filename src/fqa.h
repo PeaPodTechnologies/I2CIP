@@ -4,6 +4,9 @@
 #include <Arduino.h>
 #include "Wire.h"
 
+// #define I2CIP_BEGIN_WIRE_EVERY_TIME 1 // Uncomment to begin wire every time
+// #define I2CIP_FASTMODE 1 // Uncomment to enable I2C Fast Mode (400kHz) - not compatible with the Senseair K30
+
 // --------------------------------
 // FQA: Fully Qualified Addressing
 // --------------------------------
