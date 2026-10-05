@@ -19,7 +19,7 @@
 
 #include <DebugJson.h>
 
-#include <debug.h>
+#include <debug_i2cip.h>
 #include <I2CIP.h>
 
 #include <HT16K33.h>
@@ -27,7 +27,7 @@
 #include <JHD1313.h>
 #include <Seesaw.h>
 
-// using namespace I2CIP;
+using namespace I2CIP;
 
 // DECLARATIONS
 
@@ -48,13 +48,9 @@ class DebugModule : public JsonModule {
   public:
     DebugModule(const uint8_t& wirenum, const uint8_t& modulenum) : JsonModule(wirenum, modulenum) { }
 
-    // i2cip_errorlevel_t handleCommand(JsonObject command) {
-    //   if(command.containsKey("fqa")) {
-    //     // Device Command
-        
-    //   }
-    //   return I2CIP_ERR_NONE; // NOP
-    // }
+    void handleCommand(JsonObject command, Print& out) override { }
+
+    void handleConfig(JsonObject command, Print& out) override { }
 };
 
 // CONSTANTS

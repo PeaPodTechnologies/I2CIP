@@ -3,7 +3,7 @@
 
 #include "../config.h"
 
-#include <debug.h>
+#include <debug_i2cip.h>
 #include <I2CIP.h>
 
 using namespace I2CIP;
@@ -16,7 +16,7 @@ void test_module_init(void) {
     DEBUG_DELAY();
   #endif
 
-  m = new Module(0, 0);
+  m = new TestModule(0, 0);
   TEST_ASSERT_TRUE_MESSAGE(m != nullptr, "Module Initialization Fail");
 
   if(m == nullptr) while(true) { // Blink
@@ -53,7 +53,7 @@ void test_module_discovery(void) {
 
   DeviceGroup* eeprom_group = m->operator[](EEPROM::getID());
   TEST_ASSERT_TRUE_MESSAGE(eeprom_group != nullptr, "Module EEPROM Group Not Found");
-  EEPROM* eeprom = (EEPROM*)eeprom_group->operator[](m->operator const I2CIP::EEPROM &().getFQA());
+  EEPROM* eeprom = (EEPROM*)eeprom_group->operator[](m->operator I2CIP::EEPROM &().getFQA());
   TEST_ASSERT_TRUE_MESSAGE(eeprom != nullptr, "Module EEPROM Not Found");
   
   i2cip_fqa_t fqa = createFQA(m->getWireNum(), m->getModuleNum(), 0, I2CIP_EEPROM_ADDR);
@@ -109,14 +109,14 @@ void test_module_self_check(void) {
 }
 
 void test_module_eeprom_check(void) {
-  i2cip_errorlevel_t errlev = m->operator()<EEPROM>(m->operator const I2CIP::EEPROM &());
+  i2cip_errorlevel_t errlev = m->operator()<EEPROM>(m->operator I2CIP::EEPROM &());
   TEST_ASSERT_EQUAL_UINT8_MESSAGE(I2CIP_ERR_NONE, errlev, "EEPROM check failed! Check EEPROM wiring.");
   if(errlev > I2CIP_ERR_NONE) end = true;
 }
 
 void test_module_eeprom_update(void) {
   // i2cip_errorlevel_t errlev = (*m)((m->operator const I2CIP::EEPROM &()), true);
-  i2cip_errorlevel_t errlev = m->operator()<EEPROM>(m->operator const I2CIP::EEPROM &(), true);
+  i2cip_errorlevel_t errlev = m->operator()<EEPROM>(m->operator I2CIP::EEPROM &(), true);
   TEST_ASSERT_EQUAL_UINT8_MESSAGE(I2CIP_ERR_NONE, errlev, "EEPROM read/write failed! Check EEPROM wiring.");
   if(errlev > I2CIP_ERR_NONE) end = true;
   
