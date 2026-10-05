@@ -28,7 +28,7 @@
 #define I2CIP_TEST_EEPROM_OVERWRITE 1 // Uncomment to enable EEPROM overwrite test
 
 // #define EEPROM_JSON_CONTENTS_TEST I2CIP_EEPROM_DEFAULT
-#define EEPROM_JSON_CONTENTS_TEST {"[{\"24LC32\":[80],\"SHT45\":[" STR(I2CIP_SHT45_ADDRESS) "],\"SEESAW\":[" STR(I2CIP_SEESAW_ADDRESS) "]},{\"PCA9685\":[" STR(I2CIP_PCA9685_ADDRESS) "],\"JHD1313\":[" STR(I2CIP_JHD1313_ADDRESS) "],\"K30\":[" STR(I2CIP_K30_ADDRESS) "]},{\"MCP23017\":[" STR(I2CIP_MCP23017_ADDRESS) "]}]"}
+#define EEPROM_JSON_CONTENTS_TEST {"[{\"24LC32\":[80],\"SHT45\":[" STR(I2CIP_SHT45_ADDRESS) "]},{\"SHT45\":[" STR(I2CIP_SHT45_ADDRESS) "]}]"}
 
 // #ifdef ESP32
 //   SET_LOOP_TASK_STACK_SIZE( 32*1024 ); // Thanks to: https://community.platformio.org/t/esp32-stack-configuration-reloaded/20994/8; https://github.com/espressif/arduino-esp32/pull/5173
