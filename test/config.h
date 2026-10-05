@@ -163,7 +163,7 @@ class TestModule : public JsonModule {
 
 // #define MAIN_DEBUG_SERIAL Serial
 #define MAIN_DEBUG_SERIAL DebugJsonOut
-#define CYCLE_DELAY 1000 // Max FPS 100Hz
+#define CYCLE_DELAY 100 // Max FPS 100Hz
 #define HEARTBEAT_DELAY 1000 // Max FPS 1Hz
 #define EPSILON_TEMPERATURE 0.5f
 #define EPSILON_HUMIDITY 2.0f // 0.11f

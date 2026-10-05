@@ -6,17 +6,15 @@
 #include <Arduino.h>
 
 #include <DebugJson.h> // Debugging JSON Serial Outputs (Breakpoints, Telemetry, etc.)
-#include <state.h>
 #include <chronograph.h>
 
 #include "../test/config.h"
 
 using namespace I2CIP;
 
-// PeaPod Finite State Machine Flags
+void readAndPrintTemperature(bool _, const FSM::Number& cycle);
+
 FSM::Variable cycle(FSM::Number(0, false, false), "cycle");
-FSM::Flag watering(false);
-FSM::Flag lighting(false);
 
 void setup(void) {
   // 0. Builtin LED Pinmode; Serial Begin
@@ -25,14 +23,7 @@ void setup(void) {
   Serial.begin(115200);
   while(!Serial) { digitalWrite(LED_BUILTIN, HIGH); delay(100); digitalWrite(LED_BUILTIN, LOW); delay(100); }
 
-  // PeaPod Stuff - Finite State Machine Conditionals and Chronograph Flag-Set Events & Intervals
-  // lighting.addLatchingConditional(true, false, controlLights); // Latching Flag Conditional - Call on toggle
-  // FSM::Chronos.addEventFlag(1000, &lighting); // Timer Flag Event - Lighting ON (No-Invert; Delayed 1s)
-  // FSM::Chronos.addEventFlag(DURATION_LIGHTING, &lighting, true); // Timer Flag Event - Lighting OFF (Inverted)
-
-  watering.addLatchingConditional(true, false, controlPin<LED_BUILTIN>); // Latching Flag Conditional - Call on toggle
-  FSM::Chronos.addIntervalFlag(PERIOD_WATERING, &watering); // Timer Flag Interval - Watering ON (No-Invert)
-  FSM::Chronos.addIntervalFlag(PERIOD_WATERING, DURATION_WATERING, &watering, true); // Timer Flag Interval - Watering OFF (Invert)
+  cycle.addCallback(&readAndPrintTemperature);
 }
 
 // LOOP GLOBALS
@@ -110,6 +101,28 @@ void loop(void) {
   unsigned long delta = millis() - last;
   fps += 1000.f / max(1.f, (float)delta);
   fps /= 2;
+}
+
+void readAndPrintTemperature(bool _, const FSM::Number& cycle) {
+  DeviceGroup* dg_sht45 = modules[0]->operator[]("SHT45");
+  if(dg_sht45 == nullptr || dg_sht45->getNumDevices() == 0) return;
+
+  uint8_t num_sht45 = dg_sht45->getNumDevices();
+  for(uint8_t i = 0; i < num_sht45; i++) {
+    SHT45* sht45 = (SHT45*)dg_sht45->getDevice(i);
+    if(sht45 == nullptr) continue;
+    // state_sht45_t state;
+    // args_sht45_t args = SHT45_HEATER_DISABLE;
+    // sht45->get(state, args);
+    // unsigned long now = millis();
+    // DebugJson::telemetry<float>(now, state.temperature);
+    // DebugJson::telemetry<float>(now, state.humidity);
+    i2cip_errorlevel_t errlev_sht45 = modules[0]->operator()<SHT45>(sht45->getFQA(), true, _i2cip_args_io_default, DebugJsonOut);
+    if(errlev_sht45 != I2CIP_ERR_NONE) continue;
+
+    DebugJson::telemetry(sht45->getLastRX(), sht45->getCache().temperature, "temperature");
+    DebugJson::telemetry(sht45->getLastRX(), sht45->getCache().humidity, "humidity");
+  }
 }
 
 #endif
