@@ -107,7 +107,6 @@ void setup() {
 
   UNITY_BEGIN();
 
-  delay(1000);
   RUN_TEST(test_device_oop);
   delay(1000);
   RUN_TEST(test_eeprom_ping);
@@ -122,7 +121,6 @@ void setup() {
   delay(1000);
   RUN_TEST(test_device_io);
   delay(1000);
-
   RUN_TEST(test_device_delete);
 
   UNITY_END();

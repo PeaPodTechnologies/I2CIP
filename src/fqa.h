@@ -60,7 +60,12 @@ typedef const char* i2cip_id_t;
 
 // 5. I2C Wire Implementation
 #define I2CIP_MAXBUFFER 32  // I2C buffer size
-#define I2CIP_NUM_WIRES 2   // Number of I2C wires - TODO: autodetect and populate `wires[]` based on hardware spec macros
+
+#ifdef CONTROLLER_HASWIRE1
+  #define I2CIP_NUM_WIRES 2   // Number of I2C wires - TODO: autodetect and populate `wires[]` based on hardware spec macros
+#else
+  #define I2CIP_NUM_WIRES 1
+#endif
 
 extern TwoWire Wire; // Implemented in Wire.c
 
@@ -70,7 +75,12 @@ extern TwoWire Wire; // Implemented in Wire.c
   static TwoWire* const wires[I2CIP_NUM_WIRES] = { &Wire }; // Array of I2C wires
 #elif I2CIP_NUM_WIRES == 2 // Use Wire1 as well
   extern TwoWire Wire1; // Implemented in Wire.c
-  static TwoWire* const wires[I2CIP_NUM_WIRES] = { &Wire, &Wire1 }; // Array of I2C wires
+  static TwoWire* const wires[I2CIP_NUM_WIRES] = {
+      &Wire,
+    #ifdef CONTROLLER_HASWIRE1
+      &Wire1
+    #endif
+  };
 #endif
 
 extern bool wiresBegun[]; // Has wire N been wires[N].begin() yet?
@@ -84,7 +94,7 @@ extern bool wiresBegun[]; // Has wire N been wires[N].begin() yet?
 namespace I2CIP {
   /**
    * Errorlevels for I2CIP communication.
-   * @enum NONE No error
+   * @enum NONE No error; QoS-2
    * @enum SOFT Communications or other error, device may still be reachable
    * @enum HARD Device unreachable (No ACK)
    */

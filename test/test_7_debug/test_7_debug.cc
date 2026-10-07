@@ -1,69 +1,22 @@
 #ifndef UNIT_TEST
 #define UNIT_TEST 1
-#define IS_MAIN 1
-
-/** 
- * HEADER INCLUDES
- * - Arduino
- * - Unity (Testing Framework) 
- * - DebugJson (Serial Event Handling, Breakpoints, Telemetry)
- * - I2CIP (I2C Intra-network Protocols); Device Classes:
- *  - HT16K33 (7-Segment Display)
- *  - SHT45 (Temperature & Humidity Sensor)
- *  - JHD1313 (16x2 LCD w/ RGB Backlight)
- *  - Seesaw (Adafruit Multipurpose e.g. Rotary Encoder)
- **/
+#endif
 
 #include <Arduino.h>
 #include <unity.h>
+#include "../config.h"
 
-#include <DebugJson.h>
+JsonDocument command = JsonDocument();
+DebugJson::StringWriter outString = DebugJson::StringWriter();
 
-#include <debug.h>
-#include <I2CIP.h>
+void test_json_deserialize(void) {
+  const char* commandString = I2CIP_TEST_COMMAND_STRING;
 
-#include <HT16K33.h>
-#include <SHT45.h>
-#include <JHD1313.h>
-#include <Seesaw.h>
+  DeserializationError error = deserializeJson(command, commandString);
 
-// using namespace I2CIP;
+  TEST_ASSERT_FALSE_MESSAGE((bool)error, (String("JSON command deserialization failed: ") + commandString).c_str());
+}
 
-// DECLARATIONS
-
-class DebugModule : public JsonModule {
-  private:
-  protected:
-    DeviceGroup* deviceGroupFactory(const i2cip_id_t& id) override {
-      DeviceGroup* dg = nullptr;
-      dg = DeviceGroup::create<SHT45>(id);
-      if(dg != nullptr) return dg;
-      dg = DeviceGroup::create<JHD1313>(id);
-      if(dg != nullptr) return dg;
-      dg = DeviceGroup::create<RotaryEncoder>(id);
-      if(dg != nullptr) return dg;
-      dg = DeviceGroup::create<EEPROM>(id);
-      return dg;
-    }
-  public:
-    DebugModule(const uint8_t& wirenum, const uint8_t& modulenum) : JsonModule(wirenum, modulenum) { }
-
-    // i2cip_errorlevel_t handleCommand(JsonObject command) {
-    //   if(command.containsKey("fqa")) {
-    //     // Device Command
-        
-    //   }
-    //   return I2CIP_ERR_NONE; // NOP
-    // }
-};
-
-// CONSTANTS
-
-#define TEST_7_DEBUG_WIRENUM 0x00
-
-// void test_initialize(void) {
-
-// }
 
 void setup(void) {
   pinMode(LED_BUILTIN, OUTPUT);
@@ -74,6 +27,10 @@ void setup(void) {
   delay(2000);
 
   UNITY_BEGIN();
+
+  delay(1000);
+
+  RUN_TEST(test_json_deserialize);
 }
 
 /**
@@ -84,26 +41,26 @@ void setup(void) {
  * b. If not loaded, instantiate
  * c.
  */
-void test_load_modules(void) {
+void test_modules_load(void) {
   for(uint8_t m = 0; m < I2CIP_MUX_COUNT; m++) {
-    if(I2CIP::MUX::pingMUX(TEST_7_DEBUG_WIRENUM, m)) {
+    if(I2CIP::MUX::pingMUX(WIRENUM, m)) {
       if(I2CIP::modules[m] == nullptr) {
-        I2CIP::modules[m] = new DebugModule(TEST_7_DEBUG_WIRENUM, m);
+        I2CIP::modules[m] = new TestModule(WIRENUM, m);
       }
 
       I2CIP::errlev[m] = I2CIP::modules[m]->operator()();
-      if(I2CIP::errlev[m] == I2CIP_ERR_NONE) {
-        DebugJson::revision(m, Serial); // sends revision
-      }
+      // if(I2CIP::errlev[m] == I2CIP_ERR_NONE) {
+      //   DebugJson::revision(m, Serial); // sends revision
+      // }
     } else {
       I2CIP::errlev[m] = I2CIP_ERR_HARD;
     }
     String msg = "Module " + String(m) + ": " + (I2CIP::modules[m] == nullptr ? "Null" : "0x" + String(I2CIP::errlev[m], HEX));
-    TEST_IGNORE_MESSAGE(msg.c_str());
+    TEST_PASS_MESSAGE(msg.c_str());
   }
 }
 
-void test_unload_modules(void) {
+void test_modules_unload(void) {
   for(uint8_t m = 0; m < I2CIP_MUX_COUNT; m++) {
     if(I2CIP::modules[m] != nullptr && I2CIP::errlev[m] == I2CIP_ERR_HARD) {
       delete I2CIP::modules[m];
@@ -112,15 +69,48 @@ void test_unload_modules(void) {
   }
 }
 
+void test_json_command(void) {
+  I2CIP::commandRouter(command.as<JsonObject>(), outString);
+  String str = outString.operator String();
+  outString.flush();
+  TEST_ASSERT_TRUE_MESSAGE(str.length() > 0, "JSON command output is empty");
+  
+  JsonDocument output = JsonDocument();
+  DeserializationError error = deserializeJson(output, str);
+  TEST_ASSERT_FALSE_MESSAGE((bool)error, ("JSON command output deserialization failed: " + str).c_str());
+
+  TEST_ASSERT_TRUE_MESSAGE(output.is<JsonObject>(), "JSON command output is not an object");
+
+  TEST_ASSERT_TRUE_MESSAGE(output["type"].is<const char*>(), "JSON command output does not contain 'type' key");
+  TEST_ASSERT_EQUAL_STRING_MESSAGE("info", output["type"].as<const char*>(), "JSON command output 'type' is not 'info'");
+
+  TEST_ASSERT_TRUE_MESSAGE(output["timestamp"].is<unsigned long>(), "JSON command output 'timestamp' is not an unsigned long");
+
+  TEST_ASSERT_TRUE_MESSAGE(output["id"].is<const char*>(), "JSON command output 'id' is not a const char*");
+  TEST_ASSERT_EQUAL_STRING_MESSAGE(I2CIP_TEST_COMMAND_OUTPUT_ID, output["id"].as<const char*>(), "JSON command output 'id' is not '" I2CIP_TEST_COMMAND_OUTPUT_ID "'");
+
+  TEST_ASSERT_TRUE_MESSAGE(output["fqa"].is<uint16_t>(), "JSON command output 'fqa' is not a uint16_t");
+  TEST_ASSERT_EQUAL_UINT16_MESSAGE(I2CIP_TEST_FQA, output["fqa"].as<uint16_t>(), "JSON command output 'fqa' is not '" STR(I2CIP_TEST_FQA) "'");
+
+  TEST_ASSERT_TRUE_MESSAGE(output["errlev"].is<int>(), "JSON command output 'errlev' is not an int");
+  TEST_ASSERT_EQUAL_INT_MESSAGE(I2CIP_ERR_NONE, output["errlev"].as<int>(), "JSON command output 'errlev' is not 0");
+
+  TEST_PASS_MESSAGE(("JSON command output generated: " + str).c_str());
+}
+
 void loop(void) {
 
-  RUN_TEST(test_unload_modules);
-  RUN_TEST(test_load_modules);
+  RUN_TEST(test_modules_unload);
 
   delay(1000);
 
-  DebugJson::update(Serial, I2CIP::commandRouter);
+  RUN_TEST(test_modules_load);
 
+  delay(1000);
+
+  RUN_TEST(test_json_command);
+
+  delay(1000);
+
+  // DebugJson::update(Serial, I2CIP::commandRouter);
 }
-
-#endif

@@ -18,15 +18,18 @@ void test_fqa_create(void) {
 }
 
 void test_fqa_segments(void) {
-  i2cip_fqa_t fqa = I2CIP::createFQA(0x00, 0x00, I2CIP_MUX_BUS_DEFAULT, 0x50);
+  i2cip_fqa_t fqa = I2CIP::createFQA(0x00, 0x00, I2CIP_MUX_BUS_DEFAULT, I2CIP_EEPROM_ADDR);
   TEST_ASSERT_EQUAL_UINT16_MESSAGE(0x00, I2CIP_FQA_SEG_I2CBUS(fqa), "FQA Seg: Bus Number");
   TEST_ASSERT_EQUAL_UINT16_MESSAGE(0x00, I2CIP_FQA_SEG_MODULE(fqa), "FQA Seg: MUX Number");
   TEST_ASSERT_EQUAL_UINT16_MESSAGE(I2CIP_MUX_BUS_DEFAULT, I2CIP_FQA_SEG_MUXBUS(fqa), "FQA Seg: MUX Bus Number");
-  TEST_ASSERT_EQUAL_UINT16_MESSAGE(0x50, I2CIP_FQA_SEG_DEVADR(fqa), "FQA Seg: Device Address");
+  TEST_ASSERT_EQUAL_UINT16_MESSAGE(I2CIP_EEPROM_ADDR, I2CIP_FQA_SEG_DEVADR(fqa), "FQA Seg: Device Address");
 }
 
 void test_fqa_to_wire(void) {
   TEST_ASSERT_EQUAL_PTR_MESSAGE(&Wire, wires[0], "wires[0] points to &Wire");
+  #ifdef CONTROLLER_HASWIRE1
+    TEST_ASSERT_EQUAL_PTR_MESSAGE(&Wire1, wires[1], "wires[1] points to &Wire1");
+  #endif
 }
 
 void setup() {
@@ -35,8 +38,16 @@ void setup() {
   UNITY_BEGIN();
 
   RUN_TEST(test_fqa_create);
+
+  delay(1000);
+
   RUN_TEST(test_fqa_segments);
+
+  delay(1000);
+
   RUN_TEST(test_fqa_to_wire);
+
+  delay(1000);
 
   UNITY_END();
 }
