@@ -29,6 +29,7 @@
 #define I2CIP_TEST_EEPROM_OVERWRITE 1 // Uncomment to enable EEPROM overwrite test
 
 // #define I2CIP_TEST_EEPROM_CONTENTS I2CIP_EEPROM_DEFAULT
+// #define I2CIP_TEST_EEPROM_CONTENTS {"[{\"24LC32\":[80],\"SHT45\":[" STR(I2CIP_SHT45_ADDRESS) "],\"SEESAW\":[" STR(I2CIP_SEESAW_ADDRESS) "]},{\"PCA9685\":[" STR(I2CIP_PCA9685_ADDRESS) "],\"JHD1313\":[" STR(I2CIP_JHD1313_ADDRESS) "],\"K30\":[" STR(I2CIP_K30_ADDRESS) "]},{\"MCP23017\":[" STR(I2CIP_MCP23017_ADDRESS) "]}]"}
 #define I2CIP_TEST_EEPROM_CONTENTS {"[{\"24LC32\":[80],\"SHT45\":[" STR(I2CIP_SHT45_ADDRESS) "]},{\"SHT45\":[" STR(I2CIP_SHT45_ADDRESS) "]}]"}
 
 #define I2CIP_TEST_FQA 68 // 0:0:0:0x44
@@ -45,10 +46,9 @@
 
 using namespace I2CIP;
 
-class TestModule : public JsonModule {
-  private:
+class TestDeviceGroupsInterface {
   protected:
-    DeviceGroup* deviceGroupFactory(const i2cip_id_t& id) override {
+    DeviceGroup* deviceGroupFactory(const i2cip_id_t& id) {
       DeviceGroup* dg = DeviceGroup::create<EEPROM>(id);
       if(dg != nullptr) return dg;
       dg = DeviceGroup::create<SHT45>(id);
@@ -70,6 +70,12 @@ class TestModule : public JsonModule {
       dg = DeviceGroup::create<MCP23008>(id);
       return dg;
     }
+};
+
+class TestModule : public JsonModule, public TestDeviceGroupsInterface {
+  private:
+  protected:
+    DeviceGroup* deviceGroupFactory(const i2cip_id_t& id) override { return TestDeviceGroupsInterface::deviceGroupFactory(id); }
   public:
     TestModule(const uint8_t wirenum, const uint8_t modulenum) : JsonModule(wirenum, modulenum) { }
 
@@ -170,31 +176,10 @@ class TestModule : public JsonModule {
     
 };
 
-class TestNoModule : public I2CIP::NotAModule {
+class TestNoModule : public I2CIP::NotAModule, public TestDeviceGroupsInterface {
   public:
     TestNoModule(const uint8_t& wire) : I2CIP::NotAModule(wire) { }
-    DeviceGroup* deviceGroupFactory(const i2cip_id_t& id) override {
-      DeviceGroup* dg = DeviceGroup::create<EEPROM>(id);
-      if(dg != nullptr) return dg;
-      dg = DeviceGroup::create<SHT45>(id);
-      if(dg != nullptr) return dg;
-      dg = DeviceGroup::create<K30>(id);
-      if(dg != nullptr) return dg;
-      dg = DeviceGroup::create<HT16K33>(id);
-      if(dg != nullptr) return dg;
-      dg = DeviceGroup::create<PCA9685>(id);
-      if(dg != nullptr) return dg;
-      dg = DeviceGroup::create<JHD1313>(id);
-      if(dg != nullptr) return dg;
-      dg = DeviceGroup::create<RotaryEncoder>(id);
-      if(dg != nullptr) return dg;
-      dg = DeviceGroup::create<MCP23017>(id);
-      if(dg != nullptr) return dg;
-      dg = DeviceGroup::create<Nunchuck>(id);
-      if(dg != nullptr) return dg;
-      dg = DeviceGroup::create<MCP23008>(id);
-      return dg;
-    }
+    DeviceGroup* deviceGroupFactory(const i2cip_id_t& id) override { return TestDeviceGroupsInterface::deviceGroupFactory(id); }
 };
 
 TestNoModule notamodule(WIRENUM);
