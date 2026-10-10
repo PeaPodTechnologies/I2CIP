@@ -17,6 +17,8 @@ void setup(void) {
   Serial.begin(115200);
   while(!Serial) { digitalWrite(LED_BUILTIN, HIGH); delay(100); digitalWrite(LED_BUILTIN, LOW); delay(100); }
 
+  I2CIP::modules[I2CIP_MUX_NUM_FAKE] = new TestNoModule(I2CIP_WIRENUM_PRIMARY);
+
   delay(2000);
 
   UNITY_BEGIN();
@@ -25,10 +27,11 @@ void setup(void) {
 }
 
 void test_nomodule_init(void) {
-  I2CIP::modules[0] = new TestModule(WIRENUM, I2CIP_MUX_NUM_FAKE);
+  I2CIP::modules[I2CIP_MUX_NUM_FAKE] = new TestNoModule(I2CIP_WIRENUM_PRIMARY);
+  TEST_ASSERT_TRUE_MESSAGE(I2CIP::modules[I2CIP_MUX_NUM_FAKE] != nullptr, "Nomodule instance is not initialized");
 
   #ifdef I2CIP_TEST_USE_SEVENSEGMENT
-  errlev_sevenseg = I2CIP::modules[0]->operator()<HT16K33>(fqa_sevenseg, false, _i2cip_args_io_default, DebugJsonOut);
+  errlev_sevenseg = I2CIP::modules[I2CIP_MUX_NUM_FAKE]->operator()<HT16K33>(fqa_sevenseg, false, _i2cip_args_io_default, DebugJsonOut);
   TEST_ASSERT_EQUAL_INT_MESSAGE(I2CIP_ERR_NONE, errlev_sevenseg, "Seven-segment initialization failed");
   #endif
 
@@ -38,6 +41,8 @@ void test_nomodule_init(void) {
 #ifdef I2CIP_TEST_USE_SEVENSEGMENT
 unsigned count = 0;
 void test_nomodule_sevenseg(void) {
+  TEST_ASSERT_TRUE_MESSAGE(I2CIP::modules[I2CIP_MUX_NUM_FAKE] != nullptr, "Nomodule instance is not initialized");
+  
   i2cip_ht16k33_data_t data_sevenseg = { .h = count };
   #ifdef I2CIP_TEST_SEVENSEG_USE_SNAKE
   i2cip_ht16k33_mode_t args_sevenseg = SEG_SNAKE;
@@ -45,7 +50,7 @@ void test_nomodule_sevenseg(void) {
   i2cip_ht16k33_mode_t args_sevenseg = SEG_UINT;
   #endif
   i2cip_args_io_t args = {.g = false, .a = nullptr, .s = &data_sevenseg, .b = &args_sevenseg };
-  errlev_sevenseg = I2CIP::modules[0]->operator()<HT16K33>(fqa_sevenseg, true, args, DebugJsonOut);
+  errlev_sevenseg = I2CIP::modules[I2CIP_MUX_NUM_FAKE]->operator()<HT16K33>(fqa_sevenseg, true, args, DebugJsonOut);
   TEST_ASSERT_EQUAL_INT_MESSAGE(I2CIP_ERR_NONE, errlev_sevenseg, "Seven-segment set command failed");
   count++;
 }

@@ -20,46 +20,46 @@ void test_mux_num_to_addr(void) {
 void test_mux_ping(void) {
   char msg[50];
   unsigned long now = millis();
-  bool r = I2CIP::MUX::pingMUX(WIRENUM, MODULE);
+  bool r = I2CIP::MUX::pingMUX(I2CIP_WIRENUM_PRIMARY, I2CIP_TEST_MODULE);
   unsigned long delta = r ? millis() - now : 0;
 
-  sprintf(msg, "MUX %01X:%01X:.:. - PING: FAIL", WIRENUM, MODULE);
+  sprintf(msg, "MUX %01X:%01X:.:. - PING: FAIL", I2CIP_WIRENUM_PRIMARY, I2CIP_TEST_MODULE);
   TEST_ASSERT_TRUE_MESSAGE(r, msg);
 
   if(r){
-    sprintf(msg, "MUX %01X:%01X:.:. - PING: %.3fs", WIRENUM, MODULE, (delta / 1000.0));
+    sprintf(msg, "MUX %01X:%01X:.:. - PING: %.3fs", I2CIP_WIRENUM_PRIMARY, I2CIP_TEST_MODULE, (delta / 1000.0));
     TEST_PASS_MESSAGE(msg);
   }
 }
 
 void test_mux_bus_set(void) {
   char msg[50];
-  sprintf(msg, "MUX %01X:%01X:.:. - SET BUS %01X: FAIL", WIRENUM, MODULE, I2CIP_MUX_BUS_DEFAULT);
+  sprintf(msg, "MUX %01X:%01X:.:. - SET BUS %01X: FAIL", I2CIP_WIRENUM_PRIMARY, I2CIP_TEST_MODULE, I2CIP_MUX_BUS_DEFAULT);
 
   unsigned long now = millis();
-  I2CIP::i2cip_errorlevel_t result = I2CIP::MUX::setBus(WIRENUM, MODULE, I2CIP_MUX_BUS_DEFAULT);
+  I2CIP::i2cip_errorlevel_t result = I2CIP::MUX::setBus(I2CIP_WIRENUM_PRIMARY, I2CIP_TEST_MODULE, I2CIP_MUX_BUS_DEFAULT);
   unsigned long delta = millis() - now;
   
   TEST_ASSERT_EQUAL_UINT8_MESSAGE(I2CIP::I2CIP_ERR_NONE, result, msg);
 
   if(result == I2CIP::I2CIP_ERR_NONE) {
-    sprintf(msg, "MUX %01X:%01X:.:. - SET BUS %01X: %.3fs", WIRENUM, MODULE, I2CIP_MUX_BUS_DEFAULT, (delta / 1000.0));
+    sprintf(msg, "MUX %01X:%01X:.:. - SET BUS %01X: %.3fs", I2CIP_WIRENUM_PRIMARY, I2CIP_TEST_MODULE, I2CIP_MUX_BUS_DEFAULT, (delta / 1000.0));
     TEST_PASS_MESSAGE(msg);
   }
 }
 
 void test_mux_bus_reset(void) {
   char msg[50];
-  sprintf(msg, "MUX %01X:%01X:.:. - RESET BUS: FAIL", WIRENUM, MODULE);
+  sprintf(msg, "MUX %01X:%01X:.:. - RESET BUS: FAIL", I2CIP_WIRENUM_PRIMARY, I2CIP_TEST_MODULE);
 
   unsigned long now = millis();
-  I2CIP::i2cip_errorlevel_t result = I2CIP::MUX::resetBus(WIRENUM, MODULE);
+  I2CIP::i2cip_errorlevel_t result = I2CIP::MUX::resetBus(I2CIP_WIRENUM_PRIMARY, I2CIP_TEST_MODULE);
   unsigned long delta = millis() - now;
   
   TEST_ASSERT_EQUAL_UINT8_MESSAGE(I2CIP::I2CIP_ERR_NONE, result, msg);
 
   if(result == I2CIP::I2CIP_ERR_NONE) {
-    sprintf(msg, "MUX %01X:%01X:.:. - RESET BUS: %.3fs", WIRENUM, MODULE, (delta / 1000.0));
+    sprintf(msg, "MUX %01X:%01X:.:. - RESET BUS: %.3fs", I2CIP_WIRENUM_PRIMARY, I2CIP_TEST_MODULE, (delta / 1000.0));
     TEST_PASS_MESSAGE(msg);
   }
 }
