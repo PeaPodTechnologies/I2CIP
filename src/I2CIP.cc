@@ -9,6 +9,11 @@ BST<i2cip_fqa_t, Device*> I2CIP::devicetree = BST<i2cip_fqa_t, Device*>();
 Module* I2CIP::modules[I2CIP_MUX_COUNT] = { nullptr };
 i2cip_errorlevel_t I2CIP::errlev[I2CIP_MUX_COUNT] = { I2CIP_ERR_NONE };
 
+// NotAModule I2CIP::nomodule = NotAModule(I2CIP_WIRENUM_PRIMARY);
+// #ifdef CONTROLLER_HASWIRE1
+//   NotAModule I2CIP::nomodule1 = NotAModule(I2CIP_WIRENUM_SECONDARY);
+// #endif
+
 bool JsonModule::parseEEPROMContents(const char* buffer) {
   #ifdef I2CIP_DEBUG_SERIAL
     DEBUG_DELAY();
@@ -234,7 +239,10 @@ void I2CIP::commandRouter(JsonObject command, Print& out) {
       return;
     }
     i2cip_fqa_t fqa = (i2cip_fqa_t)i;
-    uint8_t m = fqa == I2CIP::sevenSegmentFQA ? 0 : I2CIP_FQA_SEG_MODULE(fqa);
+    uint8_t m = I2CIP_FQA_SEG_MODULE(fqa);
+    if(m == I2CIP_MUX_NUM_FAKE) {
+      return;
+    }
     if(I2CIP::modules[m] != nullptr) {
       #ifdef I2CIP_DEBUG_SERIAL
         DEBUG_DELAY();

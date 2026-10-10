@@ -274,12 +274,12 @@ namespace I2CIP {
       /**
        * Handle commands from DebugJson.
        */
-      virtual void handleCommand(JsonObject command, Print& out) = 0; // Default: Do nothing
+      virtual void handleCommand(JsonObject command, Print& out) = 0;
 
       /**
        * Handle configuration from DebugJson.
        */
-      virtual void handleConfig(JsonObject config, Print& out) = 0; // Default: Do nothing
+      virtual void handleConfig(JsonObject config, Print& out) = 0;
       
       // Output helpers for your various Devices
 
