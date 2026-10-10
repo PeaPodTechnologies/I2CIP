@@ -18,8 +18,7 @@
 #include <LCD-MCP23008.h>
 
 // TESTING PARAMETERS
-#define WIRENUM 0x00
-#define MODULE  0x00
+#define I2CIP_TEST_MODULE  0x00
 #define I2CIP_TEST_BUFFERSIZE 256 // Need to limit this, or else crash; I think Unity takes up a lot of stack space
 
 #define I2CIP_TEST_EEPROM_BYTE0  '[' // This should be the first character of ANY valid SPRT EEPROM
@@ -182,7 +181,7 @@ class TestNoModule : public I2CIP::NotAModule, public TestDeviceGroupsInterface 
     DeviceGroup* deviceGroupFactory(const i2cip_id_t& id) override { return TestDeviceGroupsInterface::deviceGroupFactory(id); }
 };
 
-TestNoModule notamodule(WIRENUM);
+TestNoModule notamodule(I2CIP_WIRENUM_PRIMARY);
 
 #ifdef I2CIP_TEST_USE_MCP23008LCD
 const i2cip_fqa_t fqa_lcd = notamodule.createFQA(I2CIP_MCP23008_ADDRESS);

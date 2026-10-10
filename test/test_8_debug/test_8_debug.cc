@@ -48,9 +48,9 @@ void setup(void) {
  */
 void test_modules_load(void) {
   for(uint8_t m = 0; m < I2CIP_MUX_COUNT; m++) {
-    if(I2CIP::MUX::pingMUX(WIRENUM, m)) {
+    if(I2CIP::MUX::pingMUX(I2CIP_WIRENUM_PRIMARY, m)) {
       if(I2CIP::modules[m] == nullptr) {
-        I2CIP::modules[m] = new TestModule(WIRENUM, m);
+        I2CIP::modules[m] = new TestModule(I2CIP_WIRENUM_PRIMARY, m);
       }
 
       I2CIP::errlev[m] = I2CIP::modules[m]->operator()();
@@ -104,22 +104,22 @@ void test_json_command(void) {
 }
 
 void test_nomodule_init(void) {
-  // TEST_ASSERT_FALSE_MESSAGE(I2CIP::modules[MODULE] == nullptr, "Module is not initialized");
+  // TEST_ASSERT_FALSE_MESSAGE(I2CIP::modules[I2CIP_TEST_MODULE] == nullptr, "Module is not initialized");
 
   #ifdef I2CIP_TEST_USE_MCP23008LCD
-  // errlev_lcd = I2CIP::modules[MODULE]->operator()<MCP23008>(fqa_lcd, false, _i2cip_args_io_default, DebugJsonOut);
+  // errlev_lcd = I2CIP::modules[I2CIP_TEST_MODULE]->operator()<MCP23008>(fqa_lcd, false, _i2cip_args_io_default, DebugJsonOut);
   errlev_lcd = notamodule.operator()<MCP23008>(fqa_lcd, false, _i2cip_args_io_default, DebugJsonOut);
   TEST_ASSERT_EQUAL_INT_MESSAGE(I2CIP_ERR_NONE, errlev_lcd, "MCP23008 LCD initialization failed");
   #endif
 
   #ifdef I2CIP_TEST_USE_SEVENSEGMENT
-  // errlev_sevenseg = I2CIP::modules[MODULE]->operator()<HT16K33>(fqa_sevenseg, false, _i2cip_args_io_default, DebugJsonOut);
+  // errlev_sevenseg = I2CIP::modules[I2CIP_TEST_MODULE]->operator()<HT16K33>(fqa_sevenseg, false, _i2cip_args_io_default, DebugJsonOut);
   errlev_sevenseg = notamodule.operator()<HT16K33>(fqa_sevenseg, false, _i2cip_args_io_default, DebugJsonOut);
   TEST_ASSERT_EQUAL_INT_MESSAGE(I2CIP_ERR_NONE, errlev_sevenseg, "Seven-segment initialization failed");
   #endif
 
   #ifdef I2CIP_TEST_USE_SEESAWROTARY
-  // errlev_rotary = I2CIP::modules[MODULE]->operator()<SEESAW>(fqa_rotary, false, _i2cip_args_io_default, DebugJsonOut);
+  // errlev_rotary = I2CIP::modules[I2CIP_TEST_MODULE]->operator()<SEESAW>(fqa_rotary, false, _i2cip_args_io_default, DebugJsonOut);
   errlev_rotary = notamodule.operator()<Seesaw>(fqa_rotary, false, _i2cip_args_io_default, DebugJsonOut);
   TEST_ASSERT_EQUAL_INT_MESSAGE(I2CIP_ERR_NONE, errlev_rotary, "Rotary initialization failed");
   #endif
@@ -129,9 +129,9 @@ void test_nomodule_init(void) {
 
 #ifdef I2CIP_TEST_USE_MCP23008LCD
 void test_nomodule_lcd(void) {
-  // TEST_ASSERT_FALSE_MESSAGE(I2CIP::modules[MODULE] == nullptr, "Module is not initialized");
+  // TEST_ASSERT_FALSE_MESSAGE(I2CIP::modules[I2CIP_TEST_MODULE] == nullptr, "Module is not initialized");
   
-  // DeviceGroup* dg_mcp = I2CIP::modules[MODULE]->operator[]("MCP23008");
+  // DeviceGroup* dg_mcp = I2CIP::modules[I2CIP_TEST_MODULE]->operator[]("MCP23008");
   DeviceGroup* dg_mcp = notamodule["MCP23008"];
   TEST_ASSERT_TRUE_MESSAGE(dg_mcp != nullptr, "MCP23008 device group is null");
   TEST_ASSERT_NOT_EQUAL_UINT_MESSAGE(0, dg_mcp->getNumDevices(), "MCP23008 device group has no devices");
@@ -152,7 +152,7 @@ void test_nomodule_lcd(void) {
 #ifdef I2CIP_TEST_USE_SEVENSEGMENT
 int16_t count = 0;
 void test_nomodule_sevenseg(void) {
-  // TEST_ASSERT_FALSE_MESSAGE(I2CIP::modules[MODULE] == nullptr, "Module is not initialized");
+  // TEST_ASSERT_FALSE_MESSAGE(I2CIP::modules[I2CIP_TEST_MODULE] == nullptr, "Module is not initialized");
   
   i2cip_ht16k33_data_t data_sevenseg = { .h = count };
   
@@ -163,7 +163,7 @@ void test_nomodule_sevenseg(void) {
   #endif
 
   i2cip_args_io_t args = {.g = false, .a = nullptr, .s = &data_sevenseg, .b = &args_sevenseg };
-  // errlev_sevenseg = I2CIP::modules[MODULE]->operator()<HT16K33>(fqa_sevenseg, true, args, DebugJsonOut);
+  // errlev_sevenseg = I2CIP::modules[I2CIP_TEST_MODULE]->operator()<HT16K33>(fqa_sevenseg, true, args, DebugJsonOut);
   errlev_sevenseg = notamodule.operator()<HT16K33>(fqa_sevenseg, true, args, DebugJsonOut);
   TEST_ASSERT_EQUAL_INT_MESSAGE(I2CIP_ERR_NONE, errlev_sevenseg, "Seven-segment set command failed");
 
@@ -175,14 +175,14 @@ void test_nomodule_sevenseg(void) {
 
 #ifdef I2CIP_TEST_USE_SEESAWROTARY
 void test_nomodule_rotary(void) {
-  // TEST_ASSERT_FALSE_MESSAGE(I2CIP::modules[MODULE] == nullptr, "Module is not initialized");
+  // TEST_ASSERT_FALSE_MESSAGE(I2CIP::modules[I2CIP_TEST_MODULE] == nullptr, "Module is not initialized");
 
-  // I2CIP::DeviceGroup* dg_rotary = modules[MODULE]->operator[]("SEESAW");
+  // I2CIP::DeviceGroup* dg_rotary = modules[I2CIP_TEST_MODULE]->operator[]("SEESAW");
   I2CIP::DeviceGroup* dg_rotary = notamodule["SEESAW"];
   if(dg_rotary != nullptr && dg_rotary->getNumDevices() > 0) {
     RotaryEncoder* rotary = (RotaryEncoder*)(dg_rotary->getDevice(0)); // Use first device
     if(rotary != nullptr) {
-      // i2cip_errorlevel_t errlev_rotary = modules[MODULE]->operator()<Seesaw>(rotary->getFQA(), true, _i2cip_args_io_default, DebugJsonBreakpoints);
+      // i2cip_errorlevel_t errlev_rotary = modules[I2CIP_TEST_MODULE]->operator()<Seesaw>(rotary->getFQA(), true, _i2cip_args_io_default, DebugJsonBreakpoints);
       i2cip_errorlevel_t errlev_rotary = notamodule.operator()<Seesaw>(rotary->getFQA(), true, _i2cip_args_io_default, DebugJsonBreakpoints);
       if(errlev_rotary == I2CIP_ERR_NONE) {
         i2cip_rotaryencoder_t cache = rotary->getCache();

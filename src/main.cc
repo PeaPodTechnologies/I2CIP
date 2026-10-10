@@ -23,6 +23,8 @@ void setup(void) {
   Serial.begin(115200);
   while(!Serial) { digitalWrite(LED_BUILTIN, HIGH); delay(100); digitalWrite(LED_BUILTIN, LOW); delay(100); }
 
+  I2CIP::modules[I2CIP_MUX_NUM_FAKE] = new TestNoModule(I2CIP_WIRENUM_PRIMARY);
+
   cycle.addCallback(&readAndPrintTemperature);
 }
 
@@ -49,12 +51,10 @@ void loop(void) {
     lastHeartbeat = millis();
   }
 
-  I2CIP::modules[MODULE]->operator()<HT16K33>(fqa_sevenseg, true, _i2cip_args_io_default, NullStream);
-
   for(uint8_t m = 0; m < I2CIP_MUX_COUNT; m++) {
-    if(I2CIP::MUX::pingMUX(WIRENUM, m)) {
+    if(I2CIP::MUX::pingMUX(I2CIP_WIRENUM_PRIMARY, m)) {
       if(I2CIP::modules[m] == nullptr) {
-        I2CIP::modules[m] = new TestModule(WIRENUM, m);
+        I2CIP::modules[m] = new TestModule(I2CIP_WIRENUM_PRIMARY, m);
       }
 
       I2CIP::errlev[m] = I2CIP::modules[m]->operator()();
@@ -101,7 +101,7 @@ void loop(void) {
 }
 
 void readAndPrintTemperature(bool _, const FSM::Number& cycle) {
-  DeviceGroup* dg_sht45 = modules[MODULE]->operator[]("SHT45");
+  DeviceGroup* dg_sht45 = modules[I2CIP_TEST_MODULE]->operator[]("SHT45");
   if(dg_sht45 == nullptr || dg_sht45->getNumDevices() == 0) return;
 
   uint8_t num_sht45 = dg_sht45->getNumDevices();
@@ -114,7 +114,7 @@ void readAndPrintTemperature(bool _, const FSM::Number& cycle) {
     // unsigned long now = millis();
     // DebugJson::telemetry<float>(now, state.temperature);
     // DebugJson::telemetry<float>(now, state.humidity);
-    i2cip_errorlevel_t errlev_sht45 = modules[MODULE]->operator()<SHT45>(sht45->getFQA(), true, _i2cip_args_io_default, DebugJsonOut);
+    i2cip_errorlevel_t errlev_sht45 = modules[I2CIP_TEST_MODULE]->operator()<SHT45>(sht45->getFQA(), true, _i2cip_args_io_default, DebugJsonOut);
     if(errlev_sht45 != I2CIP_ERR_NONE) continue;
 
     DebugJson::telemetry(sht45->getLastRX(), sht45->getCache().temperature, "temperature");
@@ -124,7 +124,11 @@ void readAndPrintTemperature(bool _, const FSM::Number& cycle) {
       i2cip_ht16k33_mode_t seg_mode = SEG_2F;
       i2cip_ht16k33_data_t seg_data = { .f = (float)sht45->getCache().temperature };
       i2cip_args_io_t args_sevenseg = { .g = false, .a = nullptr, .s = &seg_data, .b = &seg_mode };
-      errlev_sevenseg = I2CIP::modules[MODULE]->operator()<HT16K33>(fqa_sevenseg, true, args_sevenseg, NullStream);
+      if(I2CIP::modules[I2CIP_MUX_NUM_FAKE] != nullptr) {
+        errlev_sevenseg = I2CIP::modules[I2CIP_MUX_NUM_FAKE]->operator()<HT16K33>(fqa_sevenseg, true, args_sevenseg, NullStream);
+      } else {
+        I2CIP::errlev[I2CIP_MUX_NUM_FAKE] = I2CIP_ERR_HARD;
+      }
     #endif
   }
 }

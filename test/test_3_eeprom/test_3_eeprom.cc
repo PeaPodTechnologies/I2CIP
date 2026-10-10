@@ -9,7 +9,7 @@
 using namespace I2CIP;
 
 EEPROM* eeprom = nullptr;
-const i2cip_fqa_t& eeprom_fqa = I2CIP::createFQA(WIRENUM, MODULE, I2CIP_MUX_BUS_DEFAULT, I2CIP_EEPROM_ADDR);
+const i2cip_fqa_t& eeprom_fqa = I2CIP::createFQA(I2CIP_WIRENUM_PRIMARY, I2CIP_TEST_MODULE, I2CIP_MUX_BUS_DEFAULT, I2CIP_EEPROM_ADDR);
 
 // Explain FQA in detail:
 /**
