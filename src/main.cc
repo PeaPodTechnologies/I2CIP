@@ -105,6 +105,8 @@ void readAndPrintTemperature(bool _, const FSM::Number& cycle) {
   if(dg_sht45 == nullptr || dg_sht45->getNumDevices() == 0) return;
 
   uint8_t num_sht45 = dg_sht45->getNumDevices();
+  state_sht45_t state = { .temperature = 0.0f, .humidity = 0.0f };
+  uint8_t count = 0;
   for(uint8_t i = 0; i < num_sht45; i++) {
     SHT45* sht45 = (SHT45*)dg_sht45->getDevice(i);
     if(sht45 == nullptr) continue;
@@ -120,17 +122,26 @@ void readAndPrintTemperature(bool _, const FSM::Number& cycle) {
     DebugJson::telemetry(sht45->getLastRX(), sht45->getCache().temperature, "temperature");
     DebugJson::telemetry(sht45->getLastRX(), sht45->getCache().humidity, "humidity");
 
-    #ifdef I2CIP_TEST_USE_SEVENSEGMENT
-      i2cip_ht16k33_mode_t seg_mode = SEG_2F;
-      i2cip_ht16k33_data_t seg_data = { .f = (float)sht45->getCache().temperature };
-      i2cip_args_io_t args_sevenseg = { .g = false, .a = nullptr, .s = &seg_data, .b = &seg_mode };
-      if(I2CIP::modules[I2CIP_MUX_NUM_FAKE] != nullptr) {
-        errlev_sevenseg = I2CIP::modules[I2CIP_MUX_NUM_FAKE]->operator()<HT16K33>(fqa_sevenseg, true, args_sevenseg, NullStream);
-      } else {
-        I2CIP::errlev[I2CIP_MUX_NUM_FAKE] = I2CIP_ERR_HARD;
-      }
-    #endif
+    state.temperature += sht45->getCache().temperature;
+    state.humidity += sht45->getCache().humidity;
+    count++;
   }
+
+  if(count > 0) {
+    state.temperature /= count;
+    state.humidity /= count;
+  }
+
+  #ifdef I2CIP_TEST_USE_SEVENSEGMENT
+    i2cip_ht16k33_mode_t seg_mode = SEG_2F;
+    i2cip_ht16k33_data_t seg_data = { .f = (float)state.temperature };
+    i2cip_args_io_t args_sevenseg = { .g = false, .a = nullptr, .s = &seg_data, .b = &seg_mode };
+    if(I2CIP::modules[I2CIP_MUX_NUM_FAKE] != nullptr) {
+      errlev_sevenseg = I2CIP::modules[I2CIP_MUX_NUM_FAKE]->operator()<HT16K33>(fqa_sevenseg, true, args_sevenseg, NullStream);
+    } else {
+      I2CIP::errlev[I2CIP_MUX_NUM_FAKE] = I2CIP_ERR_HARD;
+    }
+  #endif
 }
 
 #endif
