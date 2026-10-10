@@ -15,10 +15,10 @@
 #include <Seesaw.h>
 #include <MCP23017.h>
 #include <Nunchuck.h>
+#include <LCD-MCP23008.h>
 
 // TESTING PARAMETERS
-#define WIRENUM 0x00
-#define MODULE  0x00
+#define I2CIP_TEST_MODULE  0x00
 #define I2CIP_TEST_BUFFERSIZE 256 // Need to limit this, or else crash; I think Unity takes up a lot of stack space
 
 #define I2CIP_TEST_EEPROM_BYTE0  '[' // This should be the first character of ANY valid SPRT EEPROM
@@ -27,8 +27,17 @@
 
 #define I2CIP_TEST_EEPROM_OVERWRITE 1 // Uncomment to enable EEPROM overwrite test
 
-// #define EEPROM_JSON_CONTENTS_TEST I2CIP_EEPROM_DEFAULT
-#define EEPROM_JSON_CONTENTS_TEST {"[{\"24LC32\":[80],\"SHT45\":[" STR(I2CIP_SHT45_ADDRESS) "],\"SEESAW\":[" STR(I2CIP_SEESAW_ADDRESS) "]},{\"PCA9685\":[" STR(I2CIP_PCA9685_ADDRESS) "],\"JHD1313\":[" STR(I2CIP_JHD1313_ADDRESS) "],\"K30\":[" STR(I2CIP_K30_ADDRESS) "]},{\"MCP23017\":[" STR(I2CIP_MCP23017_ADDRESS) "]}]"}
+// #define I2CIP_TEST_EEPROM_CONTENTS I2CIP_EEPROM_DEFAULT
+// #define I2CIP_TEST_EEPROM_CONTENTS {"[{\"24LC32\":[80],\"SHT45\":[" STR(I2CIP_SHT45_ADDRESS) "],\"SEESAW\":[" STR(I2CIP_SEESAW_ADDRESS) "]},{\"PCA9685\":[" STR(I2CIP_PCA9685_ADDRESS) "],\"JHD1313\":[" STR(I2CIP_JHD1313_ADDRESS) "],\"K30\":[" STR(I2CIP_K30_ADDRESS) "]},{\"MCP23017\":[" STR(I2CIP_MCP23017_ADDRESS) "]}]"}
+#define I2CIP_TEST_EEPROM_CONTENTS {"[{\"24LC32\":[80],\"SHT45\":[" STR(I2CIP_SHT45_ADDRESS) "]},{\"SHT45\":[" STR(I2CIP_SHT45_ADDRESS) "]}]"}
+
+#define I2CIP_TEST_FQA 68 // 0:0:0:0x44
+#define I2CIP_TEST_COMMAND_STRING {"{\"fqa\":" STR(I2CIP_TEST_FQA) ",\"g\":true}"}
+#define I2CIP_TEST_COMMAND_OUTPUT_ID "SHT45"
+
+#define I2CIP_TEST_USE_MCP23008LCD 1 // Uncomment to enable MCP23008 LCD test (no module)
+#define I2CIP_TEST_USE_SEESAWROTARY 1 // Uncomment to enable Seesaw Rotary encoder w/ button test (no module)
+#define I2CIP_TEST_USE_SEVENSEGMENT 1 // Uncomment to enable Seven Segment display test (no module)
 
 // #ifdef ESP32
 //   SET_LOOP_TASK_STACK_SIZE( 32*1024 ); // Thanks to: https://community.platformio.org/t/esp32-stack-configuration-reloaded/20994/8; https://github.com/espressif/arduino-esp32/pull/5173
@@ -36,10 +45,9 @@
 
 using namespace I2CIP;
 
-class TestModule : public JsonModule {
-  private:
+class TestDeviceGroupsInterface {
   protected:
-    DeviceGroup* deviceGroupFactory(const i2cip_id_t& id) override {
+    DeviceGroup* deviceGroupFactory(const i2cip_id_t& id) {
       DeviceGroup* dg = DeviceGroup::create<EEPROM>(id);
       if(dg != nullptr) return dg;
       dg = DeviceGroup::create<SHT45>(id);
@@ -57,8 +65,16 @@ class TestModule : public JsonModule {
       dg = DeviceGroup::create<MCP23017>(id);
       if(dg != nullptr) return dg;
       dg = DeviceGroup::create<Nunchuck>(id);
+      if(dg != nullptr) return dg;
+      dg = DeviceGroup::create<MCP23008>(id);
       return dg;
     }
+};
+
+class TestModule : public JsonModule, public TestDeviceGroupsInterface {
+  private:
+  protected:
+    DeviceGroup* deviceGroupFactory(const i2cip_id_t& id) override { return TestDeviceGroupsInterface::deviceGroupFactory(id); }
   public:
     TestModule(const uint8_t wirenum, const uint8_t modulenum) : JsonModule(wirenum, modulenum) { }
 
@@ -159,11 +175,34 @@ class TestModule : public JsonModule {
     
 };
 
+class TestNoModule : public I2CIP::NotAModule, public TestDeviceGroupsInterface {
+  public:
+    TestNoModule(const uint8_t& wire) : I2CIP::NotAModule(wire) { }
+    DeviceGroup* deviceGroupFactory(const i2cip_id_t& id) override { return TestDeviceGroupsInterface::deviceGroupFactory(id); }
+};
+
+TestNoModule notamodule(I2CIP_WIRENUM_PRIMARY);
+
+#ifdef I2CIP_TEST_USE_MCP23008LCD
+const i2cip_fqa_t fqa_lcd = notamodule.createFQA(I2CIP_MCP23008_ADDRESS);
+i2cip_errorlevel_t errlev_lcd;
+#endif
+
+#ifdef I2CIP_TEST_USE_SEESAWROTARY
+const i2cip_fqa_t fqa_rotary = notamodule.createFQA(I2CIP_SEESAW_ADDRESS);
+i2cip_errorlevel_t errlev_rotary;
+#endif
+
+#ifdef I2CIP_TEST_USE_SEVENSEGMENT
+const i2cip_fqa_t fqa_sevenseg = notamodule.createFQA(I2CIP_HT16K33_ADDRESS);
+i2cip_errorlevel_t errlev_sevenseg;
+#endif
+
 /** FOR MAIN **/
 
 // #define MAIN_DEBUG_SERIAL Serial
 #define MAIN_DEBUG_SERIAL DebugJsonOut
-#define CYCLE_DELAY 1000 // Max FPS 100Hz
+#define CYCLE_DELAY 100 // Max FPS 100Hz
 #define HEARTBEAT_DELAY 1000 // Max FPS 1Hz
 #define EPSILON_TEMPERATURE 0.5f
 #define EPSILON_HUMIDITY 2.0f // 0.11f

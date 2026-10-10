@@ -19,7 +19,7 @@
 #ifdef DEBUG_SERIAL
 // Just once
 #include <DebugJson.h>
-#define I2CIP_DEBUG_SERIAL DebugJsonBreakpoints
+// #define I2CIP_DEBUG_SERIAL DebugJsonBreakpoints
 // #define I2CIP_DEBUG_SERIAL DEBUG_SERIAL
 
 #ifndef DEBUG_DELAY

@@ -9,7 +9,7 @@
 using namespace I2CIP;
 
 EEPROM* eeprom = nullptr;
-const i2cip_fqa_t& eeprom_fqa = I2CIP::createFQA(WIRENUM, MODULE, I2CIP_MUX_BUS_DEFAULT, I2CIP_EEPROM_ADDR);
+const i2cip_fqa_t& eeprom_fqa = I2CIP::createFQA(I2CIP_WIRENUM_PRIMARY, I2CIP_TEST_MODULE, I2CIP_MUX_BUS_DEFAULT, I2CIP_EEPROM_ADDR);
 
 // Explain FQA in detail:
 /**
@@ -69,8 +69,8 @@ void test_eeprom_read_word(void) {
 void test_device_io(void) {
   i2cip_errorlevel_t result = I2CIP_ERR_NONE;
   #ifdef I2CIP_TEST_EEPROM_OVERWRITE
-    #ifdef EEPROM_JSON_CONTENTS_TEST
-      const char* msg = EEPROM_JSON_CONTENTS_TEST;
+    #ifdef I2CIP_TEST_EEPROM_CONTENTS
+      const char* msg = I2CIP_TEST_EEPROM_CONTENTS;
       size_t len = strlen(msg);
       result = eeprom->getOutput()->set(&msg, &len);
     #else
@@ -82,10 +82,13 @@ void test_device_io(void) {
   TEST_ASSERT_EQUAL_UINT8_MESSAGE(I2CIP_ERR_NONE, result, "EEPROM Input Getter (Default Args)");
   #ifdef I2CIP_TEST_EEPROM_OVERWRITE
     const char* cache = eeprom->getCache();
-    #ifdef EEPROM_JSON_CONTENTS_TEST
+    #ifdef I2CIP_TEST_EEPROM_CONTENTS
       TEST_ASSERT_EQUAL_STRING_MESSAGE(msg, cache, "EEPROM Cache (Match)");
     #else
       TEST_ASSERT_EQUAL_STRING_MESSAGE(I2CIP_EEPROM_DEFAULT, cache, "EEPROM Cache (Match)");
+    #endif
+    #ifdef I2CIP_TEST_EEPROM_CONTENTS
+      TEST_PASS_MESSAGE(("EEPROM Overwritten: " + String(cache)).c_str());
     #endif
   #endif
 }
@@ -107,7 +110,6 @@ void setup() {
 
   UNITY_BEGIN();
 
-  delay(1000);
   RUN_TEST(test_device_oop);
   delay(1000);
   RUN_TEST(test_eeprom_ping);
@@ -122,7 +124,6 @@ void setup() {
   delay(1000);
   RUN_TEST(test_device_io);
   delay(1000);
-
   RUN_TEST(test_device_delete);
 
   UNITY_END();
