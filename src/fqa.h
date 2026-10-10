@@ -68,19 +68,22 @@ typedef const char* i2cip_id_t;
 #endif
 
 extern TwoWire Wire; // Implemented in Wire.c
-
-#if I2CIP_NUM_WIRES == 0
-  #error "I2CIP_NUM_WIRES must be greater than 0"
-#elif I2CIP_NUM_WIRES == 1
-  static TwoWire* const wires[I2CIP_NUM_WIRES] = { &Wire }; // Array of I2C wires
-#elif I2CIP_NUM_WIRES == 2 // Use Wire1 as well
+#ifdef CONTROLLER_HASWIRE1
   extern TwoWire Wire1; // Implemented in Wire.c
+#endif
+
+#ifdef CONTROLLER_HASWIRE1
   static TwoWire* const wires[I2CIP_NUM_WIRES] = {
-      &Wire,
-    #ifdef CONTROLLER_HASWIRE1
-      &Wire1
-    #endif
+    &Wire,
+    &Wire1
   };
+#else
+  static TwoWire* const wires[I2CIP_NUM_WIRES] = { &Wire }; // Array of I2C wires
+#endif
+
+#define I2CIP_WIRENUM_PRIMARY 0
+#ifdef CONTROLLER_HASWIRE1
+  #define I2CIP_WIRENUM_SECONDARY 1
 #endif
 
 extern bool wiresBegun[]; // Has wire N been wires[N].begin() yet?

@@ -69,8 +69,8 @@ void test_eeprom_read_word(void) {
 void test_device_io(void) {
   i2cip_errorlevel_t result = I2CIP_ERR_NONE;
   #ifdef I2CIP_TEST_EEPROM_OVERWRITE
-    #ifdef EEPROM_JSON_CONTENTS_TEST
-      const char* msg = EEPROM_JSON_CONTENTS_TEST;
+    #ifdef I2CIP_TEST_EEPROM_CONTENTS
+      const char* msg = I2CIP_TEST_EEPROM_CONTENTS;
       size_t len = strlen(msg);
       result = eeprom->getOutput()->set(&msg, &len);
     #else
@@ -82,10 +82,13 @@ void test_device_io(void) {
   TEST_ASSERT_EQUAL_UINT8_MESSAGE(I2CIP_ERR_NONE, result, "EEPROM Input Getter (Default Args)");
   #ifdef I2CIP_TEST_EEPROM_OVERWRITE
     const char* cache = eeprom->getCache();
-    #ifdef EEPROM_JSON_CONTENTS_TEST
+    #ifdef I2CIP_TEST_EEPROM_CONTENTS
       TEST_ASSERT_EQUAL_STRING_MESSAGE(msg, cache, "EEPROM Cache (Match)");
     #else
       TEST_ASSERT_EQUAL_STRING_MESSAGE(I2CIP_EEPROM_DEFAULT, cache, "EEPROM Cache (Match)");
+    #endif
+    #ifdef I2CIP_TEST_EEPROM_CONTENTS
+      TEST_PASS_MESSAGE(("EEPROM Overwritten: " + String(cache)).c_str());
     #endif
   #endif
 }
