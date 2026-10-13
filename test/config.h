@@ -38,6 +38,10 @@
 #define I2CIP_TEST_USE_MCP23008LCD 1 // Uncomment to enable MCP23008 LCD test (no module)
 #define I2CIP_TEST_USE_SEESAWROTARY 1 // Uncomment to enable Seesaw Rotary encoder w/ button test (no module)
 #define I2CIP_TEST_USE_SEVENSEGMENT 1 // Uncomment to enable Seven Segment display test (no module)
+#define I2CIP_TEST_USE_NUNCHUCK 1 // Uncomment to enable Nunchuck test (no module)
+
+#define I2CIP_TEST_NUNCHUCK_PRINT 1 // Uncomment to print Nunchuck pointer to Serial
+#define I2CIP_LCD_MAX_LINE_LENGTH 20
 
 // #ifdef ESP32
 //   SET_LOOP_TASK_STACK_SIZE( 32*1024 ); // Thanks to: https://community.platformio.org/t/esp32-stack-configuration-reloaded/20994/8; https://github.com/espressif/arduino-esp32/pull/5173
@@ -196,6 +200,11 @@ i2cip_errorlevel_t errlev_rotary;
 #ifdef I2CIP_TEST_USE_SEVENSEGMENT
 const i2cip_fqa_t fqa_sevenseg = notamodule.createFQA(I2CIP_HT16K33_ADDRESS);
 i2cip_errorlevel_t errlev_sevenseg;
+#endif
+
+#ifdef I2CIP_TEST_USE_NUNCHUCK
+const i2cip_fqa_t fqa_nunchuck = notamodule.createFQA(I2CIP_NUNCHUCK_ADDRESS);
+i2cip_errorlevel_t errlev_nunchuck;
 #endif
 
 /** FOR MAIN **/

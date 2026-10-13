@@ -144,7 +144,31 @@ void test_nomodule_lcd(void) {
   double seconds = millis() / 1000.0;
   msg += String((float)seconds, 3);
   msg += "s\n";
-  errlev_lcd = lcd.set(msg, LCD_ARGS_NONE);
+
+  #ifdef I2CIP_TEST_USE_NUNCHUCK
+    DeviceGroup* dg_nunchuck = notamodule["NUNCHUCK"];
+    TEST_ASSERT_TRUE_MESSAGE(dg_nunchuck != nullptr, "Nunchuck device group is null");
+    TEST_ASSERT_NOT_EQUAL_UINT_MESSAGE(0, dg_nunchuck->getNumDevices(), "Nunchuck device group has no devices");
+    if(dg_nunchuck != nullptr && dg_nunchuck->getNumDevices() > 0) {
+      Nunchuck* nunchuck = (Nunchuck*)dg_nunchuck->getDevice(0);
+      TEST_ASSERT_TRUE_MESSAGE(nunchuck != nullptr, "Nunchuck device is null");
+      if(nunchuck != nullptr) {
+        i2cip_nunchuck_t cache = nunchuck->getCache();
+        msg += "X: ";
+        msg += String(cache.x);
+        msg += ", Y: ";
+        msg += String(cache.y);
+        msg += "\n";
+        msg += "Z: ";
+        msg += String(cache.z ? "true" : "false");
+        msg += ", C: ";
+        msg += String(cache.c ? "true" : "false");
+        msg += "\n";
+      }
+    }
+  #endif
+
+  errlev_lcd = lcd.set(msg);
   TEST_ASSERT_EQUAL_INT_MESSAGE(I2CIP_ERR_NONE, errlev_lcd, "LCD set command failed");
 }
 #endif
@@ -200,6 +224,23 @@ void test_nomodule_rotary(void) {
 }
 #endif
 
+#ifdef I2CIP_TEST_USE_NUNCHUCK
+void test_nomodule_nunchuck(void) {
+  errlev_nunchuck = notamodule.operator()<Nunchuck>(fqa_nunchuck, true, _i2cip_args_io_default, DebugJsonOut);
+  TEST_ASSERT_EQUAL_INT_MESSAGE(I2CIP_ERR_NONE, errlev_nunchuck, "Nunchuck set command failed");
+
+  #ifdef I2CIP_TEST_NUNCHUCK_PRINT
+  DeviceGroup* dg_nunchuck = notamodule["NUNCHUCK"];
+  if(dg_nunchuck != nullptr && dg_nunchuck->getNumDevices() > 0) {
+    Nunchuck* nunchuck = (Nunchuck*)(dg_nunchuck->getDevice(0)); // Use first device
+    if(nunchuck != nullptr) {
+      nunchuck->printToScreen(Serial, 10, 10);
+    }
+  }
+  #endif
+}
+#endif
+
 void loop(void) {
 
   RUN_TEST(test_modules_unload);
@@ -229,6 +270,11 @@ void loop(void) {
 
   #ifdef I2CIP_TEST_USE_SEVENSEGMENT
   RUN_TEST(test_nomodule_sevenseg);
+  delay(1000);
+  #endif
+
+  #ifdef I2CIP_TEST_USE_NUNCHUCK
+  RUN_TEST(test_nomodule_nunchuck);
   delay(1000);
   #endif
 
