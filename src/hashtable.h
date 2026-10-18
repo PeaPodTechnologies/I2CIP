@@ -13,12 +13,13 @@ namespace I2CIP {
 
 template <typename T> class HashTableEntry {
   public:
-    HashTableEntry(const char* key, T* value, HashTableEntry<T>* last);
+    HashTableEntry(const char* key, T* value, HashTableEntry<T>* last, bool owns);
     ~HashTableEntry();
 
     const char* key;
     T* value;
     HashTableEntry<T>* next;
+    bool owns;
 
     String toString(void) const {
       String str;
@@ -41,9 +42,10 @@ template <typename T> class HashTable {
   friend class I2CIP::Module; // Give Module direct access to the hashtable for destruction
   private:
     HashTableEntry<T>* hashtable[HASHTABLE_SLOTS] = { nullptr };
+    bool owns;
 
   public:
-    HashTable();
+    HashTable(bool owns = false);
     ~HashTable();
 
     /**
@@ -113,7 +115,7 @@ template <typename T> class HashTable {
     }
 
     T* getByFirstOccurrence(uint8_t index) const {
-      uint8_t count = 0;
+      unsigned count = 0;
       for (uint8_t i = 0; i < HASHTABLE_SLOTS; i++) {
         HashTableEntry<T>* entry = this->hashtable[i];
         while(entry != nullptr) {

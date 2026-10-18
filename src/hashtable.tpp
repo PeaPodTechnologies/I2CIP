@@ -25,7 +25,7 @@ inline static uint8_t _hash_function(const char* s) {
 
 // HASH TABLE ENTRY
 
-template <typename T> HashTableEntry<T>::HashTableEntry(const char* key, T* value, HashTableEntry<T>* last) : key(key), value(value), next(last) { }
+template <typename T> HashTableEntry<T>::HashTableEntry(const char* key, T* value, HashTableEntry<T>* last, bool owns) : key(key), value(value), next(last), owns(owns) { }
 
 template <typename T> HashTableEntry<T>::~HashTableEntry() {
   #ifdef I2CIP_DEBUG_SERIAL
@@ -38,14 +38,16 @@ template <typename T> HashTableEntry<T>::~HashTableEntry() {
 
   // Free our key then trigger the next entry
   // delete this->key;
-  delete(this->value);
-  this->value = nullptr;
+  if(this->owns) {
+    delete(this->value);
+    this->value = nullptr;
+  }
   delete(this->next);
 }
 
 // HASH TABLE
 
-template <typename T> HashTable<T>::HashTable() { 
+template <typename T> HashTable<T>::HashTable(bool owns) : owns(owns) { 
   for(int i = 0; i < HASHTABLE_SLOTS; i++) {
     hashtable[i] = nullptr;
   }
@@ -79,6 +81,8 @@ template <typename T> HashTableEntry<T>* HashTable<T>::set(const char* key, T* v
     DEBUG_DELAY();
   #endif
 
+  if(key == nullptr) return nullptr;
+
   HashTableEntry<T>* head = get(key);
 
   // Match found?
@@ -91,7 +95,7 @@ template <typename T> HashTableEntry<T>* HashTable<T>::set(const char* key, T* v
   }
   // No match, allocate new; point "next" to the top entry
   uint8_t index = _hash_function(key);
-  head = new HashTableEntry<T>(key, value, hashtable[index]);
+  head = new HashTableEntry<T>(key, value, hashtable[index], owns);
 
   // If allocation was successful:
   if (head != nullptr && head->key != nullptr) {
@@ -130,6 +134,8 @@ template <typename T> bool HashTable<T>::remove(const char* key) {
     I2CIP_DEBUG_SERIAL.println(key);
     DEBUG_DELAY();
   #endif
+
+  if(key == nullptr) return false;
 
   // Find ptr.next.key == key
   uint8_t index = _hash_function(key);
