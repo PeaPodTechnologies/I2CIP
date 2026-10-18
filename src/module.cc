@@ -217,16 +217,14 @@ Module::Module(const i2cip_fqa_t& eeprom_fqa) : wire(I2CIP_FQA_SEG_I2CBUS(eeprom
   // this->add(*eeprom); // Add EEPROM to module - note that this will call Module::deviceGroupFactory()
 }
 
+Module::~Module() {
+  if(!this->eeprom_added && this->eeprom != nullptr) {
+    delete this->eeprom;
+  }
+}
+
 // Module::Module(const i2cip_fqa_t& eeprom_fqa) : Module(I2CIP_FQA_SEG_I2CBUS(eeprom_fqa), I2CIP_FQA_SEG_MODULE(eeprom_fqa), I2CIP_EEPROM_ADDR) { }
 Module::Module(const uint8_t& wire, const uint8_t& mux, const uint8_t& eeprom_addr) : Module(I2CIP_FQA_CREATE(wire, mux, I2CIP_MUX_BUS_DEFAULT, eeprom_addr)) { }
-
-Module::~Module() {
-  #ifdef I2CIP_DEBUG_SERIAL
-    DEBUG_DELAY();
-    I2CIP_DEBUG_SERIAL.println(F("~Module()"));
-    DEBUG_DELAY();
-  #endif
-}
 
 void Module::toJSON(JsonObject obj, bool pingFilter) const {
   for(uint8_t i = 0; i < HASHTABLE_SLOTS; i++) {

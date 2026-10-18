@@ -119,7 +119,7 @@ namespace I2CIP {
       const uint8_t wire; // I2C Wire Number (Index of `wires[]`)
       const uint8_t mux;  // MUX/Module Number (0x00 - 0x07, address range 0x70 - 0x77)
       
-      HashTable<DeviceGroup> devicegroups = HashTable<DeviceGroup>(); // HashTable of DeviceGroup* by ID
+      HashTable<DeviceGroup> devicegroups = HashTable<DeviceGroup>(false); // HashTable of DeviceGroup* by ID
 
       bool eeprom_added = false; // Has this module's EEPROM been added to the DeviceGroup HashTable?
 
@@ -170,7 +170,7 @@ namespace I2CIP {
       Module(const uint8_t& wire, const uint8_t& module, const uint8_t& eeprom_addr = I2CIP_EEPROM_ADDR);
       Module(const i2cip_fqa_t& eeprom_fqa);
       
-      ~Module();
+      virtual ~Module();
 
       uint8_t getWireNum(void) const { return this->wire; }
       uint8_t getModuleNum(void) const { return this->mux; }
