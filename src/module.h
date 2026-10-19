@@ -280,6 +280,16 @@ namespace I2CIP {
        * Handle configuration from DebugJson.
        */
       virtual void handleConfig(JsonObject config, Print& out) = 0;
+
+      /**
+       * Handle intervals from DebugJson.
+       */
+      virtual void handleInterval(JsonObject intervals, Print& out) = 0;
+
+      /**
+       * Handle events from DebugJson.
+       */
+      virtual void handleEvent(JsonObject event, Print& out) = 0;
       
       // Output helpers for your various Devices
 

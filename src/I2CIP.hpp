@@ -46,6 +46,8 @@ namespace I2CIP {
 
       void handleCommand(JsonObject command, Print& out) override { } // NOP
       void handleConfig(JsonObject config, Print& out) override { } // NOP
+      void handleInterval(JsonObject interval, Print& out) override { } // NOP
+      void handleEvent(JsonObject event, Print& out) override { } // NOP
 
       inline i2cip_fqa_t createFQA(const uint8_t& addr) const { return I2CIP::createFQA(this->getWireNum(), this->getModuleNum(), I2CIP_MUX_BUS_FAKE, addr); }
   };

@@ -176,6 +176,18 @@ class TestModule : public JsonModule, public TestDeviceGroupsInterface {
       #endif
     }
 
+    void handleIntervals(JsonObject interval, Print& out) override { 
+      #ifdef I2CIP_DEBUG_SERIAL
+        I2CIP_DEBUG_SERIAL.println(F("TestModule: handleConfig() called, but not implemented."));
+      #endif
+    }
+
+    void handleEvens(JsonObject event, Print& out) override { 
+      #ifdef I2CIP_DEBUG_SERIAL
+        I2CIP_DEBUG_SERIAL.println(F("TestModule: handleEvent() called, but not implemented."));
+      #endif
+    }
+
     
 };
 
