@@ -28,7 +28,7 @@
 #define I2CIP_TEST_EEPROM_OVERWRITE 1 // Uncomment to enable EEPROM overwrite test
 
 // #define I2CIP_TEST_EEPROM_CONTENTS I2CIP_EEPROM_DEFAULT
-// #define I2CIP_TEST_EEPROM_CONTENTS {"[{\"24LC32\":[80],\"SHT45\":[" STR(I2CIP_SHT45_ADDRESS) "],\"SEESAW\":[" STR(I2CIP_SEESAW_ADDRESS) "]},{\"PCA9685\":[" STR(I2CIP_PCA9685_ADDRESS) "],\"JHD1313\":[" STR(I2CIP_JHD1313_ADDRESS) "],\"K30\":[" STR(I2CIP_K30_ADDRESS) "]},{\"MCP23017\":[" STR(I2CIP_MCP23017_ADDRESS) "]}]"}
+// #define I2CIP_TEST_EEPROM_CONTENTS {"[{\"24LC32\":[80],\"SHT45\":[" STR(I2CIP_SHT45_ADDRESS) "],\"SEESAW\":[" STR(I2CIP_SEESAW_ADDRESS) "]},{\"PCA9685\":[" STR(I2CIP_PCA9685_ADDRESS) "],\"JHD1313\":[" STR(I2CIP_JHD1313_ADDRESS) "],\"K30\":[" STR(I2CIP_K30_ADDRESS) "]},{\"MCP23017\":[" STR(I2CIP_MCP23XXX_ADDRESS) "]}]"}
 #define I2CIP_TEST_EEPROM_CONTENTS {"[{\"24LC32\":[80],\"SHT45\":[" STR(I2CIP_SHT45_ADDRESS) "]},{\"SHT45\":[" STR(I2CIP_SHT45_ADDRESS) "]}]"}
 
 #define I2CIP_TEST_FQA 68 // 0:0:0:0x44
@@ -200,7 +200,7 @@ class TestNoModule : public I2CIP::NotAModule, public TestDeviceGroupsInterface 
 TestNoModule notamodule(I2CIP_WIRENUM_PRIMARY);
 
 #ifdef I2CIP_TEST_USE_MCP23008LCD
-const i2cip_fqa_t fqa_lcd = notamodule.createFQA(I2CIP_MCP23008_ADDRESS);
+const i2cip_fqa_t fqa_lcd = notamodule.createFQA(I2CIP_MCP23008_LCD_ADDRESS);
 i2cip_errorlevel_t errlev_lcd;
 #endif
 
