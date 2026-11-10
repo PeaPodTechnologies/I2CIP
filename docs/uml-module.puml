@@ -1,0 +1,138 @@
+@startuml
+title I2CIP - Module Orchestration and Runtime
+
+skinparam classAttributeIconSize 0
+skinparam packageStyle rectangle
+skinparam linetype ortho
+hide empty members
+
+package "I2CIP Namespace" {
+  object RuntimeAPI {
+    +commandRouter(command: JsonObject, out: Print): void
+    +rebuildTree(out: Print, update: bool=false): void
+    --
+    {static} devicetree: BST<i2cip_fqa_t, Device*>
+    {static} modules: Module*[8]
+    {static} errlev: i2cip_errorlevel_t[8]
+  }
+}
+
+package "Topology and Grouping" {
+  class DeviceGroup {
+    -key: i2cip_id_t
+    -numdevices: uint8_t
+    -devices: Device*[8]
+    +factory: factory_device_t
+    +handler: jsonhandler_device_t
+    +cleanup: cleanup_device_t
+    --
+    +create<C>(id: i2cip_id_t): DeviceGroup*
+    +operator[](fqa: i2cip_fqa_t): Device*
+    +operator()(fqa: i2cip_fqa_t): Device*
+  }
+
+  class Module {
+    -wire: uint8_t
+    -mux: uint8_t
+    -devicegroups: HashTable<DeviceGroup>
+    -eeprom_added: bool
+    #eeprom: EEPROM*
+    --
+    +operator[](id: i2cip_id_t): DeviceGroup*
+    +operator()(): i2cip_errorlevel_t
+    +discoverEEPROM(recurse: bool=false): i2cip_errorlevel_t
+    +parseEEPROMContents(contents: const char*): bool
+    +toJSON(obj: JsonObject, pingFilter: bool=false): void
+    +handleCommand(command: JsonObject, out: Print): void
+    +handleConfig(config: JsonObject, out: Print): void
+    +handleInterval(intervals: JsonObject, out: Print): void
+    +handleEvent(event: JsonObject, out: Print): void
+  }
+
+  class JsonModule
+  class NotAModule
+}
+
+' Cross-diagram references (see uml-device.puml and uml-containers.puml)
+package "Core Device Model" {
+  class Device
+  class EEPROM
+}
+package "Topology and Grouping" {
+  class "BST<K,T>" as BST
+  class "HashTable<T>" as HashTable
+}
+
+JsonModule --|> Module
+NotAModule --|> Module
+
+RuntimeAPI o-- BST : devicetree
+RuntimeAPI o-- Module : modules[0..7]
+Module *-- EEPROM
+Module *-- HashTable : DeviceGroup table
+DeviceGroup o-- Device : devices[0..7]
+
+Module ..> Device : add/remove/operate
+Module ..> DeviceGroup : find/create
+RuntimeAPI ..> Module : command routing
+RuntimeAPI ..> JsonModule : EEPROM JSON parsing implementation
+
+note right of RuntimeAPI
+Global orchestration state is owned
+by namespace-level variables:
+- devicetree
+- modules[]
+- errlev[]
+end note
+
+note bottom of Module
+Module is the subnet orchestrator for one wire+MUX pair.
+
+Core duties:
+- validate subnet ownership for FQAs
+- discover and parse EEPROM configuration
+- manage DeviceGroups (ID -> factory + instances)
+- execute command/config/event handlers
+- serialize module state as JSON
+
+The module always owns exactly one EEPROM endpoint.
+end note
+
+note right of DeviceGroup
+DeviceGroup binds an ID string to:
+- a device factory
+- JSON argument parser/cleanup hooks
+- up to I2CIP_DEVICES_PER_GROUP concrete instances
+
+operator()(fqa):
+lookup existing instance OR create via factory.
+end note
+
+note left of JsonModule
+JsonModule provides the reference implementation of
+parseEEPROMContents() that deserializes EEPROM payload,
+resolves DeviceGroups by ID, and materializes devices
+into the global tree/module structures.
+end note
+
+note left of NotAModule
+NotAModule is a compatibility façade for devices not
+physically behind a real hardware module.
+
+It preserves Module-based call patterns while using
+fake MUX/bus addressing conventions.
+end note
+
+note as N_flow
+Typical runtime flow (command by FQA):
+1) RuntimeAPI::commandRouter()
+2) Route to modules[m]
+3) Module resolves/creates Device via DeviceGroup/BST
+4) Device performs MUX setBus + transport operation
+5) Interface layer updates typed cache/value state
+6) Optional MUX reset and module error aggregation
+end note
+
+RuntimeAPI .. N_flow
+
+@enduml

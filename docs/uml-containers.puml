@@ -1,0 +1,70 @@
+@startuml
+title I2CIP - Containers and Utilities
+
+skinparam classAttributeIconSize 0
+skinparam packageStyle rectangle
+skinparam linetype ortho
+hide empty members
+
+package "Topology and Grouping" {
+  class "BST<K,T>" as BST {
+    +root: BSTNode<K,T>*
+    +insert(key: K, value: T, overwrite: bool=true): BSTNode<K,T>*
+    +remove(key: K): BSTNode<K,T>*
+    +find(key: K): BSTNode<K,T>*
+    +operator[](key: K): T*
+    +size(): uint16_t
+  }
+
+  class "BSTNode<K,T>" as BSTNode {
+    +key: K
+    +value: T
+    +left: BSTNode<K,T>*
+    +right: BSTNode<K,T>*
+  }
+
+  class "HashTable<T>" as HashTable {
+    -hashtable: HashTableEntry<T>*[16]
+    -owns: bool
+    +set(key: const char*, value: T*, overwrite: bool=true): HashTableEntry<T>*
+    +get(key: const char*): HashTableEntry<T>*
+    +operator[](key: const char*): T*
+    +remove(key: const char*): bool
+    +keys(): String*
+  }
+
+  class "HashTableEntry<T>" as HashTableEntry {
+    +key: const char*
+    +value: T*
+    +next: HashTableEntry<T>*
+    +owns: bool
+  }
+
+  class _NullStream
+}
+
+BST *-- BSTNode
+HashTable *-- HashTableEntry
+_NullStream --|> Stream
+
+note right of BST
+BST<i2cip_fqa_t, Device*> is the global fast-path index.
+
+Why BST here:
+- lightweight implementation
+- deterministic key ordering
+- no allocator-heavy STL dependencies
+
+Maps unique FQA -> active Device instance.
+end note
+
+note right of HashTable
+HashTable<T> is optimized for embedded constraints:
+- fixed slot count (HASHTABLE_SLOTS)
+- separate chaining for collisions
+- optional ownership/deletion semantics
+
+Used by Module for ID-indexed DeviceGroup lookup.
+end note
+
+@enduml

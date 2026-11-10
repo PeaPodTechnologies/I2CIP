@@ -1,0 +1,196 @@
+@startuml
+title I2CIP - Core Device Model and Addressing
+
+skinparam classAttributeIconSize 0
+skinparam packageStyle rectangle
+skinparam linetype ortho
+hide empty members
+
+package "I2CIP Namespace" {
+  enum i2cip_errorlevel_t {
+    I2CIP_ERR_NONE
+    I2CIP_ERR_SOFT
+    I2CIP_ERR_HARD
+  }
+
+  enum i2cip_state_pin_t {
+    PIN_OFF
+    PIN_ON
+    PIN_UNDEF
+  }
+}
+
+package "Addressing and Bus Control" {
+  object FQA {
+    +createFQA(wire, mux, bus, addr): i2cip_fqa_t
+    +beginWire(wire): bool
+    +fqaToString(fqa): String
+    --
+    {static} wires: TwoWire*[1..2]
+    {static} wiresBegun: bool[]
+  }
+
+  object MUX {
+    +pingMUX(fqa): bool
+    +pingMUX(wire, module): bool
+    +setBus(fqa): i2cip_errorlevel_t
+    +setBus(wire, module, bus): i2cip_errorlevel_t
+    +resetBus(fqa): i2cip_errorlevel_t
+    +resetBus(wire, module): i2cip_errorlevel_t
+  }
+}
+
+package "Core Device Model" {
+  class InputGetter {
+    +get(args: void*): i2cip_errorlevel_t
+    +failGet(): i2cip_errorlevel_t
+    +getLastRX(): unsigned long
+    +cacheToString(): const char*
+  }
+
+  class OutputSetter {
+    +set(value: void*, args: void*): i2cip_errorlevel_t
+    +reset(args: void*): i2cip_errorlevel_t
+    +failSet(value: void*): i2cip_errorlevel_t
+    +getLastTX(): unsigned long
+    +valueToString(): const char*
+  }
+
+  class Device {
+    -fqa: i2cip_fqa_t
+    -id: i2cip_id_t
+    -timeout: uint16_t
+    -ready: bool
+    -input: InputGetter*
+    -output: OutputSetter*
+    --
+    +get(args: void*): i2cip_errorlevel_t
+    +set(value: void*, args: void*): i2cip_errorlevel_t
+    +ping(resetbus: bool=true, setbus: bool=true): i2cip_errorlevel_t
+    +pingTimeout(setbus: bool=true, resetbus: bool=true): i2cip_errorlevel_t
+    +read/write register helpers...
+  }
+
+  class "InputInterface<G,A>" as InputInterface {
+    -cache: G
+    -argsA: A
+    +get(args: void*): i2cip_errorlevel_t
+    +getCache(): const G&
+    +get(dest: G&, args: A): i2cip_errorlevel_t
+  }
+
+  class "OutputInterface<S,B>" as OutputInterface {
+    -value: S
+    -argsB: B
+    +set(value: void*, args: void*): i2cip_errorlevel_t
+    +getValue(): S
+    +set(value: S, args: B): i2cip_errorlevel_t
+    +resetFailsafe(): void
+  }
+
+  class "IOInterface<G,A,S,B>" as IOInterface
+
+  class EEPROM {
+    -readBuffer: char[257]
+    {static} _failsafe_set: bool
+    {static} _failsafe: char[256]
+    {static} _failsafe_b: uint16_t
+    --
+    +readContents(...): i2cip_errorlevel_t
+    +overwriteContents(...): i2cip_errorlevel_t
+    +clearContents(...): i2cip_errorlevel_t
+    +get(dest: char*&, args: uint16_t): i2cip_errorlevel_t
+    +set(value: const char* const&, args: uint16_t): i2cip_errorlevel_t
+  }
+}
+
+InputInterface --|> InputGetter
+OutputInterface --|> OutputSetter
+IOInterface --|> InputInterface
+IOInterface --|> OutputInterface
+EEPROM --|> Device
+EEPROM --|> IOInterface
+
+Device ..> MUX : set/reset bus
+Device ..> FQA : address segmentation
+
+note right of FQA
+FQA (Fully Qualified Address) is a packed 16-bit route key:
+- wire segment (physical I2C controller index)
+- module segment (MUX/module number)
+- bus segment (MUX channel)
+- addr segment (7-bit peripheral address)
+
+createFQA() validates each segment before packing.
+fqaToString() is primarily diagnostics/debug formatting.
+end note
+
+note right of MUX
+MUX is the bus-path switch layer.
+
+Primary responsibilities:
+- ping switch presence
+- set active downstream channel
+- reset switch channel(s)
+
+Fake MUX / fake bus values are intentionally supported
+to model direct-wire devices that bypass multiplexing.
+end note
+
+note bottom of Device
+Device is the transport-centric base class:
+- Owns immutable FQA identity and logical device ID
+- Exposes common read/write/register primitives
+- Centralizes ping/readiness/recovery behavior
+- Delegates typed I/O semantics to InputGetter/OutputSetter
+
+State model:
+ready=false after failures, then lazy re-begin on next operation.
+end note
+
+note right of InputGetter
+Type-erased input endpoint used by Device::get().
+
+failGet() routes through a sentinel argument to request
+default/reset behavior from typed InputInterface<G,A>.
+end note
+
+note right of OutputSetter
+Type-erased output endpoint used by Device::set().
+
+reset()/failSet() use sentinel argument/value combinations
+to invoke default/failsafe behavior in OutputInterface<S,B>.
+end note
+
+note bottom of InputInterface
+InputInterface<G,A> adds typed caching and argument replay:
+- cache stores last successful GET payload
+- argsA stores last effective read arguments
+- first-call default args supplied by getDefaultA()
+
+Pattern: stateless transport + stateful typed interface.
+end note
+
+note bottom of OutputInterface
+OutputInterface<S,B> adds typed output history:
+- value stores last successful SET value
+- argsB stores last effective write arguments
+- getDefaultB()/resetFailsafe() define recovery defaults
+
+This enables repeat-write and failsafe semantics.
+end note
+
+note right of EEPROM
+EEPROM is both:
+1) A normal I2CIP Device
+2) A typed IOInterface<char*, uint16_t, const char*, uint16_t>
+
+It is used as:
+- module metadata source (JSON-ish config string)
+- persistent key data store
+
+Implementation performs bounded page writes and
+pingTimeout() polling between writes for write-cycle completion.
+end note
+
+@enduml
