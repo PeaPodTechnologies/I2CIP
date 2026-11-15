@@ -16,7 +16,7 @@
 
 % Headers
 \pagestyle{fancy}
-\lhead{I${}^2$CIP - Requirements}
+\lhead{I${}^2$CIP Requirements}
 \rhead{PeaPod Technologies Inc.}
 
 % Metric counter, referencing commands
@@ -36,20 +36,15 @@
 
         \vspace{0.5cm}
 
-        Requirements for: a Hardware Design Specification for Bus-Switched Hot-Swap Modules of I${}^2$C Targets, and; a Software Library of Intra-Network Communications Protocols for Rapid Implementation of Plug-and-Play Embedded Systems\\
+        Requirements for: a Hardware Design Specification for Bus-Switched Hot-Swap Modules of I${}^2$C Targets, and a Software Library of Intra-Network Communications Protocols for Rapid Implementation of Plug-and-Play Embedded Systems\\
 
         \vfill
-        \scriptsize{
-            \textbf{Jayden Lefebvre - Founder \& CEO, Lead Engineer}\\
-            Northumberland County, ON, Canada\\
-        }
-        \vspace{.75cm}
-        Primary Contact Email: \uline{contact@peapodtech.com}
+        \input{../tex/Namecard.tex}
         \vspace{1.25cm}
 
-        Revision 1.0\\
+        Revision 1.1\\
         PeaPod Technologies Inc.\\
-        July 26th, 2024
+        October 27th, 2026
 
     \end{center}
 \end{titlepage}
@@ -65,14 +60,18 @@
 
 The purpose of this document is to two-fold:
 
-Outline the categorical requirements (Section \ref{sec:requirements}) of an intra-network design specification for hot-swap bus-switched modules of plug-and-play I${}^2$C devices, and a software library for communications protocols
+\hspace{24pt} Outline the categorical requirements (Section \ref{sec:requirements}) of an intra-networking design specification for hot-swap bus-switched ``modules'' of plug-and-play I${}^2$C devices.
 
-Detail the scoped requirements (Section \ref{sec:scope}) for the design and protocols as-proposed by PeaPod Technologies Inc., namely \textbf{I${}^2$CIP}.
+\hspace{24pt} Detail the scoped requirements (Section \ref{sec:scope}) for the design and protocols as-proposed by PeaPod Technologies Inc., namely \textbf{I${}^2$CIP}.
+
+\hspace{24pt} The mission of I${}^2$CIP is to enable rapid prototyping and deployment of plug-and-play embedded systems. The vision of I${}^2$CIP is to establish a scalable framework for the implementation of robust control and communication systems using embedded intra-networking.
 
 % conditions:
 
 % - Dynamic Routing: ***.*** This enables physical “plug-and-play” functionality.
 % - Modularity: ***.*** This enables lifecycle management for physical collections of devices, and informs dynamic routing.
+
+\clearpage
 
 \subsection{Design Paradigm}\label{sec:structure}
 
@@ -85,50 +84,50 @@ Detail the scoped requirements (Section \ref{sec:scope}) for the design and prot
 
 \subsubsection{I${}^2$C Specification}
 
-From the I${}^2$C Specification Version 7 (2021, \textit{NXP Semiconductors}): 8-bit-oriented one-ended (controller-driven) bidirectional (read \& write) serial communication over a 2-wire bus (data "SDA" \& clock "SCL") for integrated circuit "devices" ("targets"), including (but not limited to):
+\hspace{24pt} From the I${}^2$C Specification Version 7 (2021, \textit{NXP Semiconductors}): 8-bit-oriented one-ended (controller-driven) bidirectional (read \& write) serial communication over a 2-wire bus (data "SDA" \& clock "SCL") for integrated circuit devices ("targets"), including (but not limited to):
 
 \begin{itemize}
     \item \textbf{Remote Multi-Channel Ports}: GPIO banks, internal-clock PWM drivers, A/D and D/A converters, etc.
-    \item \textbf{System Devices}: real-time clocks, LCD screens, etc.
+    \item \textbf{System Devices}: real-time clocks, LCD screens, multiplexers, etc.
     \item \textbf{Data Storage Devices}: EEPROM, SRAM, FRAM, etc.
     \item \textbf{Digital Sensors}: temperature, light, speed, pressure, etc.
 \end{itemize}
 
-The I${}^2$C Specification can be imagined as an incomplete analogue to the Internet's OSI Model, with the following layers defined:
+\hspace{24pt} The I${}^2$C Specification can be imagined as an incomplete analogue to the Internet's OSI Model, with the following layers defined:
 
 \begin{enumerate}[label=SC\arabic*., ref=SC\arabic*]
-    \item\label{sc:1} \textbf{Physical Layer} - Compare to RJ45
+    \item\label{sc:1} \textbf{Physical Layer}: Compare to RJ45
     \begin{enumerate}[ref=SC1\alph*]
-        \item\label{sc:1a} \textbf{VDD \& GND} - +5 VDC
-        \item\label{sc:1b} \textbf{SDA \& SCL} - Pull-Up Bias Resistors (10 k$\Omega$)
+        \item\label{sc:1a} \textbf{VDD \& GND}: +5 VDC
+        \item\label{sc:1b} \textbf{SDA \& SCL}: Pull-Up Bias Resistors (10 k$\Omega$)
     \end{enumerate}
-    \item\label{sc:2} \textbf{Data Link Layer} - Compare to Ethernet
+    \item\label{sc:2} \textbf{Data Link Layer}: Compare to Ethernet
     \begin{enumerate}[ref=SC2\alph*]
-        \item\label{sc:2a} \textbf{Controller} - Bus Speed Control, Start \& Stop Conditions, Multi-Controller Arbitration
-        \item\label{sc:2b} \textbf{Targets} - 7-bit Device Addressing, Acknowledgement ("ACK")
-        \item\label{sc:2c} \textbf{Packet Structure} Read \& Write Flags, 8-/16-bit Register Addressing, Byte-Stream Data
+        \item\label{sc:2a} \textbf{Controller}: Bus Speed Control, Start \& Stop Conditions, Multi-Controller Arbitration
+        \item\label{sc:2b} \textbf{Targets}: 7-bit Device Addressing, Acknowledgement ("ACK")
+        \item\label{sc:2c} \textbf{Packet Structure}: Read \& Write Flags, 8-/16-bit Register Addressing, Byte-Stream Data
     \end{enumerate}
 \end{enumerate}
 
-The \textbf{Network} (data routing), \textbf{Transport} (data delivery), and \textbf{Session} (transmission context) layers of the OSI model analogy are not defined by the I${}^2$C Specification. The following proposed extensions to the I${}^2$C Specification, the focus of the \textbf{I${}^2$CIP} design, are intended to fill this gap, enabling \textbf{Presentation} and \textbf{Application} layer functionality to be rapidly implemented by developers for embedded systems.
+\hspace{24pt} The \textbf{Network} (data routing), \textbf{Transport} (data delivery), and \textbf{Session} (transmission context) layers of the OSI model analogy are not defined by the I${}^2$C Specification. The following proposed extensions to the I${}^2$C Specification, the focus of the \textbf{I${}^2$CIP} design, are intended to fill this gap, enabling \textbf{Presentation} and \textbf{Application} layer functionality to be rapidly implemented by developers for embedded systems.
 
 % TODO: WHy modules?
 % TODO: Use for control systems
 
 \subsubsection{Switched-Bus Intra-Networking}
 
-Suppose an I${}^2$C target device $D$ with $N$ possible unique addresses. An I${}^2$C bus controller can communicate with $N$ uniquely-addressed instantiations of $D$ on one bus without conflict or modification to connections.
+\hspace{24pt} Suppose an I${}^2$C target device $D$ with $N$ possible unique addresses. An I${}^2$C bus controller can communicate with $N$ uniquely-addressed instantiations of $D$ on one bus without conflict or modification to connections.
 
-Suppose an I${}^2$C target device with $M$ possible unique addresses that acts as a multiplexer and repeater ("switch") for $B$ bitwise-enabled output busses ("subnets"). An I${}^2$C bus controller can communicate with $M * B * N$ independently-addressable instantiations of $D$ across $M * B$ subnets by setting ONE active output bus on each of the $M$ switches (and disabling ALL on the remaining $M - 1$).
+\hspace{24pt} Suppose an I${}^2$C target device with $M$ possible unique addresses that acts as a multiplexer and repeater ("switch") for $B$ bitwise-enabled output busses ("subnetworks"). An I${}^2$C bus controller can communicate with $M * B * N$ independently-addressable instantiations of $D$ across $M * B$ subnetworks by setting ONE active output bus on each of the $M$ switches (and disabling ALL on the remaining $M - 1$).
 
-Example: For $M = 8$ switches with $B = 8$ subnets each, the total number of uniquely-addressable instantiations of $D$ on an I${}^2$CIP intra-network is $8 * 8 * N = 64N$, effectively enabling a 64-fold increase in independently-addressable targets of all types by a single controller.
+\hspace{24pt} Example: For $M = 8$ switches with $B = 8$ subnetworks each, the total number of uniquely-addressable instantiations of $D$ on an I${}^2$CIP intra-network is $8 * 8 * N = 64N$, effectively enabling a 64-fold increase in independently-addressable targets of all types by a single controller.
 
 % Module = switch + routing table
 
 \begin{enumerate}[label=SC\arabic*., ref=SC\arabic*, resume]
-    \item\label{sc:3} \textbf{Network Layer} - Fully-Qualified Addressing ("FQA") - Compare to IP Addressing
-    \item\label{sc:4} \textbf{Transport Layer} - Switch \& Target Ping and Target Control with Quality-of-Service 2 ("only-once" delivery) via ACK - Compare to TCP
-    \item\label{sc:5} \textbf{Session Layer} - Target Discovery \& Module Configuration via Dedicated EEPROM Target
+    \item\label{sc:3} \textbf{Network Layer}: Fully-Qualified Addressing ("FQA"): Compare to IP Addressing
+    \item\label{sc:4} \textbf{Transport Layer}: Switch \& Target Ping and Target Control with Quality-of-Service 2 ("only-once" delivery) via ACK: Compare to TCP
+    \item\label{sc:5} \textbf{Session Layer}: Target Discovery \& Module Configuration via Dedicated EEPROM Target
 \end{enumerate}
 
 % Electrical Isolation (\textit{ISO1540})
@@ -144,15 +143,23 @@ Example: For $M = 8$ switches with $B = 8$ subnets each, the total number of uni
 % Eight modules, eight busses per module
 % "DISABLED" Bus - prevents cross-talk
 
+\clearpage
+
+\subsubsection{State Flow and Debugging}
+
+\hspace{24pt} Basic state management for control flow specification is implemented by FiniteStateMachine (\texttt{FSM}) constructs. The \texttt{State<T>} template class allows for the definition of stateful primitive interfaces, to which conditional callbacks can be attached; for example, an always-executed callback that controls PWM output when a \texttt{Variable} (\texttt{State<Number>}) is not equal to \texttt{NAN}, or a ``latching'' callback that controls a GPIO output only when a \texttt{Flag} (\texttt{State<bool>}) changes from true to false or false to true. Debugging state flow and I$^2$C bus interactions is facilitated through DebugJson, which provides bidirectional newline-delimited JSON communication for monitoring and controlling I$^2$C bus interactions (``command'') and system state transitions (``configuration'', ``event'', and ``interval'').
+
 \subsection{Definitions}\label{sec:definitions}
 
 A number of useful definitions have emerged from the above scoping:
 \begin{enumerate}
-    \item \textbf{Switch} - An I${}^2$C target device that acts as a repeater for bitwise multiplexed output busses.
-    \item \textbf{Subnet} - A specific output bus of a specific switch.
-    \item \textbf{Intra-Network} - A general term referring to ALL routable targets (not including switches) on ALL subnets across ALL of a controller's I${}^2$C busses (in the case of multiple controller busses).
-    \item \textbf{Fully-Qualified Address (FQA)} - A unique intra-network routing location identifier, encoding: a specific I${}^2$C bus (in the case of multiple controller busses), and; a specific Subnet, and; a target's address.
-    \item \textbf{Module} - A switch, and; a physical collection of targets located on the switch's subnets, and; a data storage target with a predetermined address with all routing information for all targets on this switch's subnets.
+    \item \textbf{Transaction}: A single I$^2$C communication operation between a controller and a target, consisting of a start condition, an address phase, a data phase, and a stop condition.
+    \item \textbf{Switch}: An I${}^2$C target that acts as a repeater for bitwise multiplexed output busses.
+    \item \textbf{Subnetwork}: A specific output bus of a specified switch.
+    \item \textbf{Intra-Network}: A term referring to ALL routable targets (not including switches) on ALL subnets across ALL of a controller's I${}^2$C busses (in the case of multiple controller busses).
+    \item \textbf{Fully-Qualified Address (FQA)}: A unique intra-network routing location identifier, encoding: a specific I${}^2$C bus (in the case of multiple controller busses), and; a specific subnetwork, and; a target's address.
+    \item \textbf{Device Identification}: A unique ASCII string identifier for a class of I${}^2$C target devices, derived from hardware specification.
+    \item \textbf{Module}: A switch, and a physical collection of targets located on the switch's subnetworks, and a writable data storage target with a predetermined FQA containing all FQAs and device IDs for all targets on this switch's subnetworks.
 \end{enumerate}
 
 \clearpage
@@ -162,25 +169,22 @@ A number of useful definitions have emerged from the above scoping:
 
 \subsection{Problem Statement}\label{sec:opportunity}
 
-
+\hspace{24pt} Design, implement, and test an intranetwork framework of I$^2$C targets and modules that ensures unique fully-qualified addressing, unique device identification, and robust communication across all switches, subnetworks, and targets.
 
 \subsection{Solution Requirements}\label{sec:requirements}
 
-
-
-
-% Justify:
-% I2CIP MUST provide the context for the implementation for Module lifecycle management
-% I2CIP MUST provide the context for the implementation for Module configuration via EEPROM
-% I2CIP DOES NOT provide the implementation of Module data parsing or formatting or conversion (i.e. data is passed as-is as bytes)
-
-
-The following are the overall challenge requirements compiled from A, B, and an excerpt from C:
 \begin{enumerate}[label=R\arabic*., ref=R\arabic*]
-    \item\label{r:1} \textbf{Must} lorem ipsum dolor sit amet, consectetur adipiscing elit:
-    \begin{enumerate}[ref=R1\alph*]
-        \item\label{r:1a} \textbf{Should} lorem ipsum dolor sit amet, consectetur adipiscing elit;
-    \end{enumerate}
+    \item\label{r:1} \textbf{Must} achieve Quality-of-Service (QoS) level 2 for all I$^2$C transactions on the intranetwork.
+    \item\label{r:2} \textbf{Must} achieve unique fully-qualified addressing for all I$^2$C targets on the intranetwork.
+    \item\label{r:3} \textbf{Must} achieve unique device identification for all I$^2$C targets on the intranetwork.
+    \item\label{r:4} \textbf{Must} achieve switch multiplexing for all subnetworks on the intranetwork.
+    \item\label{r:5} \textbf{Must} achieve individual subnetwork addressing for all I$^2$C targets on the intranetwork.
+    \item\label{r:6} \textbf{Must} achieve individual target control for all I$^2$C targets on the intranetwork, subnetworked and non-subnetworked.
+    \item\label{r:7} \textbf{Must} achieve error detection and handling for all I$^2$C transactions on the intranetwork.
+    % TODO: retries?
+    % \begin{enumerate}[ref=R1\alph*]
+    %     \item\label{r:1a} \textbf{Should} lorem ipsum dolor sit amet, consectetur adipiscing elit;
+    % \end{enumerate}
 \end{enumerate}
 
 % Change line spacing for the more list-heavy sections
@@ -188,8 +192,9 @@ The following are the overall challenge requirements compiled from A, B, and an 
 \subsection{Stakeholders and Values}\label{sec:stakeholders}
 
 \begin{enumerate}[label=S\arabic*., ref=S\arabic*]
-    \item\label{s:1} A - Values, etc.
-    \item\label{s:2} B - DfX, etc.
+    \item\label{s:1} \textbf{PeaPod Technologies Inc.}: Modularity, Robustness, Extensibility
+    \item\label{s:2} \textbf{Hobbyists}: Ease of Use, Flexibility, Affordability
+    \item\label{s:3} \textbf{Users}: Efficiency, Usability, Reliability
 \end{enumerate}
 
 \clearpage
@@ -200,7 +205,8 @@ The following are the overall challenge requirements compiled from A, B, and an 
 % High-Level
 \begin{multicols}{2}[]
     \begin{enumerate}[label=HL\arabic*., ref=HL\arabic*]
-        \item\label{hl:output} Goal ABC \hfill (\ref{s:1},~\ref{r:1},~\ref{r:1a})
+        \item\label{hl:device} Device Design \hfill (\ref{s:1},~\ref{r:6},~\ref{r:7})
+        \item\label{hl:output} Module Design \hfill (\ref{s:1},~\ref{r:4},~\ref{r:5},~\ref{r:7})
     \end{enumerate}
 \end{multicols}
 
@@ -211,7 +217,7 @@ The following are the overall challenge requirements compiled from A, B, and an 
 % Low-Level
 \begin{multicols}{2}[]
     \begin{enumerate}[label=LL\arabic*., ref=LL\arabic*]
-        \item\label{ll:output_variety} Objective ABC \hfill (\ref{hl:output})
+        \item\label{ll:fqa} Fully-Qualified Target Addressing \hfill (\ref{hl:device})
     \end{enumerate}
 \end{multicols}
 
@@ -222,11 +228,9 @@ The following are the overall challenge requirements compiled from A, B, and an 
 
 \begin{tabular}{| @{\makebox[2.4em][c]{\metricrow}} | p{8.7cm} | p{5.9cm} |} 
     \hline
-    \multicolumn{1}{| @{\makebox[2.4em][c]{\textbf{\#}}} | l |}{\textbf{Metric}} & \textbf{Units}\\ 
-    \hline
-    Metric ABC \mlabel{m:constraint} \hfill (\ref{ll:output_variety}) & Yes/No \\
-    Metric XYZ \mlabel{m:criteria} \hfill (\ref{ll:output_variety}) & 0 - 100\% \\
-    \hline
+    \multicolumn{1}{| @{\makebox[2.4em][c]{\textbf{\#}}} | l |}{\textbf{Metric}} & \textbf{Units}\\\hline
+    I$^2$C Bus Selection \mlabel{m:target_addressing} \hfill (\ref{ll:fqa}) & Yes/No \\\hline
+    Subnetwork Selection \mlabel{m:subnetwork} \hfill (\ref{ll:fqa}) & Yes/No \\\hline
 \end{tabular}
 
 \clearpage
