@@ -6,6 +6,25 @@
 #include "device.h"
 
 namespace I2CIP {
+  template <bool B, typename T = void> struct i2cip_enable_if_t { };
+  template <typename T> struct i2cip_enable_if_t<true, T> { typedef T type; };
+  template <typename T> T&& i2cip_declval_t(void);
+
+  template <typename From, typename To> class i2cip_is_convertible_t {
+    private:
+      static void accept(To);
+
+      template <typename F, typename = decltype(accept(i2cip_declval_t<F>()))> static char check(int);
+      template <typename F> static int check(...);
+
+    public:
+      enum { value = sizeof(check<From>(0)) == sizeof(char) };
+  };
+
+  #ifdef FSM_STATE_H_
+  template <typename G, typename A> class CallbackArgsInput;
+  #endif
+
   /**
    * An I2CIP peripheral used for input/state "getting".
    * @param G type used for "get" variable
@@ -29,6 +48,7 @@ namespace I2CIP {
       */
       virtual const A& getDefaultA(void) const = 0;
     public:
+      InputInterface() : InputInterface(nullptr) { }
       InputInterface(Device* device);
       virtual ~InputInterface() = 0;
 
@@ -57,7 +77,47 @@ namespace I2CIP {
        * Gets the input device's state.
        **/
       virtual i2cip_errorlevel_t get(G& dest, const A& args) { return I2CIP_ERR_HARD; } // Unimplemented; Disable this device
+
+      #ifdef FSM_STATE_H_
+      CallbackArgsInput<G, A> asCallbackArgsInput(void) const;
+      #endif
   };
+
+  #ifdef FSM_STATE_H_
+  template <typename G, typename A> class CallbackArgsInput : public FSM::CallbackArgs {
+    private:
+      const InputInterface<G, A>* source = nullptr;
+
+      template <typename T, typename i2cip_enable_if_t<i2cip_is_convertible_t<G, T>::value, int>::type = 0> bool getValue(T& out) const;
+      template <typename T, typename i2cip_enable_if_t<!i2cip_is_convertible_t<G, T>::value, int>::type = 0> bool getValue(T& out) const;
+
+    public:
+      CallbackArgsInput(const InputInterface<G, A>& source);
+
+      const void* getPointer(FSM::args_type_t* typeOut = nullptr) const override;
+
+      bool get(bool& out) const override;
+      bool get(char& out) const override;
+      bool get(short& out) const override;
+      bool get(int& out) const override;
+      bool get(long& out) const override;
+      bool get(unsigned char& out) const override;
+      bool get(unsigned short& out) const override;
+      bool get(unsigned int& out) const override;
+      bool get(unsigned long& out) const override;
+      bool get(float& out) const override;
+      bool get(double& out) const override;
+  };
+
+  template <typename G, typename A> CallbackArgsInput<G, A> makeCallbackArgsInput(const InputInterface<G, A>& source);
+
+  #ifdef FSM_TIMER_H_
+  template <typename G, typename A> FSM::IntervalCallback* addIntervalWithInput(FSM::Chronograph& chronograph, const FSM::fsm_timestamp_t& delta, typename FSM::ConditionalCallback<FSM::fsm_timestamp_t>::cb_compvalrefargs_t cb, const InputInterface<G, A>* input, bool invert = false);
+  template <typename G, typename A> FSM::IntervalCallback* addIntervalWithInput(FSM::Chronograph& chronograph, FSM::fsm_key_t key, const FSM::fsm_timestamp_t& delta, typename FSM::ConditionalCallback<FSM::fsm_timestamp_t>::cb_compvalrefargs_t cb, const InputInterface<G, A>* input, bool invert = false);
+  template <typename G, typename A> FSM::IntervalCallback* addIntervalWithInput(FSM::Chronograph& chronograph, const FSM::fsm_timestamp_t& delta, const FSM::fsm_timestamp_t& phase, typename FSM::ConditionalCallback<FSM::fsm_timestamp_t>::cb_compvalrefargs_t cb, const InputInterface<G, A>* input, bool invert = false);
+  template <typename G, typename A> FSM::IntervalCallback* addIntervalWithInput(FSM::Chronograph& chronograph, FSM::fsm_key_t key, const FSM::fsm_timestamp_t& delta, const FSM::fsm_timestamp_t& phase, typename FSM::ConditionalCallback<FSM::fsm_timestamp_t>::cb_compvalrefargs_t cb, const InputInterface<G, A>* input, bool invert = false);
+  #endif
+  #endif
 
   /**
    * An I2CIP peripheral used for output/state "setting".
@@ -81,6 +141,7 @@ namespace I2CIP {
       */
       virtual const B& getDefaultB(void) const = 0;
     public:
+      OutputInterface() : OutputInterface(nullptr) { }
       OutputInterface(Device* device);
       
       virtual ~OutputInterface() = 0;

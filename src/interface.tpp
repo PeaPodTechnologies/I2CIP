@@ -15,6 +15,8 @@ using I2CIP::OutputSetter;
 using I2CIP::InputInterface;
 using I2CIP::OutputInterface;
 using I2CIP::IOInterface;
+using I2CIP::i2cip_enable_if_t;
+using I2CIP::i2cip_is_convertible_t;
 
 template <typename G, typename A> InputInterface<G, A>::InputInterface(Device* device) { if(device != nullptr) device->setInput(this); }
 
@@ -71,6 +73,72 @@ template <typename G, typename A> i2cip_errorlevel_t InputInterface<G, A>::get(c
   }
   return errlev;
 }
+
+#ifdef FSM_STATE_H_
+using I2CIP::CallbackArgsInput;
+using I2CIP::makeCallbackArgsInput;
+
+template <typename G, typename A> CallbackArgsInput<G, A> InputInterface<G, A>::asCallbackArgsInput(void) const { return CallbackArgsInput<G, A>(*this); }
+
+template <typename G, typename A> CallbackArgsInput<G, A>::CallbackArgsInput(const InputInterface<G, A>& source) : FSM::CallbackArgs((const void*)&source, FSM::ARGS_VOID_PTR), source(&source) { }
+template <typename G, typename A> const void* CallbackArgsInput<G, A>::getPointer(FSM::args_type_t* typeOut) const {
+  if(typeOut != nullptr) {
+    (*typeOut) = FSM::ARGS_VOID_PTR;
+  }
+
+  if(this->source == nullptr) {
+    return nullptr;
+  }
+
+  return (const void*)&this->source->getCache();
+}
+
+template <typename G, typename A> template <typename T, typename i2cip_enable_if_t<i2cip_is_convertible_t<G, T>::value, int>::type> bool CallbackArgsInput<G, A>::getValue(T& out) const {
+  if(this->source == nullptr) return false;
+  out = static_cast<T>(this->source->getCache());
+  return true;
+}
+
+template <typename G, typename A> template <typename T, typename i2cip_enable_if_t<!i2cip_is_convertible_t<G, T>::value, int>::type> bool CallbackArgsInput<G, A>::getValue(T& out) const {
+  (void)out;
+  return false;
+}
+
+template <typename G, typename A> bool CallbackArgsInput<G, A>::get(bool& out) const { return this->getValue(out); }
+template <typename G, typename A> bool CallbackArgsInput<G, A>::get(char& out) const { return this->getValue(out); }
+template <typename G, typename A> bool CallbackArgsInput<G, A>::get(short& out) const { return this->getValue(out); }
+template <typename G, typename A> bool CallbackArgsInput<G, A>::get(int& out) const { return this->getValue(out); }
+template <typename G, typename A> bool CallbackArgsInput<G, A>::get(long& out) const { return this->getValue(out); }
+template <typename G, typename A> bool CallbackArgsInput<G, A>::get(unsigned char& out) const { return this->getValue(out); }
+template <typename G, typename A> bool CallbackArgsInput<G, A>::get(unsigned short& out) const { return this->getValue(out); }
+template <typename G, typename A> bool CallbackArgsInput<G, A>::get(unsigned int& out) const { return this->getValue(out); }
+template <typename G, typename A> bool CallbackArgsInput<G, A>::get(unsigned long& out) const { return this->getValue(out); }
+template <typename G, typename A> bool CallbackArgsInput<G, A>::get(float& out) const { return this->getValue(out); }
+template <typename G, typename A> bool CallbackArgsInput<G, A>::get(double& out) const { return this->getValue(out); }
+template <typename G, typename A> I2CIP::CallbackArgsInput<G, A> I2CIP::makeCallbackArgsInput(const I2CIP::InputInterface<G, A>& source) { return I2CIP::CallbackArgsInput<G, A>(source); }
+
+#ifdef FSM_TIMER_H_
+template <typename G, typename A> FSM::IntervalCallback* addIntervalWithInput(FSM::Chronograph& chronograph, const FSM::fsm_timestamp_t& delta, typename FSM::ConditionalCallback<FSM::fsm_timestamp_t>::cb_compvalrefargs_t cb, const InputInterface<G, A>* input, bool invert) {
+  return addIntervalWithInput(chronograph, FSM::FSM_KEY_NULL, delta, 0, cb, input, invert);
+}
+
+template <typename G, typename A> FSM::IntervalCallback* addIntervalWithInput(FSM::Chronograph& chronograph, FSM::fsm_key_t key, const FSM::fsm_timestamp_t& delta, typename FSM::ConditionalCallback<FSM::fsm_timestamp_t>::cb_compvalrefargs_t cb, const InputInterface<G, A>* input, bool invert) {
+  return addIntervalWithInput(chronograph, key, delta, 0, cb, input, invert);
+}
+
+template <typename G, typename A> FSM::IntervalCallback* addIntervalWithInput(FSM::Chronograph& chronograph, const FSM::fsm_timestamp_t& delta, const FSM::fsm_timestamp_t& phase, typename FSM::ConditionalCallback<FSM::fsm_timestamp_t>::cb_compvalrefargs_t cb, const InputInterface<G, A>* input, bool invert) {
+  return addIntervalWithInput(chronograph, FSM::FSM_KEY_NULL, delta, phase, cb, input, invert);
+}
+
+template <typename G, typename A> FSM::IntervalCallback* addIntervalWithInput(FSM::Chronograph& chronograph, FSM::fsm_key_t key, const FSM::fsm_timestamp_t& delta, const FSM::fsm_timestamp_t& phase, typename FSM::ConditionalCallback<FSM::fsm_timestamp_t>::cb_compvalrefargs_t cb, const InputInterface<G, A>* input, bool invert) {
+  if(input == nullptr) {
+    return nullptr;
+  }
+
+  return chronograph.addInterval(key, delta, phase, cb, new CallbackArgsInput<G, A>(*input), invert, true);
+}
+#endif
+#endif
 
 template <typename S, typename B> OutputInterface<S, B>::OutputInterface(Device* device) { if(device != nullptr) device->setOutput(this); }
 

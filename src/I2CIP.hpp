@@ -13,8 +13,9 @@
 #include "interface.h"
 #include "eeprom.h"
 
-#include "bst.h"
-#include "hashtable.h"
+#include <bst.h>
+#include <hashtable.h>
+
 #include "module.h"
 
 #define I2CIP_REVISION 0

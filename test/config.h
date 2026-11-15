@@ -16,6 +16,7 @@
 #include <MCP23017.h>
 #include <Nunchuck.h>
 #include <LCD-MCP23008.h>
+#include <ADS1115.h>
 
 // TESTING PARAMETERS
 #define I2CIP_TEST_MODULE  0x00
@@ -71,6 +72,8 @@ class TestDeviceGroupsInterface {
       dg = DeviceGroup::create<Nunchuck>(id);
       if(dg != nullptr) return dg;
       dg = DeviceGroup::create<MCP23008>(id);
+      if(dg != nullptr) return dg;
+      dg = DeviceGroup::create<ADS1115>(id);
       return dg;
     }
 };
@@ -176,19 +179,17 @@ class TestModule : public JsonModule, public TestDeviceGroupsInterface {
       #endif
     }
 
-    void handleIntervals(JsonObject interval, Print& out) override { 
+    void handleInterval(JsonObject interval, Print& out) override { 
       #ifdef I2CIP_DEBUG_SERIAL
-        I2CIP_DEBUG_SERIAL.println(F("TestModule: handleConfig() called, but not implemented."));
+        I2CIP_DEBUG_SERIAL.println(F("TestModule: handleInterval() called, but not implemented."));
       #endif
     }
 
-    void handleEvens(JsonObject event, Print& out) override { 
+    void handleEvent(JsonObject event, Print& out) override { 
       #ifdef I2CIP_DEBUG_SERIAL
         I2CIP_DEBUG_SERIAL.println(F("TestModule: handleEvent() called, but not implemented."));
       #endif
     }
-
-    
 };
 
 class TestNoModule : public I2CIP::NotAModule, public TestDeviceGroupsInterface {

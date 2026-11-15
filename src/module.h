@@ -12,8 +12,8 @@
 #include "interface.h"
 #include "eeprom.h"
 
-#include "bst.h"
-#include "hashtable.h"
+#include <bst.h>
+#include <hashtable.h>
 
 #define I2CIP_FQA_SUBNET_MATCH(fqa, _fqa) (bool)((I2CIP_FQA_SEG_I2CBUS(fqa) == I2CIP_FQA_SEG_I2CBUS(_fqa)) && (I2CIP_FQA_SEG_MODULE(fqa) == I2CIP_FQA_SEG_MODULE(_fqa)))
 #define I2CIP_FQA_MODULE_MATCH(fqa, wire, module) (bool)(I2CIP_FQA_SEG_I2CBUS(fqa) == (wire) && I2CIP_FQA_SEG_MODULE(fqa) == (module))
